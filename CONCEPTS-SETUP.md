@@ -19,7 +19,10 @@
     img/concepts/*.webp    card thumbnails (full studio scene)
     img/meshy/*.png        cropped buildings sent to Meshy
     api/concepts.js        the library's memory (read / save / hide / delete)
+    api/model-import.js    streams a finished Meshy model (any size) into Blob for optimising
     api/blob-upload.js     upload tokens for images and GLBs
+    vendor/glb-optimizer.js  in-browser model optimiser used by /developer and the Studio
+                           (built from tools/glb-optimizer — see "Rebuilding the optimiser")
     api/_lib.js            shared helpers (not a route)
     package.json           adds @vercel/blob; "type": "module" matches meshy-proxy.js
     vercel.json            REPLACES the old one
@@ -42,6 +45,35 @@ and the Meshy key saved on /hologram is shared with /developer.
 
 If you close the tab mid-generation, reopen /developer: unfinished tasks resume by themselves.
 "Regenerate" asks for confirmation because it spends credits again.
+
+## Model size and quality
+Meshy's files are mostly texture data (2048 px PNGs), and "High detail" returns Meshy's raw,
+un-remeshed mesh on top — often 60–200 MB, which used to fail with "larger than 60 MB".
+Now every model is optimised in your browser before it is stored:
+    Web          Meshy remesh to 30k triangles     → about 1–2 MB
+    High detail  Meshy's full mesh, ≤600k triangles → about 5–10 MB
+(geometry is meshopt-compressed, textures become JPEG; 2048 px colour is kept.)
+The server only streams Meshy's file into Blob; the browser downloads, shrinks and uploads it,
+then the raw copy is deleted. Models stored before this change show "not optimised yet" —
+press "Optimise stored models" once on /developer (no Meshy credits are spent).
+Replaced models, thumbnails and input images are deleted from the store automatically.
+
+## The skylight on each model
+Meshy rebuilds a building from one picture, so thin glass leaves come back missing (the tower's
+input image even cropped its skylight off), melted into the roof, or as stray panels. The viewer
+therefore mounts the engineered KARLCON skylight on every generated model: it finds the roof,
+seats the kerb on it, cuts the roof open underneath (removing Meshy's melted version), adds a
+lit light-well, and "Open roof" drives the real mechanism.
+- Placement is automatic for new models. The six current models have hand-tuned placements in
+  concepts-data.js (skylight: {...}).
+- To adjust one: /developer → "Skylight" (or /?admin#concept=<id>), enter the admin key in the
+  Studio panel, drag Across / Along / Size / Length / Turn / Raise, then "Save for everyone".
+- Regenerating a model resets its placement to automatic.
+- AR (View on your site) shows the Meshy model on its own for now.
+
+## Rebuilding the optimiser (only if you change tools/glb-optimizer/optimizer.js)
+    cd tools/glb-optimizer && npm install && npm run build
+This rewrites vendor/glb-optimizer.js. tools/ is not deployed (.vercelignore).
 
 ## Better models
 Three inputs are tight crops rather than clean cut-outs, because the studio background could not

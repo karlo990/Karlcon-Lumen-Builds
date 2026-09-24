@@ -7,14 +7,16 @@
 // Storage: Vercel Blob. Each concept is one JSON file at
 //   concepts/items/<id>/meta-<random>.json
 // Every save writes a NEW file and deletes the old one, so the public CDN can
-// never serve a stale version. Thumbnails and GLBs live under concepts/media/<id>/.
+// never serve a stale version. Thumbnails and GLBs live under concepts/media/<id>/;
+// when a save replaces one of them, the old file is deleted so the store never
+// fills up with orphaned models.
 
 import { put, list, del } from '@vercel/blob';
-import { CHANNELS, MECHANISMS, hasStore, isAdmin, str, safeMediaUrl, slug } from './_lib.js';
+import { CHANNELS, MECHANISMS, MEDIA, hasStore, isAdmin, isOwnMedia, str, safeMediaUrl, slug, fetchMeshy, capStream } from './_lib.js';
 
 const ITEMS = 'concepts/items/';
-const MEDIA = 'concepts/media/';
 const MAX_GLB_BYTES = 60 * 1024 * 1024;
+const MEDIA_KEYS = ['thumbUrl', 'meshySource', 'modelUrl'];
 
 async function listAll(prefix) {
   const out = [];
@@ -45,12 +47,42 @@ async function readConcepts() {
     (a.order ?? 999) - (b.order ?? 999) || String(b.createdAt).localeCompare(String(a.createdAt)));
 }
 
+const num = (x, lo, hi, d) => (x !== null && x !== '' && Number.isFinite(+x) ? Math.min(hi, Math.max(lo, +x)) : d);
+
+// Where the engineered KARLCON skylight sits on a generated model (see mountSkylight in concepts.html).
+// x/z: offset from the model's centre as a fraction of its footprint; dy: metres; rot: degrees;
+// scale: size against the 2.0 × 1.5 m benchmark aperture; len: stretches its length only.
+function cleanSkylight(v) {
+  if (!v || typeof v !== 'object') return null;
+  return {
+    mode: ['auto', 'manual', 'off'].includes(v.mode) ? v.mode : 'auto',
+    x: num(v.x, -0.5, 0.5, 0),
+    z: num(v.z, -0.5, 0.5, 0),
+    dy: num(v.dy, -3, 3, 0),
+    scale: num(v.scale, 0.3, 3, 1),
+    len: num(v.len, 0.5, 3, 1),
+    rot: num(v.rot, -180, 180, 0),
+    cut: v.cut !== false,
+  };
+}
+
+// What the browser optimiser did to the stored model — shown on /developer.
+function cleanModelInfo(v) {
+  if (!v || typeof v !== 'object') return null;
+  return {
+    preset: str(v.preset, 12),
+    bytesIn: num(v.bytesIn, 0, 1e10, 0),
+    trisIn: num(v.trisIn, 0, 1e9, 0),
+    trisOut: num(v.trisOut, 0, 1e9, 0),
+    texMax: num(v.texMax, 0, 16384, 0),
+  };
+}
+
 function clean(body, existing) {
   const specs = Array.isArray(body.specs) ? body.specs.slice(0, 8)
     .map((s) => ({ k: str(s && s.k, 40), v: str(s && s.v, 80) }))
     .filter((s) => s.k && s.v) : [];
   const m = body.massing || {};
-  const num = (x, lo, hi, d) => (Number.isFinite(+x) ? Math.min(hi, Math.max(lo, +x)) : d);
   return {
     id: existing?.id,
     title: str(body.title, 80),
@@ -69,28 +101,24 @@ function clean(body, existing) {
     modelUrl: safeMediaUrl(body.modelUrl),
     modelBytes: Number.isFinite(+body.modelBytes) ? +body.modelBytes : 0,
     modelGeneratedAt: str(body.modelGeneratedAt, 40),
+    modelInfo: cleanModelInfo(body.modelInfo),
     meshyTaskId: str(body.meshyTaskId, 80),
+    skylight: cleanSkylight(body.skylight),
     createdAt: existing?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 }
 
 // Meshy's signed asset links expire, so a concept must never point at them.
-// We fetch the GLB server-side once and keep a permanent copy in Blob.
+// Direct import stores Meshy's file as it is, so it is kept for small (Web quality) models
+// only; /developer and the Studio stage bigger files through /api/model-import and
+// optimise them in the browser instead.
+const TOO_BIG = 'Model is larger than 60 MB. Use /developer (or the Studio link field), which optimises it in the browser first.';
 async function importMeshyGlb(id, rawUrl) {
-  const u = new URL(rawUrl);
-  if (!(u.hostname === 'meshy.ai' || u.hostname.endsWith('.meshy.ai'))) {
-    throw Object.assign(new Error('Only *.meshy.ai asset links can be imported.'), { status: 400 });
-  }
-  let r;
-  for (let attempt = 1; attempt <= 4; attempt++) {
-    r = await fetch(u, { signal: AbortSignal.timeout(20000) });
-    if (![502, 503, 504].includes(r.status)) break;
-    await new Promise((ok) => setTimeout(ok, 300 * 2 ** (attempt - 1)));
-  }
-  if (!r.ok) throw Object.assign(new Error(`Meshy returned HTTP ${r.status}. If the link is old it has probably expired — copy a fresh one from Meshy.`), { status: 400 });
-  const buf = Buffer.from(await r.arrayBuffer());
-  if (buf.length > MAX_GLB_BYTES) throw Object.assign(new Error('Model is larger than 60 MB. Reduce polygons or Draco-compress it first.'), { status: 400 });
+  const r = await fetchMeshy(rawUrl);
+  const len = Number(r.headers.get('content-length')) || 0;
+  if (len > MAX_GLB_BYTES) throw Object.assign(new Error(TOO_BIG), { status: 413 });
+  const buf = Buffer.from(await new Response(capStream(r.body, MAX_GLB_BYTES, TOO_BIG)).arrayBuffer());
   const saved = await put(`${MEDIA}${id}/model.glb`, buf, {
     access: 'public', addRandomSuffix: true, contentType: 'model/gltf-binary',
     cacheControlMaxAge: 31536000,
@@ -122,20 +150,23 @@ export default async function handler(req, res) {
       // Partial updates: anything not sent keeps its stored value.
       const merged = { ...(existing || {}), ...body };
       if (!('modelUrl' in body) || body.modelUrl === undefined) merged.modelUrl = existing?.modelUrl || '';
-      if (body.clearModel) Object.assign(merged, { modelUrl: '', modelBytes: 0, modelGeneratedAt: '' });
+      if (body.clearModel) Object.assign(merged, { modelUrl: '', modelBytes: 0, modelGeneratedAt: '', modelInfo: null });
       const concept = clean(merged, existing);
       concept.id = id;
       if (!concept.title) return res.status(400).json({ error: 'Title is required.' });
       if (body.meshyUrl) {
         const got = await importMeshyGlb(id, str(body.meshyUrl, 2000));
-        Object.assign(concept, { modelUrl: got.url, modelBytes: got.bytes, modelGeneratedAt: new Date().toISOString(), meshyTaskId: '' });
+        Object.assign(concept, { modelUrl: got.url, modelBytes: got.bytes, modelGeneratedAt: new Date().toISOString(), modelInfo: null, meshyTaskId: '' });
       }
 
       await put(`${ITEMS}${id}/meta.json`, JSON.stringify(concept), {
         access: 'public', addRandomSuffix: true, contentType: 'application/json',
         cacheControlMaxAge: 60,
       });
-      if (oldBlobs.length) await del(oldBlobs.map((b) => b.url));
+      // Media this save replaced (an old model, thumbnail or input image) is now unreferenced.
+      const replaced = MEDIA_KEYS.map((k) => existing?.[k]).filter((u, i) => u && u !== concept[MEDIA_KEYS[i]] && isOwnMedia(u, id));
+      const stale = [...oldBlobs.map((b) => b.url), ...replaced];
+      if (stale.length) await del(stale).catch(() => {});
       return res.status(200).json({ ok: true, concept });
     }
 

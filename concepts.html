@@ -157,6 +157,23 @@ footer .fam span:first-child{color:var(--red)}
 .tools button:hover{color:var(--red)}
 .tools button.primary{background:var(--red);color:#fff}
 .tools button.primary:hover{background:var(--red-ink);color:#fff}
+@media (max-width:480px){
+  .tools{gap:2px;padding:4px;max-width:calc(100% - 20px);overflow-x:auto;scrollbar-width:none}
+  .tools::-webkit-scrollbar{display:none}
+  .tools button{padding:8px 9px;font-size:12px}
+}
+/* skylight placement (admin) */
+.tune{position:absolute;top:14px;right:14px;z-index:4;width:250px;max-height:calc(100% - 90px);overflow-y:auto;background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow);font-size:12.5px}
+.tune summary{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);cursor:pointer;font-weight:600}
+.tune label{display:grid;grid-template-columns:52px 1fr;align-items:center;gap:8px;margin-top:8px;font-weight:600;color:var(--ink-2)}
+.tune label.chk{display:flex;font-weight:500}
+.tune input[type=range]{width:100%;accent-color:var(--red)}
+.tune .seg{display:flex;gap:4px;margin-top:10px;background:var(--soft);border-radius:999px;padding:3px}
+.tune .seg button{flex:1;border:0;background:transparent;border-radius:999px;padding:6px 0;font-weight:600;font-size:12px;color:var(--ink-2)}
+.tune .seg button[aria-pressed="true"]{background:#fff;color:var(--red);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.tune .row{display:flex;gap:6px;margin-top:10px}
+.tune .row .btn{flex:1;padding:8px 10px;font-size:12.5px}
+.tune .tmsg{margin:8px 0 0;color:var(--muted);min-height:1em}
 .close{position:absolute;top:14px;left:14px;z-index:5;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#fff;display:grid;place-items:center}
 .close svg{width:20px;height:20px}
 .panel{border-left:1px solid var(--line);overflow-y:auto;padding:30px 28px 40px;display:flex;flex-direction:column;gap:16px}
@@ -690,7 +707,7 @@ function openViewer(id,go3d){
   $('#vTitle').textContent=c.title; $('#vTag').textContent=c.tagline||'';
   const dl=$('#vSpecs'); dl.textContent='';
   for(const s of (c.specs||[])) dl.append(el('div',null,el('dt',{text:s.k}),el('dd',{text:s.v})));
-  $('#vNote').textContent=c.modelUrl?'3D model generated from the concept render. Use Mechanism to see how the roof opens. Final dimensions follow a site survey and structural design.':'Interactive 3D massing with the real mechanism. Figures are for a 1.5 × 2.0 m benchmark aperture; each site is designed individually.';
+  $('#vNote').textContent=c.modelUrl?'3D model generated from the concept render, fitted with the engineered KARLCON skylight — press Open roof to see it work. Final dimensions follow a site survey and structural design.':'Interactive 3D massing with the real mechanism. Figures are for a 1.5 × 2.0 m benchmark aperture; each site is designed individually.';
   $('#vAR').hidden=!c.modelUrl;
   $('#vPoster').src=thumbOf(c); $('#vPoster').alt=c.title; $('#vPoster').style.display='';
   $('#vOverlay').style.display=''; $('#vTools').style.display='none'; setStatus('');
@@ -730,7 +747,8 @@ function loadThree(){
       THREE.OrbitControls?0:loadScript(ex+'controls/OrbitControls.js'),
       THREE.GLTFLoader?0:loadScript(ex+'loaders/GLTFLoader.js'),
       THREE.DRACOLoader?0:loadScript(ex+'loaders/DRACOLoader.js'),
-      THREE.RoomEnvironment?0:loadScript(ex+'environments/RoomEnvironment.js')
+      THREE.RoomEnvironment?0:loadScript(ex+'environments/RoomEnvironment.js'),
+      window.MeshoptDecoder?0:loadScript(ex+'libs/meshopt_decoder.js')
     ]);
   })().catch(e=>{threeReady=null;throw e;});
   return threeReady;
@@ -746,19 +764,19 @@ async function start3D(mode){
   if(openId!==c.id) return;
   const test=document.createElement('canvas');
   if(!(test.getContext('webgl')||test.getContext('experimental-webgl'))){ setStatus('This device does not support 3D.'); $('#vOverlay').style.display=''; return; }
-  V=buildScene(c);
+  const v=V=buildScene(c);
   if(viewMode==='model'&&c.modelUrl){
-    loadModel(c.modelUrl).then(()=>{ setStatus(''); $('#vPoster').style.display='none'; })
-      .catch(()=>{ setStatus('Model unavailable — showing the mechanism study.'); viewMode='mechanism'; addMassing(c); syncTools(c); $('#vPoster').style.display='none'; });
+    loadModel(c.modelUrl).then(()=>{ if(V!==v) return; mountSkylight(c); syncTools(c); tunePanel(c); setStatus(''); $('#vPoster').style.display='none'; })
+      .catch(()=>{ if(V!==v) return; setStatus('Model unavailable — showing the mechanism study.'); viewMode='mechanism'; addMassing(c); syncTools(c); $('#vPoster').style.display='none'; });
   }else{ viewMode='mechanism'; addMassing(c); setStatus(''); $('#vPoster').style.display='none'; }
   $('#vTools').style.display='flex'; syncTools(c);
 }
 function syncTools(c){
   const labels=MECH_LABEL[c.mechanism];
-  $('#tMech').style.display=(viewMode==='mechanism'&&labels)?'':'none';
+  $('#tMech').style.display=(labels&&V&&V.mech)?'':'none';
   if(labels) $('#tMech').textContent=labels[0];
   $('#tView').style.display=(c.modelUrl&&labels)?'':'none';
-  $('#tView').textContent=viewMode==='model'?'Mechanism':'3D model';
+  $('#tView').textContent=viewMode==='model'?'Massing':'3D model';
 }
 $('#tView').onclick=()=>{ const next=viewMode==='model'?'mechanism':'model'; destroy3D(); start3D(next); };
 
@@ -769,6 +787,7 @@ function buildScene(c){
   renderer.outputEncoding=THREE.sRGBEncoding;
   renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=0.95;
   renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.localClippingEnabled=true;                        // opens the roof under a mounted skylight
   stage.insertBefore(renderer.domElement,$('#vStatus'));
   const scene=new THREE.Scene(); scene.background=new THREE.Color(0xF3EFEC); scene.fog=new THREE.Fog(0xF3EFEC,40,90);
   const camera=new THREE.PerspectiveCamera(38,1,0.1,300);
@@ -802,12 +821,16 @@ function frameView(center,r){
   V.camera.position.set(center.x+r*0.95,center.y+r*0.95,center.z+r*1.25);
   V.controls.update();
 }
+function disposeTree(root){
+  root.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material){ (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ for(const k in m){ if(m[k]&&m[k].isTexture) m[k].dispose(); } m.dispose(); }); } });
+}
 function destroy3D(){
   if(!V) return;
   cancelAnimationFrame(V.raf); V.ro.disconnect(); V.controls.dispose();
-  V.scene.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material){ (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ for(const k in m){ if(m[k]&&m[k].isTexture) m[k].dispose(); } m.dispose(); }); } });
+  disposeTree(V.scene);
   V.renderer.dispose(); V.renderer.domElement.remove(); V=null;
   $('#tMech').textContent='Open roof';
+  const tp=$('#tune'); if(tp) tp.hidden=true;
 }
 
 function loadModel(url){
@@ -816,6 +839,7 @@ function loadModel(url){
     try{ const h=new URL(url,location.href).hostname; if(h==='meshy.ai'||h.endsWith('.meshy.ai')) src='/api/meshy-proxy?url='+encodeURIComponent(url); }catch(e){}
     const loader=new THREE.GLTFLoader();
     const draco=new THREE.DRACOLoader(); draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.4.1/'); loader.setDRACOLoader(draco);
+    if(window.MeshoptDecoder) loader.setMeshoptDecoder(window.MeshoptDecoder);   // models optimised on /developer
     loader.load(src,g=>{
       if(!V) return;
       const m=g.scene;
@@ -823,22 +847,112 @@ function loadModel(url){
       const box=new THREE.Box3().setFromObject(m), size=box.getSize(new THREE.Vector3()), ctr=box.getCenter(new THREE.Vector3());
       const s=8/Math.max(size.x,size.y,size.z||1);
       m.scale.setScalar(s); m.position.set(-ctr.x*s,-box.min.y*s,-ctr.z*s);
-      V.root.add(m);
+      V.root.add(m); V.model=m;
       if(g.animations&&g.animations.length){ V.mixer=new THREE.AnimationMixer(m); g.animations.forEach(a=>V.mixer.clipAction(a).play()); }
       frameView(new THREE.Vector3(0,size.y*s*0.45,0),9); ok();
     },p=>{ if(p.total) setStatus('Loading 3D… '+Math.round(p.loaded/p.total*100)+'%'); },no);
   });
 }
 
-/* Procedural massing model with the concept's real mechanism */
+/* ============================================================
+   KARLCON skylight module — one parametric unit (kerb, red-framed glass, actuators,
+   light-well) shared by the massing study and every generated model.
+   Meshy rebuilds a building from a single picture, so thin glass leaves come back
+   missing, melted into the roof, or not at all when the input crop cut them off.
+   The engineered skylight is therefore mounted on the model here: seated on its roof,
+   with the roof cut open beneath it, and driven by the same Open roof control.
+   ============================================================ */
 const lin=h=>new THREE.Color(h).convertSRGBToLinear();
+const APERTURE={w:2.0,d:1.5};                        // LB-1 benchmark, metres
+const SKY_DEFAULT={mode:'auto',x:0,z:0,dy:0,scale:1,len:1,rot:0,cut:true};
+const skylightCfg=c=>Object.assign({},SKY_DEFAULT,(SEED.find(s=>s.id===c.id)||{}).skylight,c.skylight);
+
+function beamTexture(){
+  const cv=document.createElement('canvas'); cv.width=4; cv.height=128;
+  const x=cv.getContext('2d'), gr=x.createLinearGradient(0,0,0,128);
+  gr.addColorStop(0,'rgba(255,255,255,0)'); gr.addColorStop(1,'rgba(255,255,255,1)');
+  x.fillStyle=gr; x.fillRect(0,0,4,128);
+  return new THREE.CanvasTexture(cv);
+}
+// Built in metres with its origin at the centre of the kerb base; the caller scales it.
+// kerbH: kerb height (m). well: depth (m) of the lit light-well below a cut-open roof.
+// u: scene units per metre, for the lamp's reach.
+function buildSkylight(mech,aw,ad,{kerbH=0.15,well=0,u=1,onModel=false}={}){
+  const g=new THREE.Group();
+  const M={
+    red:new THREE.MeshStandardMaterial({color:lin(0xC41E16),roughness:0.45,metalness:0.15,envMapIntensity:0.15}),
+    glass:new THREE.MeshStandardMaterial({color:lin(0x9FC3D1),roughness:0.08,metalness:0.1,transparent:true,opacity:0.5,envMapIntensity:0.45}),
+    dark:new THREE.MeshStandardMaterial({color:lin(0x2A2E35),roughness:0.8,envMapIntensity:0.45}),
+    liner:new THREE.MeshStandardMaterial({color:lin(0xF4EEE6),roughness:0.9,emissive:lin(0xFFC98A),emissiveIntensity:0.1,envMapIntensity:0.45}),
+    glow:new THREE.MeshBasicMaterial({color:lin(0xFFD49A),transparent:true,opacity:0,depthWrite:false}),
+    beam:new THREE.MeshBasicMaterial({color:lin(0xFFC98A),map:beamTexture(),transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide,toneMapped:false})
+  };
+  const box=(w,h,d,mat,x,y,z,parent)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);b.position.set(x,y,z);b.castShadow=true;b.receiveShadow=true;(parent||g).add(b);return b;};
+  const kt=0.08, kh=kerbH, top=kh;
+  box(aw+2*kt,kh,kt,M.dark,0,kh/2,ad/2+kt/2); box(aw+2*kt,kh,kt,M.dark,0,kh/2,-ad/2-kt/2);
+  box(kt,kh,ad,M.dark,aw/2+kt/2,kh/2,0); box(kt,kh,ad,M.dark,-aw/2-kt/2,kh/2,0);
+  if(well>0){                                         // lined shaft down into the building
+    const lh=kh+well, ly=(kh-well)/2, t=0.02;
+    box(aw,lh,t,M.liner,0,ly,ad/2-t/2); box(aw,lh,t,M.liner,0,ly,-ad/2+t/2);
+    box(t,lh,ad,M.liner,aw/2-t/2,ly,0); box(t,lh,ad,M.liner,-aw/2+t/2,ly,0);
+  }
+  const floorY=well>0?-well:0.005;
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(aw,ad),M.glow); floor.rotation.x=-Math.PI/2; floor.position.y=floorY;
+  floor.visible=!(onModel&&well===0); g.add(floor);   // a thin canopy is simply open to the sky
+  const lamp=new THREE.PointLight(0xFFC98A,0,14*u,2); lamp.position.set(0,Math.min(floorY,0)-0.8,0); g.add(lamp);
+  const bh=2.4, beam=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1,bh,4,1,true,Math.PI/4),M.beam);
+  beam.scale.set(aw/Math.SQRT2,1,ad/Math.SQRT2); beam.position.y=top+bh/2; beam.renderOrder=2; beam.visible=false; g.add(beam);
+  const glow=e=>{
+    M.glow.opacity=well>0?0.35+0.6*e:0.85*e; lamp.intensity=2.4*e;
+    M.liner.emissiveIntensity=0.1+0.45*e; M.beam.opacity=0.22*e; beam.visible=e>0.02;
+  };
+  function sash(w,d){
+    const s=new THREE.Group();
+    const p=new THREE.Mesh(new THREE.BoxGeometry(w,0.05,d),M.glass); s.add(p);
+    const f=0.06;
+    [[w,f,0,d/2],[w,f,0,-d/2]].forEach(([a,b,x,z])=>{const r=new THREE.Mesh(new THREE.BoxGeometry(a,0.08,b),M.red);r.position.set(x,0,z);s.add(r);});
+    [[f,d,w/2],[f,d,-w/2]].forEach(([a,b,x])=>{const r=new THREE.Mesh(new THREE.BoxGeometry(a,0.08,b),M.red);r.position.set(x,0,0);s.add(r);});
+    s.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+    return s;
+  }
+  let set=null;
+  if(mech==='slide'){
+    const panel=sash(aw+0.12,ad+0.12); panel.position.set(0,top+0.04,0); g.add(panel);
+    box(aw*2.2,0.04,0.06,M.dark,aw*0.6,top-0.02,ad/2+0.12); box(aw*2.2,0.04,0.06,M.dark,aw*0.6,top-0.02,-ad/2-0.12);
+    set=q=>{ const lift=Math.min(1,q*6); panel.position.y=top+0.04+0.08*lift; panel.position.x=(aw+0.2)*Math.max(0,(q-0.12)/0.88); glow(q); };
+  }else if(mech==='louvre'){
+    const n=7, bw=aw/n, blades=[];
+    for(let i=0;i<n;i++){ const b=new THREE.Group(); b.position.set(-aw/2+bw*(i+0.5),top+0.04,0);
+      const m1=new THREE.Mesh(new THREE.BoxGeometry(bw*0.96,0.035,ad),new THREE.MeshStandardMaterial({color:lin(0xE9EBEE),roughness:0.35,metalness:0.45,envMapIntensity:0.45}));
+      m1.castShadow=true; b.add(m1); g.add(b); blades.push(b); }
+    box(aw+0.3,0.05,0.07,M.red,0,top+0.02,ad/2+0.08);
+    set=q=>{ blades.forEach((b,i)=>{ const qi=Math.max(0,Math.min(1,(q-i*0.03)/0.82)); b.rotation.z=-1.35*qi; }); glow(q); };
+  }else if(mech==='hinged'){
+    const steel=new THREE.MeshStandardMaterial({color:0x8A9199,metalness:0.8,roughness:0.3,envMapIntensity:0.45});
+    const mk=(sign)=>{ const pivot=new THREE.Group(); pivot.position.set(sign*aw/2,top+0.04,0);
+      const leaf=sash(aw/2,ad+0.1); leaf.position.x=-sign*aw/4; pivot.add(leaf); g.add(pivot);
+      const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,1,10),steel); rod.castShadow=true; g.add(rod);
+      return {pivot,rod,sign}; };
+    const L=mk(-1),R=mk(1), up=new THREE.Vector3(0,1,0), a=new THREE.Vector3(), b=new THREE.Vector3();
+    const rodUpdate=(s,ang)=>{                         // actuator from the kerb to the underside of its leaf
+      const bx=-s.sign*aw/4*0.95, by=-0.03, co=Math.cos(ang), si=Math.sin(ang);
+      a.set(s.sign*aw*0.46,top-0.02,ad/2-0.06);
+      b.set(s.pivot.position.x+bx*co-by*si,s.pivot.position.y+bx*si+by*co,ad/2-0.06);
+      const len=a.distanceTo(b); s.rod.position.copy(a).add(b).multiplyScalar(0.5);
+      s.rod.scale.set(1,Math.max(0.01,len),1); s.rod.quaternion.setFromUnitVectors(up,b.clone().sub(a).normalize()); };
+    set=q=>{ const ang=1.12*q; L.pivot.rotation.z=ang; R.pivot.rotation.z=-ang; rodUpdate(L,ang); rodUpdate(R,-ang); glow(q); };
+  }
+  if(set) set(0); else glow(0);
+  return {group:g,set};
+}
+
+/* Procedural massing model with the concept's real mechanism */
 function addMassing(c){
   const g=V.root, m=c.massing||{w:8,d:6,h:3.2};
   const W=m.w,D=m.d,H=m.h;
-  const white=new THREE.MeshStandardMaterial({color:lin(0xF4F2EF),roughness:0.6});
-  const red=new THREE.MeshStandardMaterial({color:lin(0xC41E16),roughness:0.45,metalness:0.15});
-  const glass=new THREE.MeshStandardMaterial({color:lin(0x9FC3D1),roughness:0.08,metalness:0.1,transparent:true,opacity:0.5});
-  const dark=new THREE.MeshStandardMaterial({color:lin(0x2A2E35),roughness:0.8});
+  const white=new THREE.MeshStandardMaterial({color:lin(0xF4F2EF),roughness:0.6,envMapIntensity:0.45});
+  const red=new THREE.MeshStandardMaterial({color:lin(0xC41E16),roughness:0.45,metalness:0.15,envMapIntensity:0.15});
+  const glass=new THREE.MeshStandardMaterial({color:lin(0x9FC3D1),roughness:0.08,metalness:0.1,transparent:true,opacity:0.5,envMapIntensity:0.45});
   const box=(w,h,d,mat,x,y,z)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);b.position.set(x,y,z);b.castShadow=true;b.receiveShadow=true;g.add(b);return b;};
   // body with glazed front band and red frame
   box(W,H,D,white,0,H/2,0);
@@ -849,53 +963,177 @@ function addMassing(c){
   box(col,0.22,D+0.3,red,W/2,H+0.12,0); box(col,0.22,D+0.3,red,-W/2,H+0.12,0);
   box(W+0.1,0.14,D+0.1,white,0,H+0.07,0);
   // aperture: LB-1 benchmark 2.0 x 1.5 m, scaled down for small roofs
-  const aw=Math.min(2.0,W*0.45), ad=Math.min(1.5,D*0.45), ky=H+0.14, kh=0.15, kt=0.08;
-  const hole=new THREE.Mesh(new THREE.PlaneGeometry(aw,ad),new THREE.MeshBasicMaterial({color:lin(0xFFD49A),transparent:true,opacity:0.0}));
-  hole.rotation.x=-Math.PI/2; hole.position.set(0,ky+0.005,0); g.add(hole);
-  box(aw+2*kt,kh,kt,dark,0,ky+kh/2,ad/2+kt/2); box(aw+2*kt,kh,kt,dark,0,ky+kh/2,-ad/2-kt/2);
-  box(kt,kh,ad,dark,aw/2+kt/2,ky+kh/2,0); box(kt,kh,ad,dark,-aw/2-kt/2,ky+kh/2,0);
-  const lamp=new THREE.PointLight(0xFFC98A,0,14,2); lamp.position.set(0,H*0.55,0); g.add(lamp);
-  const top=ky+kh;
-  function sash(w,d){
-    const s=new THREE.Group();
-    const p=new THREE.Mesh(new THREE.BoxGeometry(w,0.05,d),glass); s.add(p);
-    const f=0.06;
-    [[w,f,0,d/2],[w,f,0,-d/2]].forEach(([a,b,x,z])=>{const r=new THREE.Mesh(new THREE.BoxGeometry(a,0.08,b),red);r.position.set(x,0,z);s.add(r);});
-    [[f,d,w/2],[f,d,-w/2]].forEach(([a,b,x])=>{const r=new THREE.Mesh(new THREE.BoxGeometry(a,0.08,b),red);r.position.set(x,0,0);s.add(r);});
-    s.traverse(o=>{if(o.isMesh)o.castShadow=true;});
-    return s;
-  }
-  const glow=e=>{hole.material.opacity=0.85*e;lamp.intensity=2.4*e;};
-  if(c.mechanism==='slide'){
-    const panel=sash(aw+0.12,ad+0.12); panel.position.set(0,top+0.04,0); g.add(panel);
-    box(aw*2.2,0.04,0.06,dark,aw*0.6,top-0.02,ad/2+0.12); box(aw*2.2,0.04,0.06,dark,aw*0.6,top-0.02,-ad/2-0.12);
-    V.mech=q=>{ const lift=Math.min(1,q*6); panel.position.y=top+0.04+0.08*lift; panel.position.x=(aw+0.2)*Math.max(0,(q-0.12)/0.88); glow(q); };
-  }else if(c.mechanism==='louvre'){
-    const n=7, bw=aw/n, blades=[];
-    for(let i=0;i<n;i++){ const b=new THREE.Group(); b.position.set(-aw/2+bw*(i+0.5),top+0.04,0);
-      const m1=new THREE.Mesh(new THREE.BoxGeometry(bw*0.96,0.035,ad),new THREE.MeshStandardMaterial({color:lin(0xE9EBEE),roughness:0.35,metalness:0.45}));
-      m1.castShadow=true; b.add(m1); g.add(b); blades.push(b); }
-    box(aw+0.3,0.05,0.07,red,0,top+0.02,ad/2+0.08);
-    V.mech=q=>{ blades.forEach((b,i)=>{ const qi=Math.max(0,Math.min(1,(q-i*0.03)/0.82)); b.rotation.z=-1.35*qi; }); glow(q); };
-  }else if(c.mechanism==='hinged'){
-    const mk=(sign)=>{ const pivot=new THREE.Group(); pivot.position.set(sign*aw/2,top+0.04,0);
-      const leaf=sash(aw/2,ad+0.1); leaf.position.x=-sign*aw/4; pivot.add(leaf); g.add(pivot);
-      const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,1,10),new THREE.MeshStandardMaterial({color:0x8A9199,metalness:0.8,roughness:0.3})); g.add(rod);
-      return {pivot,rod,sign}; };
-    const L=mk(-1),R=mk(1), up=new THREE.Vector3(0,1,0), a=new THREE.Vector3(), b=new THREE.Vector3();
-    const rodUpdate=(s)=>{ a.set(s.sign*aw*0.46,top-0.02,ad/2-0.06); b.set(-s.sign*aw/4*0.95,-0.03,ad/2-0.06); s.pivot.localToWorld(b); g.worldToLocal(b);
-      const len=a.distanceTo(b); s.rod.position.copy(a).add(b).multiplyScalar(0.5);
-      s.rod.scale.set(1,Math.max(0.01,len),1); s.rod.quaternion.setFromUnitVectors(up,b.clone().sub(a).normalize()); };
-    V.mech=q=>{ const ang=1.12*q; L.pivot.rotation.z=ang; R.pivot.rotation.z=-ang; L.pivot.updateMatrixWorld(); R.pivot.updateMatrixWorld(); rodUpdate(L); rodUpdate(R); glow(q); };
-  }
-  g.traverse(o=>{ if(o.isMesh&&o.material&&'envMapIntensity' in o.material) o.material.envMapIntensity=o.material.color&&o.material.color.r>0.4&&o.material.color.g<0.1?0.15:0.45; });
-  if(V.mech) V.mech(0);
+  const aw=Math.min(APERTURE.w,W*0.45), ad=Math.min(APERTURE.d,D*0.45);
+  const sk=buildSkylight(c.mechanism,aw,ad,{kerbH:0.15}); sk.group.position.y=H+0.14; g.add(sk.group);
+  V.mech=sk.set;
   const ringR=Math.max(W,D)*0.78+1.2; V.ring.geometry.dispose(); V.ring.geometry=new THREE.RingGeometry(ringR,ringR+0.22,96);
   frameView(new THREE.Vector3(aw*0.25,H*0.85,0),Math.max(W,D)*0.78+2.6);
+}
+
+/* Height maps of the loaded model, seen from above (roof) and from below (ceilings),
+   rendered once on the GPU — raycasting a 600k-triangle model on the CPU takes seconds.
+   Rows run from -z to +z and columns from -x to +x; NaN where the model is absent. */
+function heightMaps(model){
+  const N=160, box=new THREE.Box3().setFromObject(model);
+  const cx=(box.min.x+box.max.x)/2, cz=(box.min.z+box.max.z)/2;
+  const half=Math.max(box.max.x-box.min.x,box.max.z-box.min.z)/2*1.04, cell=2*half/N;
+  const r=V.renderer, rt=new THREE.WebGLRenderTarget(N,N), px=new Uint8Array(N*N*4);
+  const mat=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,side:THREE.DoubleSide});
+  const tmp=new THREE.Scene(); tmp.overrideMaterial=mat;
+  const parent=model.parent; tmp.add(model);
+  const cc=new THREE.Color(); r.getClearColor(cc); const ca=r.getClearAlpha();
+  const shoot=(fromTop)=>{
+    const near=0.01, far=box.max.y-box.min.y+2;
+    const cam=new THREE.OrthographicCamera(-half,half,half,-half,near,far);
+    cam.position.set(cx,fromTop?box.max.y+1:box.min.y-1,cz); cam.up.set(0,0,fromTop?-1:1);
+    cam.lookAt(cx,fromTop?box.min.y:box.max.y,cz); cam.updateMatrixWorld();
+    r.setRenderTarget(rt); r.setClearColor(0xffffff,1); r.clear(); r.render(tmp,cam);
+    r.readRenderTargetPixels(rt,0,0,N,N,px);
+    const out=new Float32Array(N*N);
+    for(let j=0;j<N;j++) for(let i=0;i<N;i++){
+      const k=(j*N+i)*4, d=(255/256)*(px[k]/255/16777216+px[k+1]/255/65536+px[k+2]/255/256+px[k+3]/255);
+      const row=fromTop?N-1-j:j;                       // the top view sees +z at the bottom of the image
+      out[row*N+i]=d>0.999?NaN:fromTop?cam.position.y-(near+d*(far-near)):cam.position.y+(near+d*(far-near));
+    }
+    return out;
+  };
+  const top=shoot(true), under=shoot(false);
+  r.setRenderTarget(null); r.setClearColor(cc,ca);
+  parent.add(model); rt.dispose(); mat.dispose();
+  const at=(arr,x,z)=>{ const i=Math.floor((x-(cx-half))/cell), j=Math.floor((z-(cz-half))/cell); return (i<0||j<0||i>=N||j>=N)?NaN:arr[j*N+i]; };
+  return {N,cx,cz,half,cell,top,under,roof:(x,z)=>at(top,x,z),ceiling:(x,z)=>at(under,x,z)};
+}
+// Centre of the highest part of the roof: where the render's skylight was, or the crown/apex.
+function roofCrown(hm,height){
+  let hi=-Infinity; for(const h of hm.top) if(h>hi) hi=h;
+  let sx=0,sz=0,n=0;
+  for(let j=0;j<hm.N;j++) for(let i=0;i<hm.N;i++){ const h=hm.top[j*hm.N+i]; if(h>=hi-height*0.035){ sx+=i; sz+=j; n++; } }
+  return {x:hm.cx-hm.half+(sx/n+0.5)*hm.cell, z:hm.cz-hm.half+(sz/n+0.5)*hm.cell};
+}
+// Roof under the kerb's perimeter: low and high level (10th/90th percentile, so a stray strut or a
+// leftover Meshy leaf under one edge does not stretch the kerb), and the steepest step between
+// neighbouring samples (a wall or the roof's edge shows up as a near-vertical step; a cone does not).
+// strict: null if any of the perimeter hangs off the model; otherwise it may bridge a hole.
+function footprint(hm,cx,cz,aw,ad,rot,strict=true){
+  const co=Math.cos(rot), si=Math.sin(rot), pts=[], K=8;
+  const corners=[[-1,-1],[1,-1],[1,1],[-1,1]];
+  for(let e=0;e<4;e++) for(let k=0;k<K;k++){
+    const [x0,z0]=corners[e], [x1,z1]=corners[(e+1)%4], t=k/K;
+    const lx=(x0+(x1-x0)*t)*aw/2, lz=(z0+(z1-z0)*t)*ad/2;
+    pts.push(hm.roof(cx+lx*co+lz*si,cz-lx*si+lz*co));
+  }
+  const ok=pts.filter(h=>!Number.isNaN(h));
+  if(strict?ok.length<pts.length:!ok.length) return null;
+  let steep=0;
+  for(let i=0;i<pts.length;i++){ const e=Math.floor(i/K), run=(e%2?ad:aw)/K; steep=Math.max(steep,Math.abs(pts[(i+1)%pts.length]-pts[i])/run); }
+  ok.sort((p,q)=>p-q);
+  return {lo:ok[Math.floor((ok.length-1)*0.1)],hi:ok[Math.ceil((ok.length-1)*0.9)],steep};
+}
+function setCut(model,planes){
+  model.traverse(o=>{ if(o.isMesh) (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{
+    m.clippingPlanes=planes; m.clipIntersection=true; m.clipShadows=true; if(planes) m.side=THREE.DoubleSide; m.needsUpdate=true; }); });
+}
+function mountSkylight(c,{frame=true}={}){
+  if(!V||!V.model) return;
+  if(V.sky){ V.root.remove(V.sky.group); disposeTree(V.sky.group); V.sky=null; }
+  setCut(V.model,null); V.mech=null; V.t=V.target=0;
+  const cfg=skylightCfg(c);
+  if(cfg.mode==='off'||!MECH_LABEL[c.mechanism]) return;
+  const model=V.model, box=new THREE.Box3().setFromObject(model), size=box.getSize(new THREE.Vector3());
+  const m=c.massing||{w:8,d:6,h:3.2}, span=Math.max(size.x,size.z);
+  const u=span/Math.max(m.w,m.d);                          // scene units per metre, from the concept's footprint
+  const hm=V.hm||(V.hm=heightMaps(model));
+  const rot=cfg.rot*Math.PI/180, ctrX=(box.min.x+box.max.x)/2, ctrZ=(box.min.z+box.max.z)/2;
+  let cx,cz,scale=cfg.scale,seat=null;
+  let aw=APERTURE.w*u*cfg.len, ad=APERTURE.d*u;
+  if(cfg.mode==='auto'){
+    const maxDiag=0.55*span; if(Math.hypot(aw,ad)>maxDiag){ const k=maxDiag/Math.hypot(aw,ad); aw*=k; ad*=k; }
+    ({x:cx,z:cz}=roofCrown(hm,size.y));
+    // Largest size (up to the benchmark) whose kerb stays on the roof: no step steeper than ~50°.
+    for(scale=1;scale>0.3;scale*=0.9){
+      const f=footprint(hm,cx,cz,aw*scale,ad*scale,rot);
+      if(f&&f.steep<=1.2){ seat=f; break; }
+    }
+    if(!seat) scale=0.35;
+    V.skyAuto={x:(cx-ctrX)/span,z:(cz-ctrZ)/span,scale:+scale.toFixed(2)};
+  }else{ cx=ctrX+cfg.x*span; cz=ctrZ+cfg.z*span; }
+  aw*=scale; ad*=scale;
+  seat=seat||footprint(hm,cx,cz,aw,ad,rot,false);
+  if(!seat){ const h=hm.roof(cx,cz); seat={lo:Number.isNaN(h)?box.max.y:h,hi:Number.isNaN(h)?box.max.y:h}; }
+  const base=seat.lo-0.05*u, topY=Math.max(base+0.08*u,seat.hi+0.18*u+cfg.dy*u);
+  // Light-well depth: down into the building until just above whatever is below (floor, or a thin canopy's underside).
+  let under=-Infinity;
+  for(const [fx,fz] of [[0,0],[-.4,-.4],[.4,-.4],[.4,.4],[-.4,.4]]){ const h=hm.ceiling(cx+fx*aw,cz+fz*ad); if(!Number.isNaN(h)&&h<base) under=Math.max(under,h); }
+  const room=under===-Infinity?(base-box.min.y)/u:(base-under)/u;
+  const well=cfg.cut&&room>0.35?Math.min(1.2,room-0.1):0;
+  const sk=buildSkylight(c.mechanism,aw/u,ad/u,{kerbH:(topY-base)/u,well,u,onModel:true});
+  sk.group.scale.setScalar(u); sk.group.position.set(cx,base,cz); sk.group.rotation.y=rot;
+  V.root.add(sk.group); V.sky=sk; V.mech=sk.set;
+  const crown=topY+Math.max(aw,ad)*0.55;                   // leaves fully open
+  if(frame) frameView(new THREE.Vector3(0,crown*0.48,0),Math.max(9,crown*1.02));
+  if(cfg.cut){                                               // remove the roof (and any melted skylight) inside the aperture
+    const ax=new THREE.Vector3(Math.cos(rot),0,-Math.sin(rot)), az=new THREE.Vector3(Math.sin(rot),0,Math.cos(rot)), C=new THREE.Vector3(cx,0,cz);
+    setCut(model,[new THREE.Plane(ax.clone().negate(),ax.dot(C)-aw/2),new THREE.Plane(ax,-ax.dot(C)-aw/2),
+      new THREE.Plane(az.clone().negate(),az.dot(C)-ad/2),new THREE.Plane(az,-az.dot(C)-ad/2),new THREE.Plane(new THREE.Vector3(0,-1,0),base+0.02*u)]);
+  }
 }
 $('#tMech').onclick=()=>{ if(!V||!V.mech) return; V.target=V.target?0:1; V.from=V.t; V.t0=performance.now(); const c=CONCEPTS.find(x=>x.id===openId); const l=MECH_LABEL[c.mechanism]||['Open','Close']; $('#tMech').textContent=V.target?l[1]:l[0]; };
 $('#tSpin').onclick=()=>{ if(!V) return; V.controls.autoRotate=!V.controls.autoRotate; $('#tSpin').classList.toggle('primary',V.controls.autoRotate); };
 $('#tReset').onclick=()=>{ if(V) frameView(V.frame.center,V.frame.r); };
+
+/* Skylight placement for admins (?admin): tune where the unit sits on this model and save it
+   for every visitor. Uses the admin key entered in the Studio panel. */
+const ADMIN=new URLSearchParams(location.search).has('admin');
+function tunePanel(c){
+  if(!ADMIN||!MECH_LABEL[c.mechanism]) return;
+  let p=$('#tune');
+  if(!p){
+    p=el('details',{class:'tune',id:'tune',open:true});
+    p.innerHTML=`<summary>Skylight placement</summary>
+      <div class="seg" role="group" aria-label="Placement"><button data-m="auto">Auto</button><button data-m="manual">Manual</button><button data-m="off">Off</button></div>
+      <label>Across <input type="range" data-k="x" min="-0.5" max="0.5" step="0.005"></label>
+      <label>Along <input type="range" data-k="z" min="-0.5" max="0.5" step="0.005"></label>
+      <label>Size <input type="range" data-k="scale" min="0.3" max="3" step="0.01"></label>
+      <label>Length <input type="range" data-k="len" min="0.5" max="3" step="0.01"></label>
+      <label>Turn <input type="range" data-k="rot" min="-90" max="90" step="1"></label>
+      <label>Raise <input type="range" data-k="dy" min="-0.5" max="2" step="0.02"></label>
+      <label class="chk"><input type="checkbox" data-k="cut"> Cut the roof open under it</label>
+      <div class="row"><button class="btn btn-red" data-a="save">Save for everyone</button><button class="btn btn-line" data-a="reset">Auto</button></div>
+      <p class="tmsg"></p>`;
+    $('#stage').append(p);
+  }
+  p.hidden=false;
+  const q=s=>p.querySelector(s), msg=t=>q('.tmsg').textContent=t||'';
+  const cur=()=>CONCEPTS.find(x=>x.id===openId)||c;
+  const sync=()=>{
+    const cfg=skylightCfg(cur()), shown=cfg.mode==='auto'&&V&&V.skyAuto?{...cfg,...V.skyAuto}:cfg;
+    p.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===cfg.mode)));
+    p.querySelectorAll('input[type=range]').forEach(i=>{ i.value=shown[i.dataset.k]; i.disabled=cfg.mode==='off'; });
+    q('input[data-k=cut]').checked=cfg.cut; q('input[data-k=cut]').disabled=cfg.mode==='off';
+  };
+  const change=patch=>{
+    const x=cur(), cfg=skylightCfg(x), base=cfg.mode==='auto'&&V&&V.skyAuto?{...cfg,...V.skyAuto}:cfg;
+    x.skylight={...base,...patch};
+    const was=V&&V.target; mountSkylight(x,{frame:false}); syncTools(x);
+    if(was&&V&&V.mech){ V.t=V.target=1; V.mech(1); $('#tMech').textContent=(MECH_LABEL[x.mechanism]||[])[1]||'Close'; }
+    sync(); msg('Not saved yet.');
+  };
+  p.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>change({mode:b.dataset.m}));
+  p.querySelectorAll('input[type=range]').forEach(i=>i.oninput=()=>change({mode:'manual',[i.dataset.k]:+i.value}));
+  q('input[data-k=cut]').onchange=e=>change({cut:e.target.checked});
+  q('[data-a=reset]').onclick=()=>change({mode:'auto',dy:0,rot:0,cut:true});
+  q('[data-a=save]').onclick=async()=>{
+    const key=sessionStorage.getItem('kc_admin_key')||'', x=cur();
+    if(!key) return msg('Enter the admin key in the Studio panel first.');
+    msg('Saving…');
+    try{
+      const r=await fetch('/api/concepts',{method:'POST',headers:{'content-type':'application/json','x-admin-key':key},body:JSON.stringify({id:x.id,skylight:skylightCfg(x)})});
+      const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||('HTTP '+r.status));
+      Object.assign(x,j.concept); msg('Saved. Visitors see it within about 20 seconds.');
+    }catch(e){ msg(e.message); }
+  };
+  sync(); msg('');
+}
 
 /* ============================================================
    APP SHELL — phone-first views, immersive feed, planner,
@@ -1100,7 +1338,10 @@ let mvReady=null;
 function loadMV(){
   if(!mvReady) mvReady=new Promise((ok,no)=>{ const s=document.createElement('script'); s.type='module';
     s.src='https://cdn.jsdelivr.net/npm/@google/model-viewer@4.3.1/dist/model-viewer.min.js';
-    s.onload=()=>customElements.whenDefined('model-viewer').then(ok); s.onerror=()=>{mvReady=null;no(new Error('AR viewer could not load'));}; document.head.append(s); });
+    s.onload=()=>customElements.whenDefined('model-viewer').then(MV=>{
+      // Optimised models use EXT_meshopt_compression; model-viewer enables its bundled decoder once a location is set.
+      MV.meshoptDecoderLocation='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/meshopt_decoder.js'; ok(); });
+    s.onerror=()=>{mvReady=null;no(new Error('AR viewer could not load'));}; document.head.append(s); });
   return mvReady;
 }
 /* Horizontal size of a GLB, read from its own header, so the real-world scale can be set
@@ -1116,7 +1357,9 @@ async function glbSpan(url){
     const lo=[1e9,1e9,1e9], hi=[-1e9,-1e9,-1e9];
     const walk=(i,parent)=>{ const n=g.nodes[i], m=mul(parent,trs(n));
       if(n.mesh!=null) for(const pr of g.meshes[n.mesh].primitives){ const a=g.accessors[pr.attributes.POSITION]; if(!a||!a.min) continue;
-        for(let c=0;c<8;c++){ const v=[c&1?a.max[0]:a.min[0],c&2?a.max[1]:a.min[1],c&4?a.max[2]:a.min[2]];
+        // quantised (optimised) models store raw integers here; the node's scale expects -1..1
+        const q=a.normalized&&Math.max(...a.min.map(Math.abs),...a.max.map(Math.abs))>1?({5120:127,5121:255,5122:32767,5123:65535})[a.componentType]||1:1;
+        for(let c=0;c<8;c++){ const v=[c&1?a.max[0]/q:a.min[0]/q,c&2?a.max[1]/q:a.min[1]/q,c&4?a.max[2]/q:a.min[2]/q];
           for(let k=0;k<3;k++){ const w=m[k]*v[0]+m[4+k]*v[1]+m[8+k]*v[2]+m[12+k]; lo[k]=Math.min(lo[k],w); hi[k]=Math.max(hi[k],w); } } }
       (n.children||[]).forEach(ch=>walk(ch,m)); };
     const I=[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1], sc=g.scenes[g.scene||0];
@@ -1208,8 +1451,8 @@ function initStudio(){
       <label>Height m<input id="fH" type="number" step="0.1" value="3.2"></label>
     </div>
     <label>Thumbnail image<input id="fThumb" type="file" accept="image/*"></label>
-    <label>3D model (.glb)<input id="fGlb" type="file" accept=".glb,model/gltf-binary"></label>
-    <label>…or a Meshy GLB link (copied into the library, because Meshy links expire)<input id="fMeshy" placeholder="https://assets.meshy.ai/…/model.glb?Expires=…"></label>
+    <label>3D model (.glb — any size; it is optimised in this browser before upload)<input id="fGlb" type="file" accept=".glb,model/gltf-binary"></label>
+    <label>…or a Meshy GLB link (copied into the library and optimised, because Meshy links expire)<input id="fMeshy" placeholder="https://assets.meshy.ai/…/model.glb?Expires=…"></label>
     <div class="two"><button class="btn btn-red" id="fSave">Save concept</button><button class="btn btn-line" id="fNew">Clear form</button></div>
   </div>`;
   document.body.append(S);
@@ -1255,8 +1498,23 @@ function initStudio(){
   let blobClient=null;
   async function upload(path,file,contentType){
     if(!blobClient) blobClient=await import('https://esm.sh/@vercel/blob@2.8.0/client');
-    const r=await blobClient.upload(path,file,{access:'public',handleUploadUrl:'/api/blob-upload',headers:{'x-admin-key':key()},contentType});
+    const r=await blobClient.upload(path,file,{access:'public',handleUploadUrl:'/api/blob-upload',headers:{'x-admin-key':key()},contentType,multipart:file.size>20971520});
     return r.url;
+  }
+  // Shrinks a GLB with the bundled optimiser (see /developer). null if the optimiser cannot run.
+  async function optimise(buf){
+    try{
+      const opt=await import('/vendor/glb-optimizer.js');
+      const {glb,stats}=await opt.optimizeGLB(buf,'high',step=>msg(step+'…'));
+      return {blob:new Blob([glb],{type:'model/gltf-binary'}),info:{preset:'high',bytesIn:stats.bytesIn,trisIn:stats.trisIn,trisOut:stats.trisOut,texMax:stats.texMax}};
+    }catch(e){ msg('Could not optimise ('+e.message+') — using the file as it is.',true); return null; }
+  }
+  async function storeGlb(id,buf,fallback){
+    const o=await optimise(buf), blob=o?o.blob:fallback;
+    if(!blob) return null;
+    if(blob.size>60*1024*1024) throw new Error('The model is still over 60 MB after optimising — reduce it in Blender first.');
+    msg('Uploading 3D model… ('+(blob.size/1048576).toFixed(1)+' MB)');
+    return {modelUrl:await upload(`concepts/media/${id}/model.glb`,blob,'model/gltf-binary'),modelBytes:blob.size,modelInfo:o?o.info:null};
   }
   async function shrink(file){
     const bmp=await createImageBitmap(file); const s=Math.min(1,1400/bmp.width);
@@ -1272,16 +1530,25 @@ function initStudio(){
     const id=q('#fId').value||(slug(title)+'-'+Date.now().toString(36).slice(-4));
     btn.disabled=true;
     try{
-      let thumbUrl, modelUrl;
+      let thumbUrl, model=null, meshyUrl=q('#fMeshy').value.trim();
       const tf=q('#fThumb').files[0], gf=q('#fGlb').files[0];
       if(tf){ msg('Uploading thumbnail…'); const b=await shrink(tf); thumbUrl=await upload(`concepts/media/${id}/thumb.${b.type==='image/webp'?'webp':'jpg'}`,b,b.type); }
-      if(gf){ if(gf.size>60*1024*1024) throw new Error('GLB is over 60 MB — compress it first.'); msg('Uploading 3D model… ('+(gf.size/1048576).toFixed(1)+' MB)'); modelUrl=await upload(`concepts/media/${id}/model.glb`,gf,'model/gltf-binary'); }
-      const meshyUrl=q('#fMeshy').value.trim();
-      if(meshyUrl) msg('Copying the Meshy model into the library…');
+      if(gf){ msg('Reading '+(gf.size/1048576).toFixed(1)+' MB model…'); model=await storeGlb(id,await gf.arrayBuffer(),gf); }
+      else if(meshyUrl){
+        msg('Copying the Meshy model into the library…');
+        const staged=await api('POST','/api/model-import',{id,url:meshyUrl});
+        try{
+          const r=await fetch(staged.url); if(!r.ok) throw new Error('HTTP '+r.status);
+          model=await storeGlb(id,await r.arrayBuffer(),null);
+          if(model) meshyUrl='';                              // stored optimised; the server need not import it
+        }finally{ api('DELETE','/api/model-import?id='+encodeURIComponent(id)).catch(()=>{}); }
+        if(meshyUrl) msg('Storing Meshy\'s file as it is…');
+      }
       const specs=q('#fSpecs').value.split('\n').map(l=>{const i=l.indexOf(':');return i>0?{k:l.slice(0,i).trim(),v:l.slice(i+1).trim()}:null;}).filter(Boolean);
       const body={id,title,channel:q('#fChannel').value,mechanism:q('#fMech').value,tagline:q('#fTag').value,specs,
         status:q('#fStatus').value,order:+q('#fOrder').value,featured:!!q('#fFeat').value,
-        massing:{w:+q('#fW').value,d:+q('#fD').value,h:+q('#fH').value},thumbUrl,modelUrl,meshyUrl:meshyUrl||undefined};
+        massing:{w:+q('#fW').value,d:+q('#fD').value,h:+q('#fH').value},thumbUrl,...(model||{}),meshyUrl:meshyUrl||undefined,
+        ...(model||meshyUrl?{skylight:{mode:'auto'}}:{})};              // a new model has a new roof: place the skylight afresh
       await api('POST','/api/concepts',body);
       msg('Saved "'+title+'". Visitors see it within about 20 seconds.'); clearForm(); await refresh();
     }catch(e){ msg(e.message,true); }

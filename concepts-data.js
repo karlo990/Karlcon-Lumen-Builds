@@ -2,6 +2,9 @@
    Shared by concepts.html (public) and developer.html (model generation).
    thumbUrl    = card image (full studio scene, 4:5)
    meshySource = cropped building on its own, sent to Meshy image-to-3D
+   skylight    = where the engineered skylight sits on the generated 3D model (tuned against the
+                 current Meshy models; used until someone saves a placement with /?admin, and
+                 replaced by automatic placement when a model is regenerated)
    Numbers only appear where they come from the LB-1 engineering file. */
 window.KC_CHANNELS = [
   { id: 'all',        no: '100', name: 'All channels' },
@@ -31,15 +34,15 @@ window.KC_SEED = [
   { id: 'lumen-curved-pavilion', title: 'Lumen Builds Curved Pavilion', channel: 'pavilions', mechanism: 'hinged', order: 10,
     tagline: 'A free-form white shell with a sheltered drive-in court and a bi-parting skylight at the crest.',
     specs: [{ k: 'Roof light', v: 'Bi-parting, 2 leaves' }, { k: 'Form', v: 'Free-form curved shell' }, { k: 'Walls', v: 'Coursed white stone, red fins' }, { k: 'Status', v: 'Concept' }],
-    thumbUrl: '/img/concepts/lumen-curved-pavilion.webp', meshySource: '/img/meshy/lumen-curved-pavilion.png', massing: { w: 10, d: 7, h: 3.2 }, status: 'Concept' },
+    thumbUrl: '/img/concepts/lumen-curved-pavilion.webp', meshySource: '/img/meshy/lumen-curved-pavilion.png', skylight: { mode: 'manual', x: -0.2, z: -0.05, scale: 1.35 }, massing: { w: 10, d: 7, h: 3.2 }, status: 'Concept' },
   { id: 'studio-ring-stage', title: 'Circular Ring Pavilion', channel: 'pavilions', mechanism: 'hinged', order: 11,
     tagline: 'A white ring roof floating over a glazed drum, open to the sky at its centre, with twin roof lights on the rim.',
     specs: [{ k: 'Roof lights', v: 'Twin hinged panels' }, { k: 'Form', v: 'Ring roof over a glazed drum' }, { k: 'Centre', v: 'Open oculus courtyard' }, { k: 'Status', v: 'Concept' }],
-    thumbUrl: '/img/concepts/studio-ring-stage.webp', meshySource: '/img/meshy/studio-ring-stage.png', massing: { w: 12, d: 12, h: 2.4 }, status: 'Concept' },
+    thumbUrl: '/img/concepts/studio-ring-stage.webp', meshySource: '/img/meshy/studio-ring-stage.png', skylight: { mode: 'manual', x: -0.33, z: 0, scale: 1.3, len: 2.2, rot: 90 }, massing: { w: 12, d: 12, h: 2.4 }, status: 'Concept' },
   { id: 'zambezi-curve-pavilion', title: 'Zambezi Curve Pavilion', channel: 'pavilions', mechanism: 'hinged', order: 12,
     tagline: 'A double-curved canopy on red steel ribs, shaped like water over rock, with a bi-parting light at its crest.',
     specs: [{ k: 'Roof light', v: 'Bi-parting over the crest' }, { k: 'Form', v: 'Double-curved shell canopy' }, { k: 'Frame', v: 'Red steel arch ribs' }, { k: 'Status', v: 'Concept' }],
-    thumbUrl: '/img/concepts/zambezi-curve-pavilion.webp', meshySource: '/img/meshy/zambezi-curve-pavilion.png', massing: { w: 10, d: 6, h: 3 }, status: 'Concept' },
+    thumbUrl: '/img/concepts/zambezi-curve-pavilion.webp', meshySource: '/img/meshy/zambezi-curve-pavilion.png', skylight: { mode: 'manual', x: -0.1, z: 0.08, scale: 1.6, dy: -0.35 }, massing: { w: 10, d: 6, h: 3 }, status: 'Concept' },
 
   /* ---- CH 103 Residences ---- */
   { id: 'conical-tower-loft', title: 'Conical Tower Loft', channel: 'residences', mechanism: 'hinged', order: 20,
@@ -49,7 +52,7 @@ window.KC_SEED = [
   { id: 'cantilever-pavilion', title: 'Elevated Glass Cube Residence', channel: 'residences', mechanism: 'hinged', order: 21,
     tagline: 'A glazed living box lifted on four red columns, with the skylight opening directly over the lounge.',
     specs: [{ k: 'Roof light', v: 'Bi-parting pair' }, { k: 'Structure', v: 'Four-column lifted box' }, { k: 'Glazing', v: 'Full-height façade' }, { k: 'Status', v: 'Concept' }],
-    thumbUrl: '/img/concepts/cantilever-pavilion.webp', meshySource: '/img/meshy/cantilever-pavilion.png', massing: { w: 7, d: 5, h: 3 }, status: 'Concept' },
+    thumbUrl: '/img/concepts/cantilever-pavilion.webp', meshySource: '/img/meshy/cantilever-pavilion.png', skylight: { mode: 'manual', x: 0, z: 0, scale: 1.4 }, massing: { w: 7, d: 5, h: 3 }, status: 'Concept' },
   { id: 'terraced-hillside', title: 'Terraced Hillside Complex', channel: 'residences', mechanism: 'hinged', order: 22,
     tagline: 'A red-framed glass pavilion over dry-stone terraces, topped with a lifting skylight crown.',
     specs: [{ k: 'Roof light', v: 'Bi-parting crown' }, { k: 'Base', v: 'Stepped stone terraces' }, { k: 'Frame', v: 'Braced red steel' }, { k: 'Status', v: 'Concept' }],
@@ -59,7 +62,7 @@ window.KC_SEED = [
   { id: 'rondavel-concept', title: 'KARLCON Rondavel Concept', channel: 'heritage', mechanism: 'hinged', order: 30,
     tagline: 'The traditional rondavel, rebuilt in white render, with an automated skylight at the apex of the cone.',
     specs: [{ k: 'Roof light', v: 'Hinged panel at the apex' }, { k: 'Form', v: 'Round drum, conical roof' }, { k: 'Heritage', v: 'Zimbabwean rondavel' }, { k: 'Status', v: 'Concept' }],
-    thumbUrl: '/img/concepts/rondavel-concept.webp', meshySource: '/img/meshy/rondavel-concept.png', massing: { w: 7, d: 7, h: 3 }, status: 'Concept' },
+    thumbUrl: '/img/concepts/rondavel-concept.webp', meshySource: '/img/meshy/rondavel-concept.png', skylight: { mode: 'manual', x: 0, z: 0, scale: 1.32, len: 1.5 }, massing: { w: 7, d: 7, h: 3 }, status: 'Concept' },
   { id: 'triple-rondavel-cluster', title: 'Triple Rondavel Cluster', channel: 'heritage', mechanism: 'hinged', order: 31,
     tagline: 'Three drums joined by a glazed red spine, with the skylight over the central cone.',
     specs: [{ k: 'Roof light', v: 'Bi-parting over the central cone' }, { k: 'Plan', v: 'Three drums, one glazed spine' }, { k: 'Frame', v: 'Red steel glazing link' }, { k: 'Status', v: 'Concept' }],

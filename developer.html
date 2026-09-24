@@ -81,7 +81,7 @@ td{border-top:1px solid var(--line);padding:10px 12px;vertical-align:middle;font
 
 <main class="wrap">
   <h1>3D model generation</h1>
-  <p class="lead">Paste your Meshy key once. Each concept's cropped render is sent to Meshy image-to-3D, and the finished model is copied into the library permanently. It is generated <b>once</b> and every visitor after that loads the stored copy — no repeat credits, no expiring links.</p>
+  <p class="lead">Paste your Meshy key once. Each concept's cropped render is sent to Meshy image-to-3D, and the finished model is optimised in this browser (compressed geometry, JPEG textures) and stored in the library permanently. It is generated <b>once</b> and every visitor after that loads the small stored copy — no repeat credits, no expiring links. The engineered KARLCON skylight is fitted on top in the viewer; use <b>Skylight</b> to adjust where it sits.</p>
 
   <section class="panel">
     <label>Meshy API key
@@ -94,8 +94,8 @@ td{border-top:1px solid var(--line);padding:10px 12px;vertical-align:middle;font
     </label>
     <label>Model quality
       <select id="kQuality">
-        <option value="web">Web — 30k triangles, loads fast on phones</option>
-        <option value="high">High detail — heavier file</option>
+        <option value="web">Web — 30k triangles, ~2 MB, fastest on phones</option>
+        <option value="high">High detail — Meshy's full mesh, optimised to ≤600k triangles (~5–10 MB)</option>
       </select>
       <span class="check" style="visibility:hidden"><input type="checkbox"> .</span>
     </label>
@@ -104,6 +104,7 @@ td{border-top:1px solid var(--line);padding:10px 12px;vertical-align:middle;font
 
   <div class="bar">
     <button class="btn btn-red" id="bAll">Generate all missing</button>
+    <button class="btn btn-line" id="bOpt" hidden>Optimise stored models</button>
     <button class="btn btn-line" id="bSync">Sync built-in concepts</button>
     <span class="info" id="info"></span>
   </div>
@@ -197,8 +198,12 @@ function el(tag,attrs,...kids){ const n=document.createElement(tag);
 const mb=b=>!b?'':b<1048576?Math.max(1,Math.round(b/1024))+' KB':(b/1048576).toFixed(1)+' MB';
 function status(c){
   const L=live[c.id];
-  if(L&&L.state==='run') return {cls:'run',text:'Generating '+(L.progress||0)+'%',note:L.note||''};
-  if(c.modelUrl) return {cls:'ready',text:'Ready',note:[mb(c.modelBytes),c.modelGeneratedAt?new Date(c.modelGeneratedAt).toLocaleDateString():''].filter(Boolean).join(' · ')};
+  if(L&&L.state==='run') return {cls:'run',text:L.chip||('Generating '+(L.progress||0)+'%'),note:L.note||''};
+  if(c.modelUrl){
+    const i=c.modelInfo, tris=i&&i.trisOut?Math.round(i.trisOut/1000)+'k triangles':'';
+    return {cls:'ready',text:i?'Ready · optimised':'Ready',note:[mb(c.modelBytes),tris,i&&i.bytesIn>c.modelBytes*1.2?'was '+mb(i.bytesIn):'',i?'':'not optimised yet',
+      c.modelGeneratedAt?new Date(c.modelGeneratedAt).toLocaleDateString():''].filter(Boolean).join(' · ')};
+  }
   if(L&&L.state==='err') return {cls:'err',text:'Failed',note:L.note||''};
   if(c.meshyTaskId) return {cls:'run',text:'Queued at Meshy',note:'Resumes when your key is entered'};
   if(!c.meshySource) return {cls:'',text:'No input image',note:'Click the box to add one'};
@@ -216,9 +221,11 @@ function render(){
     const ch=CH[c.channel]||{no:'—',name:c.channel};
     const acts=el('div',{class:'acts'});
     if(c.modelUrl){
-      acts.append(el('a',{class:'btn btn-line btn-sm',href:'/#concept='+encodeURIComponent(c.id),target:'_blank',rel:'noopener'},'Open 3D'),
+      acts.append(...[el('a',{class:'btn btn-line btn-sm',href:'/#concept='+encodeURIComponent(c.id),target:'_blank',rel:'noopener'},'Open 3D'),
+                  el('a',{class:'btn btn-line btn-sm',href:'/?admin#concept='+encodeURIComponent(c.id),target:'_blank',rel:'noopener',title:'Adjust where the engineered skylight sits on this model'},'Skylight'),
+                  c.modelInfo?null:el('button',{class:'btn btn-line btn-sm',disabled:running||undefined,onclick:()=>optimiseStored(c)},'Optimise'),
                   el('button',{class:'btn btn-line btn-sm',disabled:running||undefined,onclick:()=>generate(c,true)},'Regenerate'),
-                  el('button',{class:'btn btn-line btn-sm',disabled:running||undefined,onclick:()=>removeModel(c)},'Remove'));
+                  el('button',{class:'btn btn-line btn-sm',disabled:running||undefined,onclick:()=>removeModel(c)},'Remove')].filter(Boolean));
     }else{
       acts.append(el('button',{class:'btn btn-red btn-sm',disabled:(running||!c.meshySource)||undefined,onclick:()=>generate(c)},c.meshyTaskId?'Resume':'Generate'));
     }
@@ -232,6 +239,8 @@ function render(){
   $('#info').textContent=ready+' of '+ITEMS.filter(c=>c.meshySource||c.modelUrl).length+' concepts have a stored 3D model';
   $('#bAll').textContent=missing?'Generate all missing ('+missing+')':'All models generated';
   $('#bAll').disabled=!missing;
+  const heavy=ITEMS.filter(c=>c.modelUrl&&!c.modelInfo).length;
+  $('#bOpt').hidden=!heavy; $('#bOpt').textContent='Optimise stored models ('+heavy+')';
 }
 
 /* ---------- Meshy ---------- */
@@ -267,7 +276,9 @@ async function generate(c,force){
       live[c.id]={state:'run',progress:1,note:'Sending image to Meshy'}; render();
       const created=await meshy('POST',MESHY,{image_url:await imageRef(c.meshySource),should_texture:true,enable_pbr:true,target_formats:['glb'],...qualityParams()});
       taskId=created.result;
-      await patch(c,{meshyTaskId:taskId});                       // remembered server-side: survives refresh, blocks duplicates
+      // Remembered server-side: survives refresh, blocks duplicates. A new model has a new roof,
+      // so a regenerated concept goes back to automatic skylight placement.
+      await patch(c,{meshyTaskId:taskId,...(force?{skylight:{mode:'auto'}}:{})});
       log('Meshy task started for "'+c.title+'" ('+taskId+').');
     }else log('Resuming Meshy task for "'+c.title+'".');
     await poll(c,taskId);
@@ -288,11 +299,9 @@ async function poll(c,taskId){
       await new Promise(r=>setTimeout(r,POLL_MS)); continue;
     }
     if(t.status==='SUCCEEDED'){
-      live[c.id]={state:'run',progress:100,note:'Copying the model into the library'}; render();
       const glb=t.model_urls&&t.model_urls.glb; if(!glb) throw new Error('Meshy finished but returned no GLB.');
-      await patch(c,{meshyUrl:glb});
+      await storeMeshyModel(c,glb);
       delete live[c.id]; render();
-      log('"'+c.title+'" stored — '+mb(c.modelBytes)+'. Every visitor now loads this copy.','ok');
       return;
     }
     if(t.status==='FAILED'||t.status==='CANCELED'){
@@ -303,6 +312,71 @@ async function poll(c,taskId){
     await new Promise(r=>setTimeout(r,POLL_MS));
   }
 }
+/* ---------- optimise in this browser, then store ----------
+   Meshy's CDN blocks browser downloads, and High detail files run to 60–200 MB, so the server
+   streams Meshy's file into Blob (/api/model-import), this page shrinks it with the bundled
+   optimiser (/vendor/glb-optimizer.js) and uploads the result as the concept's model. */
+let optimiser=null, blobClient=null;
+const loadOptimiser=()=>optimiser||(optimiser=import('/vendor/glb-optimizer.js').catch(e=>{optimiser=null;throw e;}));
+const loadBlobClient=async()=>blobClient||(blobClient=await import('https://esm.sh/@vercel/blob@2.8.0/client'));
+function note(c,text){ live[c.id]={state:'run',progress:100,chip:'Optimising',note:text}; render(); }
+async function download(url,onProgress){
+  const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error('Download failed (HTTP '+r.status+').');
+  const total=+r.headers.get('content-length')||0, reader=r.body.getReader(), parts=[]; let got=0, shown=0;
+  for(;;){ const {done,value}=await reader.read(); if(done) break; parts.push(value); got+=value.byteLength;
+    if(got-shown>2097152){ shown=got; onProgress(got,total); } }
+  const out=new Uint8Array(got); let o=0; for(const p of parts){ out.set(p,o); o+=p.byteLength; }
+  return out;
+}
+async function optimiseAndStore(c,srcUrl,fields){
+  const preset=$('#kQuality').value;
+  const buf=await download(srcUrl,(got,total)=>note(c,'Downloading '+mb(got)+(total?' of '+mb(total):'')));
+  note(c,'Loading the optimiser'); const opt=await loadOptimiser();
+  const {glb,stats}=await opt.optimizeGLB(buf,preset,step=>note(c,step));
+  note(c,'Uploading '+mb(glb.byteLength)+' (was '+mb(stats.bytesIn)+')');
+  const client=await loadBlobClient();
+  const up=await client.upload(`concepts/media/${c.id}/model.glb`,new Blob([glb],{type:'model/gltf-binary'}),
+    {access:'public',handleUploadUrl:'/api/blob-upload',headers:{'x-admin-key':adminKey()},contentType:'model/gltf-binary',multipart:glb.byteLength>20971520});
+  await patch(c,{modelUrl:up.url,modelBytes:glb.byteLength,...fields,
+    modelInfo:{preset,bytesIn:stats.bytesIn,trisIn:stats.trisIn,trisOut:stats.trisOut,texMax:stats.texMax}});
+  return stats;
+}
+async function storeMeshyModel(c,meshyGlbUrl){
+  note(c,'Copying Meshy\'s file into the library');
+  const staged=await api('POST','/api/model-import',{id:c.id,url:meshyGlbUrl});
+  log('"'+c.title+'": Meshy\'s file is '+mb(staged.bytes)+' — optimising it in this browser.');
+  const done={meshyTaskId:'',modelGeneratedAt:new Date().toISOString()};
+  try{
+    const st=await optimiseAndStore(c,staged.url,done);
+    log('"'+c.title+'" stored — '+mb(st.bytesOut)+', '+st.trisOut.toLocaleString()+' triangles (Meshy\'s file was '+mb(st.bytesIn)+'). Every visitor now loads this copy.','ok');
+  }catch(e){
+    // Optimiser unavailable (old browser, blocked script): store Meshy's own file if it is small enough.
+    if(staged.bytes>60*1048576) throw new Error('Optimising failed ('+e.message+'), and Meshy\'s '+mb(staged.bytes)+' file is too big to store as it is. Press Resume in an up-to-date Chrome or Edge, or switch to Web quality.');
+    log('"'+c.title+'": optimising failed ('+e.message+'). Storing Meshy\'s file as it is…','err');
+    await patch(c,{meshyUrl:meshyGlbUrl});
+    log('"'+c.title+'" stored unoptimised — '+mb(c.modelBytes)+'. Press Optimise later to shrink it.','ok');
+  }finally{
+    api('DELETE','/api/model-import?id='+encodeURIComponent(c.id)).catch(()=>{});
+  }
+}
+async function optimiseStored(c){
+  if(busy.has(c.id)) return;
+  if(!adminKey()) return msg('Enter the admin key first.',true);
+  busy.add(c.id);
+  try{
+    const st=await optimiseAndStore(c,c.modelUrl,{});
+    delete live[c.id]; render();
+    log('"'+c.title+'" optimised — '+mb(st.bytesIn)+' → '+mb(st.bytesOut)+'.','ok');
+  }catch(e){ live[c.id]={state:'err',note:e.message}; render(); log('"'+c.title+'": '+e.message,'err'); }
+  finally{ busy.delete(c.id); }
+}
+$('#bOpt').onclick=async()=>{
+  const list=ITEMS.filter(c=>c.modelUrl&&!c.modelInfo&&!busy.has(c.id));
+  msg('Optimising '+list.length+' stored models in this browser — keep this tab open.');
+  for(const c of list) await optimiseStored(c);
+  msg('Done. Optimised models load several times faster; the originals were removed from the store.');
+};
+
 function resumeAll(){
   if(!meshyKey()||!adminKey()) return;
   for(const c of ITEMS) if(c.meshyTaskId&&!c.modelUrl&&!busy.has(c.id)) generate(c);
@@ -324,24 +398,24 @@ $('#bSync').onclick=async()=>{
     for(const s of SEED){
       const c=ITEMS.find(x=>x.id===s.id);
       if(!c||!c._saved){ await ensureSaved(c||{...s,_saved:false}); continue; }
-      const {thumbUrl,meshySource,...text}=s;
-      await patch(c,{...text,...(c.thumbUrl?{}:{thumbUrl}),...(c.meshySource?{}:{meshySource})});
+      const {thumbUrl,meshySource,skylight,...text}=s;
+      await patch(c,{...text,...(c.thumbUrl?{}:{thumbUrl}),...(c.meshySource?{}:{meshySource}),...(c.skylight||!skylight?{}:{skylight})});
     }
     log('Built-in concepts synced into the library.','ok'); await load();
   }catch(e){ msg(e.message,true); }
 };
 
 /* ---------- replace an input image ---------- */
-let pickFor=null, blobClient=null;
+let pickFor=null;
 function pickSource(c){ if(!adminKey()) return msg('Enter the admin key first.',true); pickFor=c; $('#srcPick').value=''; $('#srcPick').click(); }
 $('#srcPick').onchange=async e=>{
   const f=e.target.files[0], c=pickFor; if(!f||!c) return;
   try{
     await ensureSaved(c);
-    if(!blobClient) blobClient=await import('https://esm.sh/@vercel/blob@2.8.0/client');
+    const client=await loadBlobClient();
     const ext=f.type==='image/jpeg'?'jpg':'png';
     log('Uploading a new input image for "'+c.title+'"…');
-    const r=await blobClient.upload(`concepts/media/${c.id}/source.${ext}`,f,{access:'public',handleUploadUrl:'/api/blob-upload',headers:{'x-admin-key':adminKey()},contentType:f.type});
+    const r=await client.upload(`concepts/media/${c.id}/source.${ext}`,f,{access:'public',handleUploadUrl:'/api/blob-upload',headers:{'x-admin-key':adminKey()},contentType:f.type});
     await patch(c,{meshySource:r.url});
     log('New input image saved. Press '+(c.modelUrl?'Regenerate':'Generate')+' to use it.','ok');
   }catch(err){ msg(err.message,true); }
