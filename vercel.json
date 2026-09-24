@@ -35,6 +35,9 @@
   "functions": {
     "api/concepts.js": {
       "maxDuration": 60
+    },
+    "api/model-import.js": {
+      "maxDuration": 60
     }
   },
   "headers": [
