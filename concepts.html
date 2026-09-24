@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KARLCON Lumen Builds — Concept Channel</title>
+<meta name="description" content="Browse KARLCON Lumen Builds architectural and skylight concepts and view them in 3D. Harare, Zimbabwe.">
+<meta name="theme-color" content="#D0231A">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/img/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/img/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="KARLCON">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta property="og:title" content="KARLCON Lumen Builds — Concept Channel">
+<meta property="og:description" content="Architectural and skylight concepts you can walk around in 3D.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#D0231A; --red-hi:#E8453B; --red-ink:#9E150E; --wash:#FBF1EF;
+  --ink:#15181D; --ink-2:#3B4048; --muted:#6B717A; --line:#ECE7E2; --soft:#F7F5F2; --white:#FFFFFF;
+  --head:'Montserrat',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --r:14px; --shadow:0 1px 2px rgba(21,24,29,.06),0 8px 24px rgba(21,24,29,.06);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--white);color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased}
+body{padding-bottom:env(safe-area-inset-bottom,0px)}
+a{color:inherit}
+button{font:inherit;cursor:pointer}
+img{display:block;max-width:100%}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* header */
+.redline{height:4px;background:var(--red)}
+header.top{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.94);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.top .wrap{display:flex;align-items:center;gap:18px;height:68px}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.brand svg{width:38px;height:38px;flex:none}
+.brand b{display:block;font-family:var(--head);font-weight:800;letter-spacing:.28em;font-size:17px;color:var(--red)}
+.brand span{display:block;font-family:var(--head);font-weight:600;letter-spacing:.34em;font-size:9.5px;color:var(--ink-2);margin-top:2px}
+.top nav{margin-left:auto;display:flex;align-items:center;gap:22px;font-size:14px;font-weight:500}
+.top nav a{text-decoration:none;color:var(--ink-2)}
+.top nav a:hover{color:var(--red)}
+.top nav a.btn-red,.top nav a.btn-red:hover{color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:999px;padding:11px 20px;font-weight:600;font-size:14px;text-decoration:none;transition:transform .15s ease,background .15s ease,color .15s ease,border-color .15s ease}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-red{background:var(--red);color:#fff}
+.btn-red:hover{background:var(--red-ink)}
+.btn-line{background:#fff;color:var(--ink);border-color:var(--line)}
+.btn-line:hover{border-color:var(--red);color:var(--red)}
+.btn-ghost{background:transparent;color:var(--red);padding-left:0;padding-right:0}
+@media (max-width:760px){.top nav a.hide-m{display:none}}
+@media (max-width:520px){.top nav a:not(.btn){display:none}.top .wrap{gap:10px}}
+html,body{overflow-x:clip}
+
+/* hero: now showing */
+.hero{padding:40px 0 26px}
+.hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center}
+.kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--red);display:flex;align-items:center;gap:10px}
+.kicker i{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 0 4px rgba(208,35,26,.15);animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 8px rgba(208,35,26,0)}}
+.hero h1{font-family:var(--head);font-weight:800;font-size:clamp(38px,5.4vw,66px);line-height:1.02;letter-spacing:-.02em;margin:16px 0 18px}
+.hero h1 em{font-style:normal;color:var(--red)}
+.hero p.lead{font-size:18px;line-height:1.55;color:var(--ink-2);max-width:520px;margin:0 0 26px}
+.hero .ctas{display:flex;gap:12px;flex-wrap:wrap}
+.feature{position:relative;border-radius:22px;overflow:hidden;background:var(--ink);box-shadow:var(--shadow);aspect-ratio:4/5;max-height:640px;cursor:pointer}
+.feature img{width:100%;height:100%;object-fit:cover;transition:transform .8s ease}
+.feature:hover img{transform:scale(1.03)}
+.feature .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(10,10,12,.82) 100%)}
+.feature .meta{position:absolute;left:22px;right:22px;bottom:22px;color:#fff}
+.feature .meta h2{font-family:var(--head);font-weight:800;font-size:28px;margin:8px 0 6px;letter-spacing:-.01em}
+.feature .meta .spec{font-family:var(--mono);font-size:12.5px;color:#FFD7D2}
+.feature .play{position:absolute;top:18px;right:18px}
+@media (max-width:900px){.hero .wrap{grid-template-columns:1fr}.feature{max-height:520px}}
+
+/* channel guide */
+.guide{position:sticky;top:68px;z-index:20;background:#fff;border-bottom:1px solid var(--line)}
+.guide .wrap{display:flex;gap:8px;overflow-x:auto;padding-top:12px;padding-bottom:12px;scrollbar-width:none}
+.guide .wrap::-webkit-scrollbar{display:none}
+.ch{flex:none;display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:8px 14px 8px 10px;color:var(--ink-2);font-weight:600;font-size:14px}
+.ch small{font-family:var(--mono);font-size:11.5px;color:var(--muted);background:var(--soft);border-radius:6px;padding:3px 6px}
+.ch:hover{border-color:var(--red)}
+.ch[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+.ch[aria-pressed="true"] small{background:rgba(255,255,255,.18);color:#fff}
+.ch .n{font-family:var(--mono);font-size:11.5px;opacity:.8}
+
+/* rows and grid */
+section.block{padding:30px 0}
+.row-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:16px}
+.row-head h3{font-family:var(--head);font-size:22px;font-weight:800;margin:0;letter-spacing:-.01em}
+.row-head p{margin:0;color:var(--muted);font-size:14px}
+.strip{display:flex;gap:14px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory}
+.strip .card{flex:0 0 220px;scroll-snap-align:start}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:22px}
+.card{position:relative;background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column;transition:transform .2s ease,border-color .2s ease}
+.card:hover{transform:translateY(-3px);border-color:#E6C9C5}
+.card .thumb{position:relative;aspect-ratio:4/5;background:var(--wash);overflow:hidden;cursor:pointer}
+.card .thumb img{width:100%;height:100%;object-fit:cover}
+.badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;background:#fff;color:var(--red);border-radius:999px;padding:5px 10px;font-weight:600}
+.card .badge{position:absolute;top:12px;left:12px}
+.pill{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:3px 8px;color:var(--muted)}
+.card .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:1}
+.card h4{font-family:var(--head);font-weight:700;font-size:17px;margin:0;line-height:1.2}
+.card .specline{font-family:var(--mono);font-size:12px;color:var(--ink-2);line-height:1.5}
+.card .actions{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:6px}
+.card .actions .btn{padding:8px 14px;font-size:13px}
+.heart{margin-left:auto;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:#fff;display:grid;place-items:center;color:var(--muted)}
+.heart svg{width:18px;height:18px}
+.heart[aria-pressed="true"]{color:#fff;background:var(--red);border-color:var(--red)}
+.strip .card .body{padding:10px 12px 12px}
+.strip .card h4{font-size:14px}
+@media (max-width:560px){
+  .grid{grid-template-columns:1fr 1fr;gap:12px}
+  .card .pill,.card .specline{display:none}
+  .card .body{padding:10px 10px 12px;gap:6px}
+  .card h4{font-size:14.5px}
+  .card .actions .btn{padding:7px 11px;font-size:12px}
+  .card .badge{font-size:9.5px;padding:4px 7px;top:8px;left:8px}
+  .heart{width:32px;height:32px}
+}
+.empty{border:1px dashed #E6C9C5;background:var(--wash);border-radius:var(--r);padding:28px;text-align:center;color:var(--ink-2)}
+
+/* trust band */
+.trust{background:var(--ink);color:#fff;border-radius:24px;padding:38px;margin:10px 0 30px}
+.trust h3{font-family:var(--head);font-weight:800;font-size:26px;margin:0 0 6px}
+.trust > p{color:#BFC4CB;margin:0 0 26px;max-width:720px;line-height:1.55}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.step{background:#1E2229;border:1px solid #2C3139;border-radius:16px;padding:18px}
+.step b{font-family:var(--mono);color:var(--red-hi);font-size:13px;letter-spacing:.14em}
+.step h5{font-family:var(--head);font-size:17px;margin:8px 0 6px}
+.step p{margin:0;color:#BFC4CB;font-size:14px;line-height:1.5}
+.step.gate{border-color:var(--red)}
+@media (max-width:860px){.steps{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.steps{grid-template-columns:1fr}.trust{padding:26px}}
+
+footer{border-top:1px solid var(--line);padding:30px 0 44px;color:var(--muted);font-size:13.5px;line-height:1.6}
+footer .fam{display:flex;flex-wrap:wrap;gap:10px 22px;font-family:var(--head);font-weight:700;letter-spacing:.14em;font-size:12px;color:var(--ink-2);margin-bottom:12px}
+footer .fam span:first-child{color:var(--red)}
+
+/* viewer */
+.viewer{position:fixed;inset:0;z-index:60;background:#fff;display:none;grid-template-columns:minmax(0,1.6fr) minmax(320px,1fr)}
+.viewer.open{display:grid}
+.stage{position:relative;background:#F3EFEC;overflow:hidden;min-height:50vh}
+.stage img.poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.stage canvas{position:absolute;inset:0;width:100%!important;height:100%!important;display:block;touch-action:none}
+.stage .overlay{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,.15))}
+.stage .load3d{box-shadow:0 10px 30px rgba(208,35,26,.35);font-size:15px;padding:14px 24px}
+.stage .status{position:absolute;left:16px;bottom:16px;font-family:var(--mono);font-size:12px;color:var(--ink-2);background:rgba(255,255,255,.9);border-radius:8px;padding:6px 10px;display:none}
+.tools{position:absolute;left:50%;transform:translateX(-50%);bottom:16px;display:none;gap:8px;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:999px;padding:6px;box-shadow:var(--shadow)}
+.tools button{border:0;background:transparent;border-radius:999px;padding:9px 12px;font-weight:600;font-size:13px;color:var(--ink-2);white-space:nowrap}
+.tools button:hover{color:var(--red)}
+.tools button.primary{background:var(--red);color:#fff}
+.tools button.primary:hover{background:var(--red-ink);color:#fff}
+.close{position:absolute;top:14px;left:14px;z-index:5;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#fff;display:grid;place-items:center}
+.close svg{width:20px;height:20px}
+.panel{border-left:1px solid var(--line);overflow-y:auto;padding:30px 28px 40px;display:flex;flex-direction:column;gap:16px}
+.panel h2{font-family:var(--head);font-weight:800;font-size:30px;margin:0;letter-spacing:-.01em;line-height:1.1}
+.panel .tag{font-size:16px;line-height:1.55;color:var(--ink-2);margin:0}
+.specs{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.specs div{display:grid;grid-template-columns:130px 1fr;gap:10px;padding:11px 14px;border-top:1px solid var(--line);font-size:14px}
+.specs div:first-child{border-top:0}
+.specs dt{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0;padding-top:2px}
+.specs dd{margin:0;font-weight:600}
+.note{font-size:12.5px;color:var(--muted);line-height:1.5;margin:0;border-left:3px solid var(--red);padding-left:10px}
+.panel .ctas{display:flex;flex-direction:column;gap:10px}
+.panel .ctas .btn{width:100%}
+.panel .minor{display:flex;gap:10px}
+.panel .minor .btn{flex:1}
+@media (max-width:900px){
+  .viewer{grid-template-columns:1fr;grid-template-rows:56vh auto;overflow-y:auto}
+  .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+}
+
+/* admin studio */
+.studio{position:fixed;top:0;right:0;bottom:0;width:min(460px,100%);z-index:80;background:#fff;border-left:4px solid var(--red);box-shadow:-20px 0 50px rgba(0,0,0,.12);transform:translateX(105%);transition:transform .25s ease;display:flex;flex-direction:column}
+.studio.open{transform:none}
+.studio header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--line)}
+.studio header b{font-family:var(--head);letter-spacing:.2em;font-size:13px;color:var(--red)}
+.studio .scroll{overflow-y:auto;padding:16px 18px 30px;display:flex;flex-direction:column;gap:14px}
+.studio label{display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.studio input,.studio select,.studio textarea{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;color:var(--ink)}
+.studio input:focus,.studio select:focus,.studio textarea:focus{outline:2px solid rgba(208,35,26,.25);border-color:var(--red)}
+.studio textarea{min-height:96px;resize:vertical}
+.studio .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.studio .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.studio .msg{font-size:13px;border-radius:10px;padding:10px 12px;background:var(--soft);color:var(--ink-2);line-height:1.45}
+.studio .msg.err{background:var(--wash);color:var(--red-ink)}
+.studio .list{display:flex;flex-direction:column;gap:8px}
+.studio .item{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px}
+.studio .item span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.studio .item button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 9px;font-size:12px}
+.studio .item button.del:hover{border-color:var(--red);color:var(--red)}
+.studio h6{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:8px 0 0}
+.fab{position:fixed;right:18px;bottom:18px;z-index:70;background:var(--ink);color:#fff;border:0;border-radius:999px;padding:12px 18px;font-weight:700;letter-spacing:.14em;font-size:12px;font-family:var(--head);box-shadow:var(--shadow)}
+.fab b{color:var(--red-hi)}
+/* ================= APP SHELL (phone-first) ================= */
+:root{--tabh:64px}
+.view{display:none}
+.view.on{display:block}
+header.top nav .navlink{padding:8px 4px;border-bottom:2px solid transparent}
+header.top nav .navlink[aria-current="true"]{color:var(--red);border-bottom-color:var(--red)}
+.btn-talk{background:#fff;color:var(--red);border-color:var(--red)}
+.btn-talk:hover{background:var(--red);color:#fff}
+#installBtn[hidden]{display:none}
+
+/* bottom tab bar */
+.tabbar{display:none}
+@media (max-width:820px){
+  header.top nav .navlink,header.top nav .btn-talk,header.top nav .btn-red{display:none}
+  .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:50;
+    height:calc(var(--tabh) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);
+    background:rgba(255,255,255,.92);backdrop-filter:saturate(1.6) blur(16px);-webkit-backdrop-filter:saturate(1.6) blur(16px);border-top:1px solid var(--line)}
+  body[data-view="watch"] .tabbar{background:rgba(12,13,16,.72);border-top-color:rgba(255,255,255,.08)}
+  .tabbar button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:10.5px;font-weight:600;letter-spacing:.02em;color:var(--muted)}
+  body[data-view="watch"] .tabbar button{color:rgba(255,255,255,.62)}
+  .tabbar svg{width:23px;height:23px}
+  .tabbar button[aria-current="true"]{color:var(--red)}
+  body[data-view="watch"] .tabbar button[aria-current="true"]{color:#fff}
+  .tabbar .talkdot{position:relative}
+  body:not([data-view="watch"]){padding-bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px))}
+  body[data-view="watch"] header.top,body[data-view="watch"] .redline,body[data-view="watch"] footer{display:none}
+  .fab{bottom:calc(var(--tabh) + 14px + env(safe-area-inset-bottom,0px))}
+}
+
+/* ================= WATCH: immersive feed ================= */
+#view-watch{background:#07080A}
+.feed{height:calc(100dvh - 72px);overflow-y:scroll;scroll-snap-type:y mandatory;overscroll-behavior:contain;scrollbar-width:none}
+.feed::-webkit-scrollbar{display:none}
+.slide{position:relative;height:100%;scroll-snap-align:start;scroll-snap-stop:always;overflow:hidden;color:#fff;display:flex;justify-content:center}
+.slide .fill{position:absolute;inset:-40px;background-size:cover;background-position:center;filter:blur(36px) brightness(.45) saturate(1.2);transform:scale(1.1)}
+.slide .media{position:relative;height:100%;width:min(100%,calc((100dvh - 72px)*0.8));overflow:hidden;cursor:pointer;touch-action:pan-y}
+.slide .media img{width:100%;height:100%;object-fit:cover;transform:scale(1.02);will-change:transform}
+.slide.live .media img{animation:kb 11s ease-out forwards}
+@keyframes kb{to{transform:scale(1.13) translateY(-2%)}}
+.slide .shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 22%,rgba(0,0,0,0) 48%,rgba(0,0,0,.86) 100%)}
+.slide .info{position:absolute;left:0;right:76px;bottom:0;padding:0 18px 26px;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.slide .info>*{pointer-events:auto}
+.slide .info .badge{align-self:flex-start;background:var(--red);color:#fff}
+.slide .info h2{font-family:var(--head);font-weight:800;font-size:clamp(26px,7vw,34px);line-height:1.08;margin:0;letter-spacing:-.01em;text-shadow:0 2px 20px rgba(0,0,0,.4)}
+.slide .info p{margin:0;font-size:15px;line-height:1.45;color:rgba(255,255,255,.86);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.slide .chips{display:flex;gap:6px;flex-wrap:wrap}
+.slide .chips span{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.14);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:4px 9px}
+.slide .open{align-self:flex-start;margin-top:4px;background:#fff;color:var(--ink);padding:10px 18px}
+.rail{position:absolute;right:10px;bottom:30px;display:flex;flex-direction:column;gap:16px;align-items:center}
+.rail button{width:54px;border:0;background:transparent;color:#fff;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;font-weight:600;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+.rail button span.ic{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.14);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2);transition:transform .15s ease,background .15s ease}
+.rail button:active span.ic{transform:scale(.9)}
+.rail svg{width:22px;height:22px}
+.rail button[aria-pressed="true"] span.ic{background:var(--red);border-color:var(--red)}
+.rail .ar span.ic{background:rgba(208,35,26,.9);border-color:var(--red)}
+.burst{position:absolute;left:50%;top:45%;width:110px;height:110px;margin:-55px 0 0 -55px;color:#fff;pointer-events:none;opacity:0;filter:drop-shadow(0 6px 24px rgba(208,35,26,.8))}
+.burst.go{animation:burst .8s ease-out}
+@keyframes burst{0%{opacity:0;transform:scale(.3)}25%{opacity:1;transform:scale(1.1)}60%{opacity:1;transform:scale(.95)}100%{opacity:0;transform:scale(1.25) translateY(-30px)}}
+.wtop{position:absolute;left:0;right:0;top:0;z-index:5;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 10px;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.wtop>*{pointer-events:auto}
+.wbrand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none}
+.wbrand svg{width:30px;height:30px}
+.wbrand b{font-family:var(--head);font-weight:800;letter-spacing:.26em;font-size:14px}
+.wbrand .live{margin-left:auto;font-family:var(--mono);font-size:11px;letter-spacing:.18em;display:flex;align-items:center;gap:7px}
+.wbrand .live i{width:7px;height:7px;border-radius:50%;background:var(--red-hi);box-shadow:0 0 0 3px rgba(232,69,59,.3);animation:pulse 1.8s infinite}
+.wchips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.wchips::-webkit-scrollbar{display:none}
+.wchips button{flex:none;border:1px solid rgba(255,255,255,.22);background:rgba(0,0,0,.28);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:600}
+.wchips button[aria-pressed="true"]{background:#fff;color:var(--ink);border-color:#fff}
+#view-watch{position:relative}
+.wcount{position:absolute;right:14px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.wcount i{width:4px;height:14px;border-radius:4px;background:rgba(255,255,255,.3)}
+.wcount i.on{background:#fff;height:26px}
+@media (max-width:820px){
+  .feed{height:calc(100dvh - var(--tabh) - env(safe-area-inset-bottom,0px))}
+  .slide .media{width:100%}
+  .slide .fill{display:none}
+  .wcount{display:none}
+}
+@media (min-width:821px){ .wtop{display:none} .slide .info{left:calc(50% - min(50%,calc((100dvh - 72px)*0.4)));right:auto;width:min(100%,calc((100dvh - 72px)*0.8));padding-right:90px}
+  .rail{right:calc(50% - min(50%,calc((100dvh - 72px)*0.4)) + 12px)} }
+
+/* ================= PLANNER ================= */
+.pl{padding-top:34px;padding-bottom:50px}
+.pl h1,.sv h1{font-family:var(--head);font-weight:800;font-size:clamp(30px,5vw,46px);letter-spacing:-.02em;margin:10px 0 8px;line-height:1.05}
+.pl .sub,.sv .sub{color:var(--ink-2);font-size:16px;line-height:1.55;margin:0 0 22px;max-width:640px}
+.plgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:22px;align-items:start}
+@media (max-width:860px){.plgrid{grid-template-columns:1fr}}
+.card2{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+.field{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+.field>span{font-size:13px;font-weight:600;color:var(--ink-2);display:flex;justify-content:space-between}
+.field>span b{font-family:var(--mono);color:var(--red)}
+.field input[type=range]{width:100%;accent-color:var(--red);height:28px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;background:var(--soft);border-radius:12px;padding:4px}
+.seg button{border:0;background:transparent;border-radius:9px;padding:10px 6px;font-size:13px;font-weight:600;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--red);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.result .big{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.result .big b{font-family:var(--head);font-weight:800;font-size:clamp(34px,7vw,52px);color:var(--red);line-height:1}
+.result .big span{font-size:15px;color:var(--ink-2)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}
+.kpis div{background:var(--soft);border-radius:12px;padding:12px}
+.kpis small{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.kpis strong{display:block;font-family:var(--head);font-size:21px;margin-top:4px}
+.heat{margin:6px 0 16px}
+.heat .row{display:grid;grid-template-columns:108px 1fr 64px;gap:10px;align-items:center;font-size:13px;margin:8px 0}
+.heat .track{height:10px;border-radius:10px;background:var(--soft);overflow:hidden}
+.heat .track i{display:block;height:100%;border-radius:10px;background:#C9CED6;transition:width .4s ease}
+.heat .row.me .track i{background:var(--red)}
+.heat .row.me{font-weight:700}
+.feel{font-size:14.5px;line-height:1.55;color:var(--ink-2);background:var(--wash);border-radius:12px;padding:12px 14px;margin:0 0 14px}
+@media (max-width:520px){.kpis{grid-template-columns:1fr 1fr 1fr}.kpis strong{font-size:17px}}
+
+/* ================= SAVED ================= */
+.sv{padding-top:34px;padding-bottom:50px}
+.svbar{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 20px}
+
+/* ================= TALK TO KARL ================= */
+.talk{position:fixed;inset:0;z-index:95;display:none;align-items:center;justify-content:center;padding:20px;
+  background:rgba(15,17,21,.42);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15)}
+.talk.open{display:flex;animation:fade .25s ease}
+@keyframes fade{from{opacity:0}}
+.tcard{position:relative;width:min(440px,100%);background:#fff;border-radius:24px;padding:26px 24px 22px;box-shadow:0 30px 80px rgba(0,0,0,.35);animation:rise .35s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes rise{from{transform:translateY(24px);opacity:0}}
+.tcard .who{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.tcard .av{width:58px;height:58px;border-radius:50%;background:var(--wash);display:grid;place-items:center;position:relative;flex:none}
+.tcard .av svg{width:34px;height:34px}
+.tcard h3{font-family:var(--head);font-weight:800;font-size:24px;margin:0}
+.tcard .role{font-size:13px;color:var(--muted);margin-top:2px}
+.tcard p{font-size:15px;line-height:1.55;color:var(--ink-2);margin:0 0 12px}
+.tcard .ctx{font-size:13px;background:var(--soft);border-radius:10px;padding:10px 12px;color:var(--ink-2);margin:0 0 16px}
+.tcard .btns{display:flex;flex-direction:column;gap:9px}
+.tcard .btns .btn{width:100%;padding:13px 18px;font-size:15px}
+.tcard .x{position:absolute;right:12px;top:12px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:#fff;display:grid;place-items:center}
+.tcard .fine{font-size:12px;color:var(--muted);text-align:center;margin:12px 0 0}
+@media (max-width:820px){
+  .talk{align-items:flex-end;padding:0}
+  .tcard{width:100%;border-radius:24px 24px 0 0;padding-bottom:calc(22px + env(safe-area-inset-bottom,0px))}
+  .tcard::before{content:"";display:block;width:42px;height:5px;border-radius:5px;background:var(--line);margin:-12px auto 16px}
+}
+
+/* ================= AR ================= */
+.arsheet{position:fixed;inset:0;z-index:85;background:#0B0C0F;display:none;flex-direction:column;color:#fff}
+.arsheet.open{display:flex}
+.arsheet header{display:flex;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 12px}
+.arsheet header b{font-family:var(--head);font-size:17px}
+.arsheet header small{display:block;font-size:12px;color:#9AA1AB;margin-top:2px}
+.arsheet header button{margin-left:auto;width:40px;height:40px;border-radius:50%;border:1px solid #2A2E36;background:#15171C;color:#fff;display:grid;place-items:center}
+.arsheet .mvbox{flex:1;position:relative}
+.arsheet model-viewer{width:100%;height:100%;--poster-color:transparent;background:radial-gradient(circle at 50% 40%,#2A2E36,#0B0C0F 70%)}
+.arsheet .arnote{position:absolute;left:14px;right:14px;top:10px;font-size:13px;color:#C9CED6;text-align:center}
+.arsheet .arbtn{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));box-shadow:0 10px 30px rgba(208,35,26,.45);font-size:15px;padding:14px 26px}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="redline"></div>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="KARLCON Lumen Builds home">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 3 57 17.5v29L32 61 7 46.5v-29z" fill="none" stroke="#D0231A" stroke-width="4"/><path d="M17 24 32 32l15-8M32 32v19" fill="none" stroke="#D0231A" stroke-width="3.2"/><path d="M19 28v14l11 6.4V35zM45 28v14l-11 6.4V35z" fill="#D0231A"/><path d="M22 22l10-5.6L42 22 32 27.6z" fill="#fff" stroke="#D0231A" stroke-width="2.4"/></svg>
+      <div><b>KARLCON</b><span>LUMEN BUILDS</span></div>
+    </a>
+    <nav>
+      <a class="navlink" href="#/watch" data-go="watch">Watch</a>
+      <a class="navlink" href="#/explore" data-go="explore">Explore</a>
+      <a class="navlink" href="#/planner" data-go="planner">Planner</a>
+      <a class="navlink" href="#/saved" data-go="saved">Saved</a>
+      <button class="btn btn-talk" data-talk>Talk to Karl</button>
+      <button class="btn btn-line" id="installBtn" hidden>Install app</button>
+      <a class="btn btn-red" href="https://www.instagram.com/karlcon_lumen_builds_zw/" target="_blank" rel="noopener">Follow</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="view" id="view-watch" aria-label="Watch concepts">
+  <div class="wtop">
+    <a class="wbrand" href="#/explore" data-go="explore"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 3 57 17.5v29L32 61 7 46.5v-29z" fill="none" stroke="currentColor" stroke-width="4"/><path d="M17 24 32 32l15-8M32 32v19" fill="none" stroke="currentColor" stroke-width="3.2"/><path d="M19 28v14l11 6.4V35zM45 28v14l-11 6.4V35z" fill="currentColor"/></svg><b>KARLCON</b><span class="live"><i></i>NOW SHOWING</span></a>
+    <div class="wchips" id="wChips"></div>
+  </div>
+  <div class="wcount" id="wCount" aria-hidden="true"></div>
+  <div class="feed" id="feed"></div>
+</section>
+
+<section class="view" id="view-explore">
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <div class="kicker"><i></i>Now showing</div>
+        <h1>Concepts you can <em>walk around.</em></h1>
+        <p class="lead">Every design on this channel starts as a render and becomes an engineering concept — with the glass, the mechanism and the drive force written underneath. Pick a channel. Open anything in 3D.</p>
+        <div class="ctas">
+          <a class="btn btn-red" href="#guide">Browse the channels</a>
+          <a class="btn btn-line" href="https://www.instagram.com/karlcon_lumen_builds_zw/" target="_blank" rel="noopener">Follow the build</a>
+        </div>
+      </div>
+      <div class="feature" id="feature" role="button" tabindex="0" aria-label="Open the featured concept"></div>
+    </div>
+  </section>
+
+  <nav class="guide" id="guide" aria-label="Channels"><div class="wrap" id="channels"></div></nav>
+
+  <section class="block" id="continueBlock" hidden>
+    <div class="wrap">
+      <div class="row-head"><h3>Continue watching</h3><p>Remembered on this device</p></div>
+      <div class="strip" id="continue"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <div class="row-head"><h3 id="gridTitle">All channels</h3><p id="gridCount"></p></div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </section>
+
+  <section class="block" id="how">
+    <div class="wrap">
+      <div class="trust">
+        <h3>How a concept earns its place</h3>
+        <p>Anyone can post a render. Every concept here carries the engineering that sits behind it, and stays labelled <b>Concept</b> until it has been built and water-tested.</p>
+        <div class="steps">
+          <div class="step"><b>01</b><h5>Rendered</h5><p>The idea, visualised in the space it belongs to.</p></div>
+          <div class="step"><b>02</b><h5>Specified</h5><p>Glass, mechanism and drive chosen for that exact aperture.</p></div>
+          <div class="step"><b>03</b><h5>Checked</h5><p>Wind uplift, glass stress and deflection calculated, not assumed.</p></div>
+          <div class="step gate"><b>04</b><h5>Proven</h5><p>Built on the test rig and water-tested before it is offered to anyone.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</section>
+
+<section class="view" id="view-planner">
+  <div class="wrap pl">
+    <div class="kicker"><i></i>Skylight planner</div>
+    <h1>How much sky does your room need?</h1>
+    <p class="sub">Set the room size and how bright you want it. The planner sizes the opening with the figures from our engineering file, and shows how much heat each glass keeps out.</p>
+    <div class="plgrid">
+      <div class="card2">
+        <label class="field"><span>Room length <b id="pLv"></b></span><input type="range" id="pL" min="2" max="16" step="0.1"></label>
+        <label class="field"><span>Room width <b id="pWv"></b></span><input type="range" id="pW" min="2" max="12" step="0.1"></label>
+        <div class="field"><span>Daylight</span><div class="seg" id="pLevel"><button data-v="soft">Soft</button><button data-v="balanced">Balanced</button><button data-v="bright">Bright</button></div></div>
+        <div class="field" style="margin:0"><span>Glass</span><div class="seg" id="pGlass"><button data-v="clear">Clear</button><button data-v="grey">Grey</button><button data-v="lowe">Low-e</button></div></div>
+      </div>
+      <div class="card2 result">
+        <div class="kicker">Recommended</div>
+        <div class="big"><b id="rBig"></b><span id="rSize"></span></div>
+        <div class="kpis"><div><small>Floor</small><strong id="rFloor"></strong></div><div><small>Opening</small><strong id="rAp"></strong></div><div><small>Daylight</small><strong id="rDf"></strong></div></div>
+        <p class="feel" id="rFeel"></p>
+        <div class="field" style="margin:0"><span>Heat into the room at noon</span></div>
+        <div class="heat" id="rHeat"></div>
+        <p class="note" id="rHeatNote"></p>
+        <button class="btn btn-red" id="pTalk" style="width:100%;margin-top:16px">Talk to Karl about this room</button>
+        <p class="note" style="margin-top:12px">Indicative first-order estimate. A site survey confirms the opening, its position (at least 1 m from roof edges) and the structure.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="view-saved">
+  <div class="wrap sv">
+    <div class="kicker"><i></i>Saved</div>
+    <h1>Your shortlist</h1>
+    <p class="sub">Remembered on this device. Send it to Karl when you are ready to talk about one of them.</p>
+    <div class="svbar"><button class="btn btn-red" id="savedSend">Send my shortlist to Karl</button><button class="btn btn-line" id="savedClear">Clear</button><span class="pill" id="savedCount"></span></div>
+    <div class="grid" id="savedGrid"></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="fam"><span>KARLCON LUMEN BUILDS</span><span>ELITE RETREATS</span><span>EARTHMOVING &amp; CONSTRUCTION</span></div>
+    Harare, Zimbabwe. Concept imagery is AI-assisted and indicative. Final designs are subject to site survey and structural design by a registered engineer.
+  </div>
+</footer>
+
+<nav class="tabbar" aria-label="App">
+  <button data-go="watch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M10.5 9.2v5.6l4.5-2.8z" fill="currentColor"/></svg><span>Watch</span></button>
+  <button data-go="explore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></svg><span>Explore</span></button>
+  <button data-go="planner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg><span>Planner</span></button>
+  <button data-go="saved"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20.5s-7-4.3-8.9-8.6C1.7 8.8 3.6 5.2 7 5.2c2 0 3.3 1.1 5 3 1.7-1.9 3-3 5-3 3.4 0 5.3 3.6 3.9 6.7C19 16.2 12 20.5 12 20.5z"/></svg><span>Saved</span></button>
+  <button data-talk><span class="talkdot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5z"/></svg></span><span>Karl</span></button>
+</nav>
+
+<div class="talk" id="talk" role="dialog" aria-modal="true" aria-labelledby="tTitle">
+  <div class="tcard">
+    <button class="x" id="tClose" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="who"><div class="av" style="color:#D0231A"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 3 57 17.5v29L32 61 7 46.5v-29z" fill="none" stroke="currentColor" stroke-width="4"/><path d="M17 24 32 32l15-8M32 32v19" fill="none" stroke="currentColor" stroke-width="3.2"/><path d="M19 28v14l11 6.4V35zM45 28v14l-11 6.4V35z" fill="currentColor"/></svg></div><div><h3 id="tTitle">Talk to Karl</h3><div class="role">Founder · KARLCON Lumen Builds</div></div></div>
+    <p id="tLead"></p>
+    <p class="ctx" id="tCtx" hidden></p>
+    <div class="btns">
+      <a class="btn btn-red" id="tIG" href="https://ig.me/m/karlcon_lumen_builds_zw" target="_blank" rel="noopener">Message Karl on Instagram</a>
+      <a class="btn btn-line" id="tWA" target="_blank" rel="noopener" hidden>WhatsApp Karl</a>
+      <button class="btn btn-line" id="tStay">Keep browsing</button>
+    </div>
+    <p class="fine" id="tCount" hidden></p>
+    <p class="fine"><a href="https://www.instagram.com/karlcon_lumen_builds_zw/" target="_blank" rel="noopener">Or follow the build on Instagram</a></p>
+  </div>
+</div>
+
+<div class="arsheet" id="ar" role="dialog" aria-modal="true" aria-labelledby="arTitle">
+  <header><div><b id="arTitle"></b><small id="arSub"></small></div><button id="arClose" aria-label="Close AR"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
+  <div class="mvbox"><div id="arBox" style="position:absolute;inset:0"></div><p class="arnote" id="arNote"></p></div>
+</div>
+
+<!-- viewer -->
+<div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-labelledby="vTitle">
+  <div class="stage" id="stage">
+    <button class="close" id="vClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <img class="poster" id="vPoster" alt="">
+    <div class="overlay" id="vOverlay"><button class="btn btn-red load3d" id="vLoad">View in 3D</button></div>
+    <div class="status" id="vStatus"></div>
+    <div class="tools" id="vTools">
+      <button class="primary" id="tMech">Open roof</button>
+      <button id="tSpin">Auto-rotate</button>
+      <button id="tReset">Reset</button>
+      <button id="tView">Mechanism</button>
+      <button id="tPhoto">Photo</button>
+    </div>
+  </div>
+  <aside class="panel">
+    <div><span class="badge" id="vBadge"></span> <span class="pill" id="vStatusPill"></span></div>
+    <h2 id="vTitle"></h2>
+    <p class="tag" id="vTag"></p>
+    <dl class="specs" id="vSpecs"></dl>
+    <p class="note" id="vNote"></p>
+    <div class="ctas">
+      <a class="btn btn-red" id="vAsk" href="https://ig.me/m/karlcon_lumen_builds_zw" data-talk>Talk to Karl about this concept</a>
+      <button class="btn btn-line" id="vAR" hidden>View on your site (AR)</button>
+      <div class="minor">
+        <button class="btn btn-line" id="vSave">♥ Save</button>
+        <button class="btn btn-line" id="vShare">Share</button>
+      </div>
+      <a class="btn btn-ghost" href="https://www.instagram.com/karlcon_lumen_builds_zw/" target="_blank" rel="noopener">Follow the build on Instagram →</a>
+    </div>
+  </aside>
+</div>
+
+<script src="/concepts-data.js"></script>
+<script>
+/* ============================================================
+   KARLCON Lumen Builds — Concept Channel
+   Memory lives in two places:
+   1. The library: /api/concepts (Vercel Blob) — what everyone sees.
+   2. The visitor: localStorage — shortlist, "continue watching", last channel.
+   ============================================================ */
+(function(){
+'use strict';
+
+const CHANNELS=window.KC_CHANNELS;
+const chan=id=>CHANNELS.find(c=>c.id===id)||CHANNELS[1];
+
+/* Built-in catalogue lives in /concepts-data.js (shared with /developer). */
+const SEED=window.KC_SEED;
+
+/* ---------- visitor memory ---------- */
+const mem={
+  get(k,d){try{const v=localStorage.getItem('kc_'+k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem('kc_'+k,JSON.stringify(v))}catch(e){}}
+};
+let shortlist=new Set(mem.get('shortlist',[]));
+let recent=mem.get('recent',[]);
+let current=mem.get('channel','all');
+if(!CHANNELS.some(c=>c.id===current)) current='all';
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+function el(tag,attrs,...kids){
+  const n=document.createElement(tag);
+  if(attrs) for(const [k,v] of Object.entries(attrs)){
+    if(v==null||v===false) continue;
+    if(k==='class') n.className=v;
+    else if(k==='text') n.textContent=v;
+    else if(k.startsWith('on')) n.addEventListener(k.slice(2),v);
+    else n.setAttribute(k,v===true?'':v);
+  }
+  for(const c of kids){ if(c==null) continue; n.append(c.nodeType?c:document.createTextNode(c)); }
+  return n;
+}
+const heartSVG='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.3 3 4.5 6.7 4.5c2.1 0 3.6 1.2 4.3 2.4.7-1.2 2.2-2.4 4.3-2.4 3.7 0 5.8 3.8 4.3 7.2C19.5 16.4 12 21 12 21z"/></svg>';
+function specLine(c){return (c.specs||[]).slice(0,2).map(s=>s.v).join(' · ')}
+
+/* Drawn artwork for concepts that have no render yet. */
+function art(mech){
+  const R='#D0231A',G='#BFD6DF';
+  const roof=`<rect x="40" y="330" width="320" height="16" fill="#15181D"/><rect x="118" y="300" width="12" height="46" fill="#15181D"/><rect x="270" y="300" width="12" height="46" fill="#15181D"/>`;
+  const glow=`<path d="M130 346 L270 346 L330 470 L70 470Z" fill="#FFD8A8" opacity=".55"/>`;
+  let m='';
+  if(mech==='slide') m=`<rect x="238" y="286" width="150" height="14" rx="3" fill="${G}" stroke="${R}" stroke-width="4"/><path d="M180 250h110" stroke="${R}" stroke-width="5"/><path d="M290 240l18 10-18 10z" fill="${R}"/>`;
+  else if(mech==='louvre'){for(let i=0;i<5;i++){const x=140+i*30;m+=`<rect x="${x}" y="266" width="12" height="46" rx="3" fill="${G}" stroke="${R}" stroke-width="3" transform="rotate(${-20-i*10} ${x+6} 289)"/>`;}}
+  else m=`<rect x="130" y="296" width="74" height="12" rx="3" fill="${G}" stroke="${R}" stroke-width="4" transform="rotate(-38 130 302)"/><rect x="196" y="296" width="74" height="12" rx="3" fill="${G}" stroke="${R}" stroke-width="4" transform="rotate(38 270 302)"/>`;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"><rect width="400" height="500" fill="#FBF1EF"/><g stroke="#EFDCD8" stroke-width="1">${Array.from({length:10},(_,i)=>`<path d="M${i*44} 0V500"/>`).join('')}${Array.from({length:12},(_,i)=>`<path d="M0 ${i*44}H400"/>`).join('')}</g>${glow}${roof}${m}<text x="40" y="80" font-family="monospace" font-size="16" letter-spacing="3" fill="${R}">KARLCON · CONCEPT</text></svg>`;
+  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+}
+const thumbOf=c=>c.thumbUrl||art(c.mechanism);
+
+/* ---------- data ---------- */
+let CONCEPTS=SEED.slice();
+let STORE={configured:false,count:0};
+async function loadLibrary(fresh){
+  try{
+    const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),5000);
+    const r=await fetch('/api/concepts'+(fresh?'?fresh='+Date.now():''),{signal:ctl.signal,cache:fresh?'no-store':'default'});
+    clearTimeout(t);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    STORE={configured:!!j.configured,count:(j.concepts||[]).length};
+    // Library first; built-ins not yet stored still show. Anything marked hidden is left out.
+    const stored=j.concepts||[], ids=new Set(stored.map(c=>c.id));
+    CONCEPTS=[...stored,...SEED.filter(s=>!ids.has(s.id))].filter(c=>!c.hidden)
+      .sort((x,y)=>(x.order??999)-(y.order??999));
+  }catch(e){ /* offline, preview or no API yet: the built-in catalogue stays */ }
+}
+
+/* ---------- render ---------- */
+function renderChannels(){
+  const box=$('#channels'); box.textContent='';
+  for(const c of CHANNELS){
+    const n=c.id==='all'?CONCEPTS.length:c.id==='shortlist'?CONCEPTS.filter(x=>shortlist.has(x.id)).length:CONCEPTS.filter(x=>x.channel===c.id).length;
+    box.append(el('button',{class:'ch','aria-pressed':String(c.id===current),onclick:()=>{current=c.id;mem.set('channel',current);renderChannels();renderGrid();}},
+      el('small',{text:c.no==='♥'?'♥':'CH '+c.no}), c.name, el('span',{class:'n',text:'('+n+')'})));
+  }
+}
+function card(c,compact){
+  const ch=chan(c.channel);
+  const saved=shortlist.has(c.id);
+  const heart=el('button',{class:'heart','aria-pressed':String(saved),'aria-label':saved?'Remove from shortlist':'Save to shortlist',onclick:e=>{e.stopPropagation();toggleSave(c.id);}});
+  heart.innerHTML=heartSVG;
+  return el('article',{class:'card'},
+    el('div',{class:'thumb',onclick:()=>openViewer(c.id)},
+      el('img',{src:thumbOf(c),alt:c.title,loading:'lazy',decoding:'async'}),
+      el('span',{class:'badge',text:'CH '+ch.no+' · '+ch.name})),
+    el('div',{class:'body'},
+      el('h4',{text:c.title}),
+      compact?null:el('div',{class:'specline',text:specLine(c)}),
+      compact?null:el('div',{class:'actions'},
+        el('button',{class:'btn btn-red',onclick:()=>openViewer(c.id,true)},'View in 3D'),
+        el('span',{class:'pill',text:c.status||'Concept'}),
+        heart)));
+}
+function renderGrid(){
+  const g=$('#grid'); g.textContent='';
+  const list=current==='all'?CONCEPTS:current==='shortlist'?CONCEPTS.filter(c=>shortlist.has(c.id)):CONCEPTS.filter(c=>c.channel===current);
+  $('#gridTitle').textContent=current==='all'?'All channels':chan(current).name;
+  $('#gridCount').textContent=list.length+(list.length===1?' concept':' concepts');
+  if(!list.length){
+    g.append(el('div',{class:'empty',style:'grid-column:1/-1'},current==='shortlist'?'Tap ♥ on any concept to keep it here. Your shortlist is remembered on this device.':'Nothing on this channel yet — new concepts are on the way.'));
+    return;
+  }
+  for(const c of list) g.append(card(c));
+}
+function renderContinue(){
+  const items=recent.map(id=>CONCEPTS.find(c=>c.id===id)).filter(Boolean);
+  $('#continueBlock').hidden=!items.length;
+  const s=$('#continue'); s.textContent='';
+  for(const c of items) s.append(card(c,true));
+}
+function renderFeature(){
+  const f=CONCEPTS.find(c=>c.featured)||CONCEPTS[0]; const box=$('#feature'); box.textContent='';
+  if(!f) return;
+  const ch=chan(f.channel);
+  box.append(el('img',{src:thumbOf(f),alt:f.title,fetchpriority:'high'}),el('div',{class:'veil'}),
+    el('button',{class:'btn btn-red play',onclick:e=>{e.stopPropagation();openViewer(f.id,true);}},'▶  View in 3D'),
+    el('div',{class:'meta'},el('span',{class:'badge',text:'CH '+ch.no+' · Featured'}),el('h2',{text:f.title}),el('div',{class:'spec',text:specLine(f)})));
+  box.onclick=()=>openViewer(f.id); box.onkeydown=e=>{if(e.key==='Enter')openViewer(f.id)};
+}
+function toggleSave(id){
+  shortlist.has(id)?shortlist.delete(id):shortlist.add(id);
+  mem.set('shortlist',[...shortlist]);
+  renderChannels(); renderGrid(); renderContinue();
+  if(openId===id) syncSave();
+  if(view==='saved') renderSaved();
+  const sl=[...document.querySelectorAll('.slide')].find(x=>x.dataset.id===id); if(sl) syncRail(sl,CONCEPTS.find(c=>c.id===id));
+}
+function renderAll(){renderFeature();renderChannels();renderGrid();renderContinue();}
+
+/* ---------- viewer ---------- */
+let openId=null, V=null;
+const MECH_LABEL={slide:['Open roof','Close roof'],hinged:['Open roof','Close roof'],louvre:['Open blades','Close blades']};
+function openViewer(id,go3d){
+  const c=CONCEPTS.find(x=>x.id===id); if(!c) return;
+  openId=id;
+  recent=[id,...recent.filter(x=>x!==id)].slice(0,8); mem.set('recent',recent); renderContinue();
+  const ch=chan(c.channel);
+  $('#vBadge').textContent='CH '+ch.no+' · '+ch.name;
+  $('#vStatusPill').textContent=c.status||'Concept';
+  $('#vTitle').textContent=c.title; $('#vTag').textContent=c.tagline||'';
+  const dl=$('#vSpecs'); dl.textContent='';
+  for(const s of (c.specs||[])) dl.append(el('div',null,el('dt',{text:s.k}),el('dd',{text:s.v})));
+  $('#vNote').textContent=c.modelUrl?'3D model generated from the concept render. Use Mechanism to see how the roof opens. Final dimensions follow a site survey and structural design.':'Interactive 3D massing with the real mechanism. Figures are for a 1.5 × 2.0 m benchmark aperture; each site is designed individually.';
+  $('#vAR').hidden=!c.modelUrl;
+  $('#vPoster').src=thumbOf(c); $('#vPoster').alt=c.title; $('#vPoster').style.display='';
+  $('#vOverlay').style.display=''; $('#vTools').style.display='none'; setStatus('');
+  syncSave();
+  $('#viewer').classList.add('open'); document.body.style.overflow='hidden';
+  history.replaceState(null,'','#concept='+encodeURIComponent(id));
+  $('#vClose').focus();
+  if(go3d) start3D();
+}
+function closeViewer(){
+  destroy3D(); openId=null;
+  $('#viewer').classList.remove('open'); document.body.style.overflow='';
+  history.replaceState(null,'','#/'+(view||'explore'));
+}
+function syncSave(){const s=shortlist.has(openId);$('#vSave').textContent=s?'♥ Saved':'♡ Save';$('#vSave').setAttribute('aria-pressed',String(s));}
+function setStatus(t){const s=$('#vStatus');s.textContent=t;s.style.display=t?'block':'none';}
+
+$('#vClose').onclick=closeViewer;
+$('#vAR').onclick=()=>openId&&openAR(openId);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&openId)closeViewer();});
+$('#vLoad').onclick=()=>start3D();
+$('#vSave').onclick=()=>openId&&toggleSave(openId);
+$('#vShare').onclick=async()=>{
+  const c=CONCEPTS.find(x=>x.id===openId); const url=location.origin+location.pathname+'#concept='+encodeURIComponent(openId);
+  try{ if(navigator.share){await navigator.share({title:c.title,text:c.title+' — KARLCON Lumen Builds',url});return;} await navigator.clipboard.writeText(url); $('#vShare').textContent='Link copied'; setTimeout(()=>$('#vShare').textContent='Share',1600);}catch(e){}
+};
+$('#tPhoto').onclick=()=>{destroy3D();$('#vPoster').style.display='';$('#vOverlay').style.display='';$('#vTools').style.display='none';};
+
+/* three.js r128 — same version as the hologram viewer, loaded only on demand */
+let threeReady=null;
+function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.async=true;s.onload=ok;s.onerror=()=>no(new Error('Could not load '+src));document.head.append(s);});}
+function loadThree(){
+  if(!threeReady) threeReady=(async()=>{
+    if(!window.THREE) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
+    const ex='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/';
+    await Promise.all([
+      THREE.OrbitControls?0:loadScript(ex+'controls/OrbitControls.js'),
+      THREE.GLTFLoader?0:loadScript(ex+'loaders/GLTFLoader.js'),
+      THREE.DRACOLoader?0:loadScript(ex+'loaders/DRACOLoader.js'),
+      THREE.RoomEnvironment?0:loadScript(ex+'environments/RoomEnvironment.js')
+    ]);
+  })().catch(e=>{threeReady=null;throw e;});
+  return threeReady;
+}
+const quint=p=>p*p*p*(p*(p*6-15)+10);
+
+let viewMode='model';
+async function start3D(mode){
+  const c=CONCEPTS.find(x=>x.id===openId); if(!c||V) return;
+  viewMode=mode||(c.modelUrl?'model':'mechanism');
+  $('#vOverlay').style.display='none'; setStatus('Loading 3D…');
+  try{ await loadThree(); }catch(e){ setStatus('3D could not load on this connection. Try again.'); $('#vOverlay').style.display=''; return; }
+  if(openId!==c.id) return;
+  const test=document.createElement('canvas');
+  if(!(test.getContext('webgl')||test.getContext('experimental-webgl'))){ setStatus('This device does not support 3D.'); $('#vOverlay').style.display=''; return; }
+  V=buildScene(c);
+  if(viewMode==='model'&&c.modelUrl){
+    loadModel(c.modelUrl).then(()=>{ setStatus(''); $('#vPoster').style.display='none'; })
+      .catch(()=>{ setStatus('Model unavailable — showing the mechanism study.'); viewMode='mechanism'; addMassing(c); syncTools(c); $('#vPoster').style.display='none'; });
+  }else{ viewMode='mechanism'; addMassing(c); setStatus(''); $('#vPoster').style.display='none'; }
+  $('#vTools').style.display='flex'; syncTools(c);
+}
+function syncTools(c){
+  const labels=MECH_LABEL[c.mechanism];
+  $('#tMech').style.display=(viewMode==='mechanism'&&labels)?'':'none';
+  if(labels) $('#tMech').textContent=labels[0];
+  $('#tView').style.display=(c.modelUrl&&labels)?'':'none';
+  $('#tView').textContent=viewMode==='model'?'Mechanism':'3D model';
+}
+$('#tView').onclick=()=>{ const next=viewMode==='model'?'mechanism':'model'; destroy3D(); start3D(next); };
+
+function buildScene(c){
+  const stage=$('#stage');
+  const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75));
+  renderer.outputEncoding=THREE.sRGBEncoding;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=0.95;
+  renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  stage.insertBefore(renderer.domElement,$('#vStatus'));
+  const scene=new THREE.Scene(); scene.background=new THREE.Color(0xF3EFEC); scene.fog=new THREE.Fog(0xF3EFEC,40,90);
+  const camera=new THREE.PerspectiveCamera(38,1,0.1,300);
+  try{ const pm=new THREE.PMREMGenerator(renderer); scene.environment=pm.fromScene(new THREE.RoomEnvironment(),0.04).texture; pm.dispose(); }catch(e){}
+  scene.add(new THREE.HemisphereLight(0xffffff,0xE7DED7,0.45));
+  const sun=new THREE.DirectionalLight(0xffffff,0.8); sun.position.set(12,20,9); sun.castShadow=true;
+  sun.shadow.mapSize.set(1024,1024); Object.assign(sun.shadow.camera,{left:-16,right:16,top:16,bottom:-16,near:1,far:60}); scene.add(sun);
+  const ground=new THREE.Mesh(new THREE.CircleGeometry(40,64),new THREE.MeshStandardMaterial({color:0xF7F3F0,roughness:1}));
+  ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+  const ring=new THREE.Mesh(new THREE.RingGeometry(9.2,9.45,96),new THREE.MeshBasicMaterial({color:new THREE.Color(0xD0231A).convertSRGBToLinear()}));
+  ring.rotation.x=-Math.PI/2; ring.position.y=0.01; scene.add(ring);
+  const controls=new THREE.OrbitControls(camera,renderer.domElement);
+  Object.assign(controls,{enableDamping:true,dampingFactor:0.08,minDistance:4,maxDistance:60,maxPolarAngle:Math.PI*0.49,autoRotateSpeed:0.8});
+  const v={renderer,scene,camera,controls,root:new THREE.Group(),mech:null,t:0,target:0,from:0,t0:0,mixer:null,clock:new THREE.Clock(),raf:0,frame:{center:new THREE.Vector3(0,1.5,0),r:9}};
+  v.ring=ring; scene.add(v.root);
+  const ro=new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();});
+  ro.observe(stage); v.ro=ro;
+  const tick=()=>{
+    v.raf=requestAnimationFrame(tick);
+    const dt=Math.min(v.clock.getDelta(),0.1);
+    if(v.mech&&v.t!==v.target){ const dir=Math.sign(v.target-v.from); v.t=Math.max(0,Math.min(1,v.from+dir*(performance.now()-v.t0)/2600)); v.mech(quint(v.t)); }
+    if(v.mixer) v.mixer.update(dt);
+    controls.update(); renderer.render(scene,camera);
+  };
+  tick();
+  return v;
+}
+function frameView(center,r){
+  V.frame={center:center.clone(),r};
+  V.controls.target.copy(center);
+  V.camera.position.set(center.x+r*0.95,center.y+r*0.95,center.z+r*1.25);
+  V.controls.update();
+}
+function destroy3D(){
+  if(!V) return;
+  cancelAnimationFrame(V.raf); V.ro.disconnect(); V.controls.dispose();
+  V.scene.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material){ (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ for(const k in m){ if(m[k]&&m[k].isTexture) m[k].dispose(); } m.dispose(); }); } });
+  V.renderer.dispose(); V.renderer.domElement.remove(); V=null;
+  $('#tMech').textContent='Open roof';
+}
+
+function loadModel(url){
+  return new Promise((ok,no)=>{
+    let src=url;
+    try{ const h=new URL(url,location.href).hostname; if(h==='meshy.ai'||h.endsWith('.meshy.ai')) src='/api/meshy-proxy?url='+encodeURIComponent(url); }catch(e){}
+    const loader=new THREE.GLTFLoader();
+    const draco=new THREE.DRACOLoader(); draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.4.1/'); loader.setDRACOLoader(draco);
+    loader.load(src,g=>{
+      if(!V) return;
+      const m=g.scene;
+      m.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+      const box=new THREE.Box3().setFromObject(m), size=box.getSize(new THREE.Vector3()), ctr=box.getCenter(new THREE.Vector3());
+      const s=8/Math.max(size.x,size.y,size.z||1);
+      m.scale.setScalar(s); m.position.set(-ctr.x*s,-box.min.y*s,-ctr.z*s);
+      V.root.add(m);
+      if(g.animations&&g.animations.length){ V.mixer=new THREE.AnimationMixer(m); g.animations.forEach(a=>V.mixer.clipAction(a).play()); }
+      frameView(new THREE.Vector3(0,size.y*s*0.45,0),9); ok();
+    },p=>{ if(p.total) setStatus('Loading 3D… '+Math.round(p.loaded/p.total*100)+'%'); },no);
+  });
+}
+
+/* Procedural massing model with the concept's real mechanism */
+const lin=h=>new THREE.Color(h).convertSRGBToLinear();
+function addMassing(c){
+  const g=V.root, m=c.massing||{w:8,d:6,h:3.2};
+  const W=m.w,D=m.d,H=m.h;
+  const white=new THREE.MeshStandardMaterial({color:lin(0xF4F2EF),roughness:0.6});
+  const red=new THREE.MeshStandardMaterial({color:lin(0xC41E16),roughness:0.45,metalness:0.15});
+  const glass=new THREE.MeshStandardMaterial({color:lin(0x9FC3D1),roughness:0.08,metalness:0.1,transparent:true,opacity:0.5});
+  const dark=new THREE.MeshStandardMaterial({color:lin(0x2A2E35),roughness:0.8});
+  const box=(w,h,d,mat,x,y,z)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);b.position.set(x,y,z);b.castShadow=true;b.receiveShadow=true;g.add(b);return b;};
+  // body with glazed front band and red frame
+  box(W,H,D,white,0,H/2,0);
+  box(W*0.86,H*0.62,0.05,glass,0,H*0.5,D/2+0.03);
+  const col=0.2;
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>box(col,H+0.4,col,red,sx*(W/2),(H+0.4)/2,sz*(D/2)));
+  box(W+0.3,0.22,col,red,0,H+0.12,D/2); box(W+0.3,0.22,col,red,0,H+0.12,-D/2);
+  box(col,0.22,D+0.3,red,W/2,H+0.12,0); box(col,0.22,D+0.3,red,-W/2,H+0.12,0);
+  box(W+0.1,0.14,D+0.1,white,0,H+0.07,0);
+  // aperture: LB-1 benchmark 2.0 x 1.5 m, scaled down for small roofs
+  const aw=Math.min(2.0,W*0.45), ad=Math.min(1.5,D*0.45), ky=H+0.14, kh=0.15, kt=0.08;
+  const hole=new THREE.Mesh(new THREE.PlaneGeometry(aw,ad),new THREE.MeshBasicMaterial({color:lin(0xFFD49A),transparent:true,opacity:0.0}));
+  hole.rotation.x=-Math.PI/2; hole.position.set(0,ky+0.005,0); g.add(hole);
+  box(aw+2*kt,kh,kt,dark,0,ky+kh/2,ad/2+kt/2); box(aw+2*kt,kh,kt,dark,0,ky+kh/2,-ad/2-kt/2);
+  box(kt,kh,ad,dark,aw/2+kt/2,ky+kh/2,0); box(kt,kh,ad,dark,-aw/2-kt/2,ky+kh/2,0);
+  const lamp=new THREE.PointLight(0xFFC98A,0,14,2); lamp.position.set(0,H*0.55,0); g.add(lamp);
+  const top=ky+kh;
+  function sash(w,d){
+    const s=new THREE.Group();
+    const p=new THREE.Mesh(new THREE.BoxGeometry(w,0.05,d),glass); s.add(p);
+    const f=0.06;
+    [[w,f,0,d/2],[w,f,0,-d/2]].forEach(([a,b,x,z])=>{const r=new THREE.Mesh(new THREE.BoxGeometry(a,0.08,b),red);r.position.set(x,0,z);s.add(r);});
+    [[f,d,w/2],[f,d,-w/2]].forEach(([a,b,x])=>{const r=new THREE.Mesh(new THREE.BoxGeometry(a,0.08,b),red);r.position.set(x,0,0);s.add(r);});
+    s.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+    return s;
+  }
+  const glow=e=>{hole.material.opacity=0.85*e;lamp.intensity=2.4*e;};
+  if(c.mechanism==='slide'){
+    const panel=sash(aw+0.12,ad+0.12); panel.position.set(0,top+0.04,0); g.add(panel);
+    box(aw*2.2,0.04,0.06,dark,aw*0.6,top-0.02,ad/2+0.12); box(aw*2.2,0.04,0.06,dark,aw*0.6,top-0.02,-ad/2-0.12);
+    V.mech=q=>{ const lift=Math.min(1,q*6); panel.position.y=top+0.04+0.08*lift; panel.position.x=(aw+0.2)*Math.max(0,(q-0.12)/0.88); glow(q); };
+  }else if(c.mechanism==='louvre'){
+    const n=7, bw=aw/n, blades=[];
+    for(let i=0;i<n;i++){ const b=new THREE.Group(); b.position.set(-aw/2+bw*(i+0.5),top+0.04,0);
+      const m1=new THREE.Mesh(new THREE.BoxGeometry(bw*0.96,0.035,ad),new THREE.MeshStandardMaterial({color:lin(0xE9EBEE),roughness:0.35,metalness:0.45}));
+      m1.castShadow=true; b.add(m1); g.add(b); blades.push(b); }
+    box(aw+0.3,0.05,0.07,red,0,top+0.02,ad/2+0.08);
+    V.mech=q=>{ blades.forEach((b,i)=>{ const qi=Math.max(0,Math.min(1,(q-i*0.03)/0.82)); b.rotation.z=-1.35*qi; }); glow(q); };
+  }else if(c.mechanism==='hinged'){
+    const mk=(sign)=>{ const pivot=new THREE.Group(); pivot.position.set(sign*aw/2,top+0.04,0);
+      const leaf=sash(aw/2,ad+0.1); leaf.position.x=-sign*aw/4; pivot.add(leaf); g.add(pivot);
+      const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,1,10),new THREE.MeshStandardMaterial({color:0x8A9199,metalness:0.8,roughness:0.3})); g.add(rod);
+      return {pivot,rod,sign}; };
+    const L=mk(-1),R=mk(1), up=new THREE.Vector3(0,1,0), a=new THREE.Vector3(), b=new THREE.Vector3();
+    const rodUpdate=(s)=>{ a.set(s.sign*aw*0.46,top-0.02,ad/2-0.06); b.set(-s.sign*aw/4*0.95,-0.03,ad/2-0.06); s.pivot.localToWorld(b); g.worldToLocal(b);
+      const len=a.distanceTo(b); s.rod.position.copy(a).add(b).multiplyScalar(0.5);
+      s.rod.scale.set(1,Math.max(0.01,len),1); s.rod.quaternion.setFromUnitVectors(up,b.clone().sub(a).normalize()); };
+    V.mech=q=>{ const ang=1.12*q; L.pivot.rotation.z=ang; R.pivot.rotation.z=-ang; L.pivot.updateMatrixWorld(); R.pivot.updateMatrixWorld(); rodUpdate(L); rodUpdate(R); glow(q); };
+  }
+  g.traverse(o=>{ if(o.isMesh&&o.material&&'envMapIntensity' in o.material) o.material.envMapIntensity=o.material.color&&o.material.color.r>0.4&&o.material.color.g<0.1?0.15:0.45; });
+  if(V.mech) V.mech(0);
+  const ringR=Math.max(W,D)*0.78+1.2; V.ring.geometry.dispose(); V.ring.geometry=new THREE.RingGeometry(ringR,ringR+0.22,96);
+  frameView(new THREE.Vector3(aw*0.25,H*0.85,0),Math.max(W,D)*0.78+2.6);
+}
+$('#tMech').onclick=()=>{ if(!V||!V.mech) return; V.target=V.target?0:1; V.from=V.t; V.t0=performance.now(); const c=CONCEPTS.find(x=>x.id===openId); const l=MECH_LABEL[c.mechanism]||['Open','Close']; $('#tMech').textContent=V.target?l[1]:l[0]; };
+$('#tSpin').onclick=()=>{ if(!V) return; V.controls.autoRotate=!V.controls.autoRotate; $('#tSpin').classList.toggle('primary',V.controls.autoRotate); };
+$('#tReset').onclick=()=>{ if(V) frameView(V.frame.center,V.frame.r); };
+
+/* ============================================================
+   APP SHELL — phone-first views, immersive feed, planner,
+   saved, Talk to Karl, AR, installable app
+   ============================================================ */
+const ICON={
+  heart:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.3 3 4.5 6.7 4.5c2.1 0 3.6 1.2 4.3 2.4.7-1.2 2.2-2.4 4.3-2.4 3.7 0 5.8 3.8 4.3 7.2C19.5 16.4 12 21 12 21z"/></svg>',
+  cube:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.8 20 7.3v9.4L12 21.2 4 16.7V7.3z"/><path d="M4 7.3 12 12l8-4.7M12 12v9.2"/></svg>',
+  ar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M12 7.5 16 9.8v4.4L12 16.5l-4-2.3V9.8z"/></svg>',
+  share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3.5M7.5 8 12 3.5 16.5 8"/><path d="M5 12.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-6.5"/></svg>'
+};
+
+/* ---------- views & routing ---------- */
+const VIEWS=['watch','explore','planner','saved'];
+const phone=()=>matchMedia('(max-width:820px)').matches;
+let view=null;
+function go(v,opts={}){
+  if(!VIEWS.includes(v)) v='explore';
+  const apply=()=>{
+    view=v; document.body.dataset.view=v; mem.set('view',v);
+    VIEWS.forEach(x=>$('#view-'+x).classList.toggle('on',x===v));
+    document.querySelectorAll('[data-go]').forEach(b=>b.setAttribute('aria-current',String(b.dataset.go===v)));
+    if(v==='watch') renderWatch(); if(v==='saved') renderSaved(); if(v==='planner') plan();
+    if(!opts.keepScroll) window.scrollTo(0,0);
+  };
+  const vt=document.startViewTransition&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&view!==null;
+  vt?document.startViewTransition(apply):apply();
+  if(!openId) history.replaceState(null,'','#/'+v);
+}
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-go]'); if(g){ e.preventDefault(); go(g.dataset.go); return; }
+  const t=e.target.closest('[data-talk]'); if(t){ e.preventDefault(); openTalk('button'); }
+});
+const buzz=()=>{ try{ navigator.vibrate&&navigator.vibrate(12); }catch(e){} };
+
+/* ---------- WATCH: full-screen vertical feed ---------- */
+let watchFilter=mem.get('watchFilter','all'), io=null;
+function renderWatch(){
+  const chipsBox=$('#wChips'); chipsBox.textContent='';
+  const chs=[{id:'all',name:'For you'},...CHANNELS.filter(c=>!['all','shortlist'].includes(c.id)&&CONCEPTS.some(x=>x.channel===c.id))];
+  if(!chs.some(c=>c.id===watchFilter)) watchFilter='all';
+  for(const c of chs) chipsBox.append(el('button',{'aria-pressed':String(c.id===watchFilter),onclick:()=>{watchFilter=c.id;mem.set('watchFilter',c.id);mem.set('watchAt','');renderWatch();}},c.name));
+  const list=watchFilter==='all'?CONCEPTS:CONCEPTS.filter(c=>c.channel===watchFilter);
+  const feed=$('#feed'); feed.textContent='';
+  const dots=$('#wCount'); dots.textContent='';
+  list.forEach((c,i)=>{ feed.append(slide(c,i)); dots.append(el('i')); });
+  if(io) io.disconnect();
+  io=new IntersectionObserver(es=>{
+    for(const en of es){
+      en.target.classList.toggle('live',en.isIntersecting);
+      if(en.isIntersecting){
+        const i=+en.target.dataset.i; mem.set('watchAt',en.target.dataset.id);
+        [...dots.children].forEach((d,k)=>d.classList.toggle('on',k===i));
+        const nx=feed.children[i+1]; if(nx){ const im=nx.querySelector('img'); if(im) im.loading='eager'; }
+      }
+    }
+  },{root:feed,threshold:0.6});
+  [...feed.children].forEach(s=>io.observe(s));
+  const at=mem.get('watchAt',''); const idx=list.findIndex(c=>c.id===at);   // continue where they left off
+  if(idx>0) requestAnimationFrame(()=>{ feed.scrollTop=feed.children[idx].offsetTop; });
+}
+function railBtn(cls,icon,label,onclick,pressed){
+  const b=el('button',{class:cls,onclick:e=>{e.stopPropagation();onclick(b);},'aria-label':label,'aria-pressed':pressed==null?null:String(pressed)});
+  const ic=el('span',{class:'ic'}); ic.innerHTML=icon; b.append(ic,el('span',{text:label})); return b;
+}
+function slide(c,i){
+  const ch=chan(c.channel), img=thumbOf(c);
+  const s=el('article',{class:'slide','data-id':c.id,'data-i':String(i)});
+  const fill=el('div',{class:'fill'}); fill.style.backgroundImage='url("'+img.replace(/"/g,'%22')+'")';
+  const burst=el('div',{class:'burst'}); burst.innerHTML=ICON.heart;
+  const media=el('div',{class:'media'},el('img',{src:img,alt:c.title,loading:i<2?'eager':'lazy',decoding:'async'}),el('div',{class:'shade'}),burst);
+  let tapT=0, single=null;
+  media.addEventListener('click',()=>{            // double-tap saves, single tap opens
+    const now=Date.now();
+    if(now-tapT<300){ clearTimeout(single); tapT=0; if(!shortlist.has(c.id)) toggleSave(c.id); burst.classList.remove('go'); void burst.offsetWidth; burst.classList.add('go'); buzz(); syncRail(s,c); return; }
+    tapT=now; single=setTimeout(()=>openViewer(c.id),300);
+  });
+  const chips=el('div',{class:'chips'}); (c.specs||[]).slice(0,3).forEach(sp=>chips.append(el('span',{text:sp.v})));
+  const info=el('div',{class:'info'},
+    el('span',{class:'badge',text:'CH '+ch.no+' · '+ch.name}),
+    el('h2',{text:c.title}), el('p',{text:c.tagline||''}), chips,
+    el('button',{class:'btn open',onclick:()=>openViewer(c.id,true)},'Open in 3D'));
+  const rail=el('div',{class:'rail'});
+  rail.append(railBtn('save',ICON.heart,shortlist.has(c.id)?'Saved':'Save',()=>{toggleSave(c.id);buzz();syncRail(s,c);},shortlist.has(c.id)));
+  rail.append(railBtn('',ICON.cube,'3D',()=>openViewer(c.id,true)));
+  if(c.modelUrl) rail.append(railBtn('ar',ICON.ar,'AR',()=>openAR(c.id)));
+  rail.append(railBtn('',ICON.share,'Share',()=>shareConcept(c)));
+  s.append(fill,media,info,rail);
+  return s;
+}
+function syncRail(s,c){ const b=s.querySelector('.rail .save'); if(!b) return; const on=shortlist.has(c.id); b.setAttribute('aria-pressed',String(on)); b.lastChild.textContent=on?'Saved':'Save'; }
+async function shareConcept(c){
+  const url=location.origin+location.pathname+'#concept='+encodeURIComponent(c.id);
+  try{ if(navigator.share){ await navigator.share({title:c.title,text:c.title+' — KARLCON Lumen Builds',url}); return; } await navigator.clipboard.writeText(url); toast('Link copied'); }catch(e){}
+}
+function toast(t){ const n=el('div',{style:'position:fixed;left:50%;bottom:calc(var(--tabh) + 24px);transform:translateX(-50%);z-index:99;background:#15181D;color:#fff;border-radius:999px;padding:10px 18px;font-size:14px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.3)'},t); document.body.append(n); setTimeout(()=>n.remove(),1600); }
+
+/* ---------- PLANNER: daylight sizing clients can use ---------- */
+// Figures from the LB-1 engineering file: 7.5% rooflight-to-floor ratio ≈ 2.7% daylight factor,
+// 950 W/m² noon irradiance, 93% of the aperture is glass. First-order, indicative.
+const UNITS=[{id:'LB-1S',area:1.78,size:'1150 × 1550 mm'},{id:'LB-1',area:3.0,size:'1500 × 2000 mm'},{id:'LB-2',area:4.68,size:'1800 × 2600 mm'}];
+const GLASS={clear:{name:'Clear',shgc:0.82},grey:{name:'Grey solar-control',shgc:0.45},lowe:{name:'Low-e solar-control',shgc:0.27}};
+const LEVELS={soft:{name:'Soft',df:1.5,feel:'A gentle wash of daylight — calm, good for bedrooms and lodge suites.'},
+              balanced:{name:'Balanced',df:2.0,feel:'The room reads as naturally lit through most of the day without lights on.'},
+              bright:{name:'Bright',df:3.0,feel:'Studio-bright. Kitchens and living rooms feel open to the sky.'}};
+let P=Object.assign({L:6,W:4.5,level:'balanced',glass:'lowe'},mem.get('planner',{}));
+function plan(){
+  $('#pL').value=P.L; $('#pW').value=P.W;
+  $('#pLv').textContent=(+P.L).toFixed(1)+' m'; $('#pWv').textContent=(+P.W).toFixed(1)+' m';
+  document.querySelectorAll('#pLevel button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===P.level)));
+  document.querySelectorAll('#pGlass button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===P.glass)));
+  const floor=P.L*P.W, df=LEVELS[P.level].df, need=floor*(df/0.36)/100;
+  let pick=UNITS.find(u=>u.area>=need), n=1;
+  if(!pick){ pick=UNITS[1]; n=Math.ceil(need/pick.area); }
+  const area=pick.area*n, got=area/floor*100*0.36, glassA=area*0.93;
+  const heat=g=>Math.round(950*GLASS[g].shgc*glassA);
+  $('#rBig').textContent=(n>1?n+' × ':'')+pick.id;
+  $('#rSize').textContent=pick.size+(n>1?' each':'');
+  $('#rFloor').textContent=floor.toFixed(1)+' m²';
+  $('#rAp').textContent=area.toFixed(2)+' m²';
+  $('#rDf').textContent=got.toFixed(1)+'%';
+  $('#rFeel').textContent=LEVELS[P.level].feel+(n>1?' A room this size is better served by '+n+' openings than one very large one.':'');
+  const hb=$('#rHeat'); hb.textContent=''; const max=heat('clear');
+  for(const g of ['clear','grey','lowe']){
+    const w=heat(g);
+    hb.append(el('div',{class:'row'+(g===P.glass?' me':'')},el('span',{text:GLASS[g].name}),
+      el('div',{class:'track'},el('i',{style:'width:'+Math.round(w/max*100)+'%'})),el('span',{text:(w/1000).toFixed(2)+' kW'})));
+  }
+  const saved=max-heat(P.glass);
+  $('#rHeatNote').textContent=P.glass==='clear'?'Clear glass puts '+(max/1000).toFixed(1)+' kW of heat into the room at noon — roughly a bar heater running all afternoon.':
+    GLASS[P.glass].name+' keeps about '+(saved/1000).toFixed(1)+' kW of noon heat out of the room compared with clear glass.';
+  P.summary=`${P.L.toFixed?P.L.toFixed(1):P.L} × ${P.W.toFixed?P.W.toFixed(1):P.W} m room, ${LEVELS[P.level].name.toLowerCase()} daylight → ${(n>1?n+' × ':'')+pick.id} (${area.toFixed(2)} m² aperture), ${GLASS[P.glass].name.toLowerCase()} glass`;
+  mem.set('planner',{L:+P.L,W:+P.W,level:P.level,glass:P.glass});
+}
+$('#pL').addEventListener('input',e=>{P.L=+e.target.value;plan();});
+$('#pW').addEventListener('input',e=>{P.W=+e.target.value;plan();});
+$('#pLevel').addEventListener('click',e=>{const b=e.target.closest('button');if(b){P.level=b.dataset.v;plan();}});
+$('#pGlass').addEventListener('click',e=>{const b=e.target.closest('button');if(b){P.glass=b.dataset.v;plan();}});
+$('#pTalk').onclick=()=>openTalk('planner','Planner: '+P.summary);
+
+/* ---------- SAVED ---------- */
+function renderSaved(){
+  const g=$('#savedGrid'); g.textContent='';
+  const list=CONCEPTS.filter(c=>shortlist.has(c.id));
+  $('#savedCount').textContent=list.length?list.length+(list.length===1?' concept':' concepts')+' saved on this device':''; $('#savedCount').hidden=!list.length;
+  $('#savedSend').disabled=!list.length; $('#savedClear').disabled=!list.length;
+  if(!list.length){ g.append(el('div',{class:'empty',style:'grid-column:1/-1'},'Nothing saved yet. Double-tap any concept in Watch, or tap ♥, and it stays here — even after you close the page.')); return; }
+  for(const c of list) g.append(card(c));
+}
+$('#savedSend').onclick=()=>openTalk('saved','My shortlist: '+CONCEPTS.filter(c=>shortlist.has(c.id)).map(c=>c.title).join(', '));
+$('#savedClear').onclick=()=>{ if(confirm('Clear your saved concepts?')){ shortlist.clear(); mem.set('shortlist',[]); renderAll(); renderSaved(); } };
+
+/* ---------- TALK TO KARL ---------- */
+const TALK={
+  afterMs: window.KC_TALK_AFTER_MS||60000,  // pops up after 60 s of real use (tab visible, visitor active)
+  repeatHours: 24,                          // then stays quiet for a day on that device
+  instagram: 'https://ig.me/m/karlcon_lumen_builds_zw',
+  whatsapp: '',                             // put Karl's number here, e.g. '2637XXXXXXXX', to add a WhatsApp button with the context pre-filled
+  autoRedirectSeconds: 0                    // 0 = never send anyone off the page by itself
+};
+let talkShown=false, activeMs=+(sessionStorage.getItem('kc_active')||0), lastAct=Date.now(), talkRedirect=null;
+['pointerdown','keydown','scroll','touchstart','wheel'].forEach(ev=>addEventListener(ev,()=>{lastAct=Date.now();},{passive:true,capture:true}));
+setInterval(()=>{
+  if(document.visibilityState!=='visible'||Date.now()-lastAct>30000) return;
+  activeMs+=1000; sessionStorage.setItem('kc_active',String(activeMs));
+  const quiet=Date.now()-(+mem.get('talkSeen',0))<TALK.repeatHours*3600e3;
+  if(!talkShown&&!quiet&&activeMs>=TALK.afterMs&&!$('#ar').classList.contains('open')) openTalk('timer');
+},1000);
+function talkContext(extra){
+  if(extra) return extra;
+  const c=openId&&CONCEPTS.find(x=>x.id===openId);
+  if(c) return 'I was looking at: '+c.title;
+  const w=view==='watch'&&mem.get('watchAt',''); const cw=w&&CONCEPTS.find(x=>x.id===w);
+  if(cw) return 'I was looking at: '+cw.title;
+  if(shortlist.size) return 'My shortlist: '+CONCEPTS.filter(c=>shortlist.has(c.id)).map(c=>c.title).join(', ');
+  return '';
+}
+function openTalk(reason,extra){
+  talkShown=true; if(reason==='timer') mem.set('talkSeen',Date.now());
+  const ctx=talkContext(extra);
+  $('#tCtx').textContent=ctx; $('#tCtx').hidden=!ctx;
+  $('#tLead').textContent=reason==='timer'?'You have been exploring for a minute — any questions? Message Karl directly about a concept, your roof, or what the build would involve.':'Questions about a concept, your roof, or what the build would involve? Message Karl directly.';
+  const ig=$('#tIG'); ig.href=TALK.instagram;
+  ig.onclick=()=>{ if(ctx&&navigator.clipboard) navigator.clipboard.writeText(ctx).then(()=>toast('Note copied — paste it in the chat')).catch(()=>{}); };
+  const wa=$('#tWA'); wa.hidden=!TALK.whatsapp;
+  if(TALK.whatsapp) wa.href='https://wa.me/'+TALK.whatsapp+'?text='+encodeURIComponent('Hi Karl — '+(ctx||'I found you through the KARLCON concept page.'));
+  $('#talk').classList.add('open'); document.documentElement.style.overflow='hidden';
+  setTimeout(()=>$('#tIG').focus(),50);
+  clearInterval(talkRedirect); $('#tCount').hidden=true;
+  if(reason==='timer'&&TALK.autoRedirectSeconds>0){
+    let s=TALK.autoRedirectSeconds; $('#tCount').hidden=false;
+    talkRedirect=setInterval(()=>{ s--; $('#tCount').textContent='Opening the chat in '+s+' s — tap Keep browsing to stay.'; if(s<=0){ clearInterval(talkRedirect); location.href=TALK.whatsapp?wa.href:TALK.instagram; } },1000);
+  }
+}
+function closeTalk(){ clearInterval(talkRedirect); $('#talk').classList.remove('open'); document.documentElement.style.overflow=''; }
+$('#tClose').onclick=closeTalk; $('#tStay').onclick=closeTalk;
+$('#talk').addEventListener('click',e=>{ if(e.target.id==='talk') closeTalk(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('#talk').classList.contains('open')) closeTalk(); });
+
+/* ---------- AR: place the concept on your own site ---------- */
+let mvReady=null;
+function loadMV(){
+  if(!mvReady) mvReady=new Promise((ok,no)=>{ const s=document.createElement('script'); s.type='module';
+    s.src='https://cdn.jsdelivr.net/npm/@google/model-viewer@4.3.1/dist/model-viewer.min.js';
+    s.onload=()=>customElements.whenDefined('model-viewer').then(ok); s.onerror=()=>{mvReady=null;no(new Error('AR viewer could not load'));}; document.head.append(s); });
+  return mvReady;
+}
+/* Horizontal size of a GLB, read from its own header, so the real-world scale can be set
+   before model-viewer loads it (changing scale afterwards trips a model-viewer 4.3 bug). */
+async function glbSpan(url){
+  try{
+    const buf=await (await fetch(url)).arrayBuffer(), dv=new DataView(buf);
+    if(dv.getUint32(0,true)!==0x46546C67) return 0;
+    const g=JSON.parse(new TextDecoder().decode(new Uint8Array(buf,20,dv.getUint32(12,true))));
+    const mul=(a,b)=>{const o=new Array(16).fill(0);for(let i=0;i<4;i++)for(let j=0;j<4;j++)for(let k=0;k<4;k++)o[j*4+i]+=a[k*4+i]*b[j*4+k];return o;};
+    const trs=n=>{ if(n.matrix) return n.matrix; const [x,y,z,w]=n.rotation||[0,0,0,1], [sx,sy,sz]=n.scale||[1,1,1], [tx,ty,tz]=n.translation||[0,0,0];
+      return [(1-2*(y*y+z*z))*sx,(2*(x*y+z*w))*sx,(2*(x*z-y*w))*sx,0,(2*(x*y-z*w))*sy,(1-2*(x*x+z*z))*sy,(2*(y*z+x*w))*sy,0,(2*(x*z+y*w))*sz,(2*(y*z-x*w))*sz,(1-2*(x*x+y*y))*sz,0,tx,ty,tz,1]; };
+    const lo=[1e9,1e9,1e9], hi=[-1e9,-1e9,-1e9];
+    const walk=(i,parent)=>{ const n=g.nodes[i], m=mul(parent,trs(n));
+      if(n.mesh!=null) for(const pr of g.meshes[n.mesh].primitives){ const a=g.accessors[pr.attributes.POSITION]; if(!a||!a.min) continue;
+        for(let c=0;c<8;c++){ const v=[c&1?a.max[0]:a.min[0],c&2?a.max[1]:a.min[1],c&4?a.max[2]:a.min[2]];
+          for(let k=0;k<3;k++){ const w=m[k]*v[0]+m[4+k]*v[1]+m[8+k]*v[2]+m[12+k]; lo[k]=Math.min(lo[k],w); hi[k]=Math.max(hi[k],w); } } }
+      (n.children||[]).forEach(ch=>walk(ch,m)); };
+    const I=[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1], sc=g.scenes[g.scene||0];
+    (sc.nodes||[]).forEach(i=>walk(i,I));
+    return Math.max(hi[0]-lo[0],hi[2]-lo[2]);
+  }catch(e){ return 0; }
+}
+async function openAR(id){
+  const c=CONCEPTS.find(x=>x.id===id); if(!c||!c.modelUrl) return;
+  $('#arTitle').textContent=c.title; $('#arSub').textContent='Loading the model…'; $('#arNote').textContent='';
+  const box=$('#arBox'); box.textContent=''; $('#ar').classList.add('open'); document.documentElement.style.overflow='hidden';
+  try{ await loadMV(); }catch(e){ $('#arSub').textContent=e.message; return; }
+  let src=c.modelUrl; try{ const h=new URL(src,location.href).hostname; if(h==='meshy.ai'||h.endsWith('.meshy.ai')) src='/api/meshy-proxy?url='+encodeURIComponent(src); }catch(e){}
+  $('#arSub').textContent='Measuring the model…';
+  const w=c.arWidth||(c.massing&&c.massing.w)||3, span=await glbSpan(src), f=span>0?w/span:1;
+  if(!$('#ar').classList.contains('open')) return;
+  const mv=document.createElement('model-viewer');
+  const attrs={src,alt:c.title+' 3D model',ar:'','ar-modes':'webxr scene-viewer quick-look','ar-scale':'fixed','camera-controls':'','touch-action':'pan-y','auto-rotate':'','shadow-intensity':'1','environment-image':'neutral',exposure:'1',scale:`${f} ${f} ${f}`};
+  for(const [k,v] of Object.entries(attrs)) mv.setAttribute(k,v);
+  const btn=el('button',{slot:'ar-button',class:'btn btn-red arbtn'},'View on your site'); mv.append(btn);
+  $('#arSub').textContent='Loading the model…';
+  mv.addEventListener('load',()=>{
+    $('#arSub').textContent=span>0?'Real size — about '+w+' m across':'Shown at the model\'s own size';
+    if(!mv.canActivateAR){ btn.hidden=true; $('#arNote').textContent='Open this page on an ARCore Android phone or an iPhone to place the model on your site. You can still turn it here.'; }
+    else $('#arNote').textContent='Point your camera at open ground, then tap "View on your site".';
+  });
+  mv.addEventListener('error',()=>{ $('#arSub').textContent='The model could not be loaded.'; });
+  mv.addEventListener('ar-status',e=>{ if(e.detail.status==='failed') $('#arNote').textContent='AR could not start on this device.'; });
+  box.append(mv);
+}
+function closeAR(){ $('#ar').classList.remove('open'); $('#arBox').textContent=''; document.documentElement.style.overflow=''; }
+$('#arClose').onclick=closeAR;
+
+/* ---------- installable app ---------- */
+let deferredInstall=null;
+addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); deferredInstall=e; $('#installBtn').hidden=false; });
+$('#installBtn').onclick=async()=>{ if(!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice.catch(()=>{}); deferredInstall=null; $('#installBtn').hidden=true; };
+if('serviceWorker' in navigator&&location.protocol!=='file:') addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+
+addEventListener('hashchange',()=>{            // typed links, shared links and the back button
+  const r=location.hash.match(/^#\/(\w+)/), m=location.hash.match(/^#concept=(.+)$/);
+  if(m){ openViewer(decodeURIComponent(m[1])); return; }
+  if(openId) closeViewer();
+  if(r&&r[1]!==view) go(r[1]);
+});
+/* ---------- boot ---------- */
+(async function(){
+  const startHash=location.hash;
+  renderAll();
+  const r=startHash.match(/^#\/(\w+)/);
+  go(r?r[1]:(mem.get('view',null)||(phone()?'watch':'explore')));
+  await loadLibrary(false);
+  renderAll(); if(view==='watch') renderWatch(); if(view==='saved') renderSaved();
+  const m=startHash.match(/^#concept=(.+)$/); if(m) openViewer(decodeURIComponent(m[1]));
+  if(new URLSearchParams(location.search).has('admin')) initStudio();
+})();
+
+/* ============================================================
+   STUDIO (admin) — open with ?admin in the URL.
+   Writes need the ADMIN_KEY set in Vercel; uploads go straight to Blob.
+   ============================================================ */
+function initStudio(){
+  const S=el('aside',{class:'studio',id:'studio','aria-label':'Concept studio'});
+  S.innerHTML=`
+  <header><b>CONCEPT STUDIO</b><button class="btn btn-line" id="sX" style="padding:6px 12px">Close</button></header>
+  <div class="scroll">
+    <div class="msg" id="sMsg">Loading…</div>
+    <label>Admin key<input id="sKey" type="password" autocomplete="off" placeholder="Same value as ADMIN_KEY in Vercel"></label>
+    <h6>Library</h6>
+    <div class="list" id="sList"></div>
+    <button class="btn btn-line" id="sSeed">Import the built-in concepts into the library</button>
+    <h6 id="sFormTitle">New concept</h6>
+    <input type="hidden" id="fId">
+    <label>Title<input id="fTitle" maxlength="80" placeholder="e.g. Chevron Motif Pavilion"></label>
+    <div class="two">
+      <label>Channel<select id="fChannel"><option value="skylights">CH 101 Skylights</option><option value="pavilions">CH 102 Pavilions</option><option value="residences">CH 103 Residences</option><option value="heritage">CH 104 Heritage</option></select></label>
+      <label>Mechanism<select id="fMech"><option value="slide">Sliding</option><option value="hinged">Bi-parting hinged</option><option value="louvre">Louvre blades</option><option value="none">None</option></select></label>
+    </div>
+    <label>Tagline<textarea id="fTag" maxlength="220" placeholder="One or two sentences a visitor reads first."></textarea></label>
+    <label>Engineering lines (one per line, "Label: value")<textarea id="fSpecs" placeholder="Aperture: 1.5 × 2.0 m&#10;Glass: 10.38 heat-strengthened laminated&#10;Peak drive: 744 N&#10;Open time: 13.6 s"></textarea></label>
+    <div class="three">
+      <label>Status<input id="fStatus" value="Concept" maxlength="40"></label>
+      <label>Order<input id="fOrder" type="number" value="100" min="0" max="999"></label>
+      <label>Featured<select id="fFeat"><option value="">No</option><option value="1">Yes</option></select></label>
+    </div>
+    <div class="three">
+      <label>Width m<input id="fW" type="number" step="0.1" value="8"></label>
+      <label>Depth m<input id="fD" type="number" step="0.1" value="6"></label>
+      <label>Height m<input id="fH" type="number" step="0.1" value="3.2"></label>
+    </div>
+    <label>Thumbnail image<input id="fThumb" type="file" accept="image/*"></label>
+    <label>3D model (.glb)<input id="fGlb" type="file" accept=".glb,model/gltf-binary"></label>
+    <label>…or a Meshy GLB link (copied into the library, because Meshy links expire)<input id="fMeshy" placeholder="https://assets.meshy.ai/…/model.glb?Expires=…"></label>
+    <div class="two"><button class="btn btn-red" id="fSave">Save concept</button><button class="btn btn-line" id="fNew">Clear form</button></div>
+  </div>`;
+  document.body.append(S);
+  const fab=el('button',{class:'fab',onclick:()=>S.classList.toggle('open')}); fab.innerHTML='<b>●</b> STUDIO'; document.body.append(fab);
+  const q=s=>S.querySelector(s);
+  q('#sX').onclick=()=>S.classList.remove('open');
+  q('#sKey').value=sessionStorage.getItem('kc_admin_key')||'';
+  q('#sKey').oninput=e=>sessionStorage.setItem('kc_admin_key',e.target.value.trim());
+  const key=()=>q('#sKey').value.trim();
+  const msg=(t,err)=>{const m=q('#sMsg');m.textContent=t;m.className='msg'+(err?' err':'');};
+  S.classList.add('open');
+
+  async function refresh(){
+    await loadLibrary(true); renderAll();
+    const list=q('#sList'); list.textContent='';
+    if(!STORE.configured){ msg('No Blob store connected yet. In Vercel: Storage → Create → Blob → connect it to this project, add an ADMIN_KEY environment variable, then redeploy. Until then the page shows the built-in concepts.',true); }
+    else msg(STORE.count?STORE.count+' concepts in the library.':'Library is empty — the page is showing the built-in concepts. Import them to make them editable.');
+    const src=STORE.count?CONCEPTS:[];
+    for(const c of src){
+      list.append(el('div',{class:'item'},el('span',{text:'CH '+chan(c.channel).no+' · '+c.title}),
+        el('button',{onclick:()=>fill(c)},'Edit'),
+        el('button',{class:'del',onclick:()=>remove(c)},'Delete')));
+    }
+  }
+  function fill(c){
+    q('#sFormTitle').textContent='Editing: '+c.title;
+    q('#fId').value=c.id; q('#fTitle').value=c.title; q('#fChannel').value=c.channel; q('#fMech').value=c.mechanism||'slide';
+    q('#fTag').value=c.tagline||''; q('#fSpecs').value=(c.specs||[]).map(s=>s.k+': '+s.v).join('\n');
+    q('#fStatus').value=c.status||'Concept'; q('#fOrder').value=c.order??100; q('#fFeat').value=c.featured?'1':'';
+    const m=c.massing||{}; q('#fW').value=m.w??8; q('#fD').value=m.d??6; q('#fH').value=m.h??3.2;
+    q('#fThumb').value=''; q('#fGlb').value=''; q('#fMeshy').value='';
+  }
+  function clearForm(){ fill({id:'',title:'',channel:'skylights',mechanism:'slide',specs:[],status:'Concept',order:100}); q('#sFormTitle').textContent='New concept'; }
+  q('#fNew').onclick=clearForm;
+
+  const slug=s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'concept';
+  async function api(method,path,body){
+    const r=await fetch(path,{method,headers:{'content-type':'application/json','x-admin-key':key()},body:body?JSON.stringify(body):undefined});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(j.error||('HTTP '+r.status));
+    return j;
+  }
+  let blobClient=null;
+  async function upload(path,file,contentType){
+    if(!blobClient) blobClient=await import('https://esm.sh/@vercel/blob@2.8.0/client');
+    const r=await blobClient.upload(path,file,{access:'public',handleUploadUrl:'/api/blob-upload',headers:{'x-admin-key':key()},contentType});
+    return r.url;
+  }
+  async function shrink(file){
+    const bmp=await createImageBitmap(file); const s=Math.min(1,1400/bmp.width);
+    const cv=document.createElement('canvas'); cv.width=Math.round(bmp.width*s); cv.height=Math.round(bmp.height*s);
+    cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
+    let b=await new Promise(r=>cv.toBlob(r,'image/webp',0.82));
+    if(!b||b.type!=='image/webp') b=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.85));
+    return b;
+  }
+  q('#fSave').onclick=async()=>{
+    const btn=q('#fSave'); if(!key()) return msg('Enter the admin key first.',true);
+    const title=q('#fTitle').value.trim(); if(!title) return msg('Give the concept a title.',true);
+    const id=q('#fId').value||(slug(title)+'-'+Date.now().toString(36).slice(-4));
+    btn.disabled=true;
+    try{
+      let thumbUrl, modelUrl;
+      const tf=q('#fThumb').files[0], gf=q('#fGlb').files[0];
+      if(tf){ msg('Uploading thumbnail…'); const b=await shrink(tf); thumbUrl=await upload(`concepts/media/${id}/thumb.${b.type==='image/webp'?'webp':'jpg'}`,b,b.type); }
+      if(gf){ if(gf.size>60*1024*1024) throw new Error('GLB is over 60 MB — compress it first.'); msg('Uploading 3D model… ('+(gf.size/1048576).toFixed(1)+' MB)'); modelUrl=await upload(`concepts/media/${id}/model.glb`,gf,'model/gltf-binary'); }
+      const meshyUrl=q('#fMeshy').value.trim();
+      if(meshyUrl) msg('Copying the Meshy model into the library…');
+      const specs=q('#fSpecs').value.split('\n').map(l=>{const i=l.indexOf(':');return i>0?{k:l.slice(0,i).trim(),v:l.slice(i+1).trim()}:null;}).filter(Boolean);
+      const body={id,title,channel:q('#fChannel').value,mechanism:q('#fMech').value,tagline:q('#fTag').value,specs,
+        status:q('#fStatus').value,order:+q('#fOrder').value,featured:!!q('#fFeat').value,
+        massing:{w:+q('#fW').value,d:+q('#fD').value,h:+q('#fH').value},thumbUrl,modelUrl,meshyUrl:meshyUrl||undefined};
+      await api('POST','/api/concepts',body);
+      msg('Saved "'+title+'". Visitors see it within about 20 seconds.'); clearForm(); await refresh();
+    }catch(e){ msg(e.message,true); }
+    btn.disabled=false;
+  };
+  async function remove(c){
+    const seed=SEED.find(x=>x.id===c.id);
+    if(seed){  // built-ins would reappear from the catalogue, so they are hidden instead of deleted
+      if(!confirm('Hide "'+c.title+'" from the public page?')) return;
+      try{ await api('POST','/api/concepts',{...seed,...c,hidden:true}); msg('Hidden.'); await refresh(); }catch(e){ msg(e.message,true); }
+      return;
+    }
+    if(!confirm('Delete "'+c.title+'" and its images and model? This cannot be undone.')) return;
+    try{ await api('DELETE','/api/concepts?id='+encodeURIComponent(c.id)); msg('Deleted.'); await refresh(); }catch(e){ msg(e.message,true); }
+  }
+  q('#sSeed').onclick=async()=>{
+    if(!key()) return msg('Enter the admin key first.',true);
+    try{
+      const have=new Set(STORE.count?CONCEPTS.map(c=>c.id):[]);
+      let n=0; for(const c of SEED){ if(have.has(c.id)) continue; msg('Importing '+c.title+'…'); await api('POST','/api/concepts',c); n++; }
+      msg(n?'Imported '+n+' concepts. They are now editable.':'Everything is already in the library.'); await refresh();
+    }catch(e){ msg(e.message,true); }
+  };
+  refresh();
+}
+})();
+</script>
+</body>
+</html>

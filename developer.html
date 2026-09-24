@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>KARLCON · Developer — 3D model generation</title>
+<meta name="theme-color" content="#D0231A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--red:#D0231A;--red-ink:#9E150E;--wash:#FBF1EF;--ink:#15181D;--ink-2:#3B4048;--muted:#6B717A;--line:#ECE7E2;--soft:#F7F5F2;--ok:#1F7A4D;--ok-wash:#E9F6EF;
+  --head:'Montserrat',system-ui,sans-serif;--body:'Inter',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace}
+*{box-sizing:border-box}
+html,body{margin:0;background:#fff;color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased;overflow-x:clip}
+button{font:inherit;cursor:pointer}
+.redline{height:4px;background:var(--red)}
+header{border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+header .wrap{display:flex;align-items:center;gap:14px;height:70px}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
+.brand svg{width:40px;height:40px}
+.brand b{display:block;font-family:var(--head);font-weight:800;letter-spacing:.28em;font-size:17px;color:var(--red)}
+.brand span{display:block;font-family:var(--mono);font-weight:600;letter-spacing:.3em;font-size:10px;color:var(--ink-2);margin-top:2px}
+header nav{margin-left:auto}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:999px;padding:10px 18px;font-weight:600;font-size:14px;text-decoration:none;white-space:nowrap}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover:not(:disabled){background:var(--red-ink)}
+.btn-line{background:#fff;color:var(--ink);border-color:var(--line)}.btn-line:hover:not(:disabled){border-color:var(--red);color:var(--red)}
+.btn-sm{padding:7px 12px;font-size:12.5px}
+h1{font-family:var(--head);font-weight:800;font-size:clamp(28px,4vw,40px);letter-spacing:-.02em;margin:30px 0 8px}
+.lead{color:var(--ink-2);font-size:16px;line-height:1.55;max-width:760px;margin:0 0 22px}
+.panel{border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;grid-template-columns:1.2fr 1fr .9fr;gap:14px;align-items:end;background:#fff}
+@media (max-width:860px){.panel{grid-template-columns:1fr}}
+label{display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:var(--ink-2)}
+input,select{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;color:var(--ink);width:100%}
+input:focus,select:focus{outline:2px solid rgba(208,35,26,.25);border-color:var(--red)}
+.check{flex-direction:row;align-items:center;gap:8px;font-weight:500;margin-top:6px}
+.check input{width:auto}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:18px 0 12px}
+.bar .info{margin-left:auto;font-size:13px;color:var(--muted)}
+.msg{font-size:13.5px;border-radius:10px;padding:10px 14px;background:var(--soft);color:var(--ink-2);line-height:1.45;margin-top:14px}
+.msg.err{background:var(--wash);color:var(--red-ink)}
+table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:600;background:var(--soft);padding:10px 12px}
+td{border-top:1px solid var(--line);padding:10px 12px;vertical-align:middle;font-size:14px}
+.pic{width:64px;height:80px;border-radius:8px;object-fit:cover;background:var(--wash);display:block}
+.src{width:80px;height:80px;border-radius:8px;object-fit:contain;display:block;cursor:pointer;
+  background:repeating-conic-gradient(#EEE 0% 25%,#FFF 0% 50%) 50%/16px 16px;border:1px dashed #E3C8C4}
+.src.none{display:grid;place-items:center;font-size:11px;color:var(--muted);text-align:center;padding:6px}
+.t b{display:block;font-weight:600}
+.t small{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;border-radius:999px;padding:4px 10px;background:var(--soft);color:var(--ink-2);white-space:nowrap}
+.chip.ready{background:var(--ok-wash);color:var(--ok)}
+.chip.run{background:var(--wash);color:var(--red)}
+.chip.err{background:var(--wash);color:var(--red-ink)}
+.prog{height:6px;background:var(--line);border-radius:6px;overflow:hidden;margin-top:6px;width:150px}
+.prog i{display:block;height:100%;width:0;background:var(--red);transition:width .4s ease}
+.meta{font-size:12px;color:var(--muted);margin-top:4px}
+.acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.log{margin:22px 0 60px;border:1px solid var(--line);border-radius:14px;background:var(--ink);color:#C9CED6;font-family:var(--mono);font-size:12px;line-height:1.7;padding:14px 16px;max-height:240px;overflow:auto;white-space:pre-wrap}
+.log b{color:#FF8A80;font-weight:600}.log em{color:#8FE3B5;font-style:normal}
+@media (max-width:760px){
+  thead{display:none} table,tbody,tr,td{display:block} tr{border-top:1px solid var(--line);padding:10px}
+  td{border:0;padding:6px 4px} .acts{justify-content:flex-start}
+}
+</style>
+</head>
+<body>
+<div class="redline"></div>
+<header>
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="KARLCON Lumen Builds">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 3 57 17.5v29L32 61 7 46.5v-29z" fill="none" stroke="#D0231A" stroke-width="4"/><path d="M17 24 32 32l15-8M32 32v19" fill="none" stroke="#D0231A" stroke-width="3.2"/><path d="M19 28v14l11 6.4V35zM45 28v14l-11 6.4V35z" fill="#D0231A"/><path d="M22 22l10-5.6L42 22 32 27.6z" fill="#fff" stroke="#D0231A" stroke-width="2.4"/></svg>
+      <div><b>KARLCON</b><span>DEVELOPER</span></div>
+    </a>
+    <nav><a class="btn btn-line" href="/" target="_blank" rel="noopener">View public page ↗</a></nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <h1>3D model generation</h1>
+  <p class="lead">Paste your Meshy key once. Each concept's cropped render is sent to Meshy image-to-3D, and the finished model is copied into the library permanently. It is generated <b>once</b> and every visitor after that loads the stored copy — no repeat credits, no expiring links.</p>
+
+  <section class="panel">
+    <label>Meshy API key
+      <input id="kMeshy" type="password" autocomplete="off" placeholder="msy_…">
+      <span class="check"><input id="kRemember" type="checkbox" checked> Remember on this device (shared with /hologram)</span>
+    </label>
+    <label>Admin key
+      <input id="kAdmin" type="password" autocomplete="off" placeholder="Same value as ADMIN_KEY in Vercel">
+      <span class="check" style="visibility:hidden"><input type="checkbox"> .</span>
+    </label>
+    <label>Model quality
+      <select id="kQuality">
+        <option value="web">Web — 30k triangles, loads fast on phones</option>
+        <option value="high">High detail — heavier file</option>
+      </select>
+      <span class="check" style="visibility:hidden"><input type="checkbox"> .</span>
+    </label>
+  </section>
+  <div class="msg" id="msg">Loading the library…</div>
+
+  <div class="bar">
+    <button class="btn btn-red" id="bAll">Generate all missing</button>
+    <button class="btn btn-line" id="bSync">Sync built-in concepts</button>
+    <span class="info" id="info"></span>
+  </div>
+
+  <table>
+    <thead><tr><th>Render</th><th>Meshy input</th><th>Concept</th><th>3D model</th><th style="text-align:right">Actions</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <div class="log" id="log" aria-live="polite"></div>
+</main>
+
+<input type="file" id="srcPick" accept="image/png,image/jpeg" hidden>
+<script src="/concepts-data.js"></script>
+<script>
+(function(){
+'use strict';
+const MESHY='https://api.meshy.ai/openapi/v1/image-to-3d';
+const POLL_MS=5000, MAX_PARALLEL=2;
+const $=s=>document.querySelector(s);
+const SEED=window.KC_SEED, CH=Object.fromEntries(window.KC_CHANNELS.map(c=>[c.id,c]));
+
+/* ---------- keys (Meshy key uses the same storage name as /hologram) ---------- */
+const MK='karlcon_meshy_api_key';
+$('#kMeshy').value=localStorage.getItem(MK)||sessionStorage.getItem(MK)||'';
+$('#kAdmin').value=sessionStorage.getItem('kc_admin_key')||'';
+$('#kQuality').value=localStorage.getItem('kc_meshy_quality')||'web';
+function saveKeys(){
+  const v=$('#kMeshy').value.trim();
+  if($('#kRemember').checked){ localStorage.setItem(MK,v); sessionStorage.removeItem(MK); }
+  else{ sessionStorage.setItem(MK,v); localStorage.removeItem(MK); }
+  sessionStorage.setItem('kc_admin_key',$('#kAdmin').value.trim());
+  localStorage.setItem('kc_meshy_quality',$('#kQuality').value);
+}
+['#kMeshy','#kAdmin','#kQuality','#kRemember'].forEach(s=>$(s).addEventListener('change',()=>{saveKeys();render();resumeAll();}));
+const meshyKey=()=>$('#kMeshy').value.trim(), adminKey=()=>$('#kAdmin').value.trim();
+
+/* ---------- log & messages ---------- */
+function log(t,kind){ const l=$('#log'); const line=document.createElement('div'); const ts=new Date().toLocaleTimeString();
+  if(kind){ const b=document.createElement(kind==='ok'?'em':'b'); b.textContent=t; line.append(ts+'  ',b); } else line.textContent=ts+'  '+t;
+  l.append(line); l.scrollTop=l.scrollHeight; }
+function msg(t,err){ const m=$('#msg'); m.textContent=t; m.className='msg'+(err?' err':''); }
+
+/* ---------- library API ---------- */
+async function api(method,path,body){
+  const r=await fetch(path,{method,headers:{'content-type':'application/json','x-admin-key':adminKey()},body:body?JSON.stringify(body):undefined,cache:'no-store'});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.error||('HTTP '+r.status));
+  return j;
+}
+let ITEMS=[], STORE={configured:false};
+const live={};   // id -> {state:'run'|'err', progress, note}
+async function load(){
+  let stored=[];
+  try{ const j=await api('GET','/api/concepts?fresh='+Date.now()); STORE.configured=!!j.configured; stored=j.concepts||[]; }
+  catch(e){ STORE.configured=false; }
+  const byId=new Map(stored.map(c=>[c.id,c]));
+  ITEMS=SEED.map(s=>byId.has(s.id)?{...byId.get(s.id),_saved:true}:{...s,_saved:false});
+  for(const c of stored) if(!SEED.some(s=>s.id===c.id)) ITEMS.push({...c,_saved:true});
+  render();
+  if(!STORE.configured) msg('No Blob store is connected yet — connect one in Vercel (Storage → Blob) and set ADMIN_KEY, then redeploy. Generation needs somewhere to keep the models.',true);
+  else if(!adminKey()) msg('Enter the admin key to generate and save models.',true);
+  else if(!meshyKey()) msg('Paste your Meshy API key to start generating.',true);
+  else msg('Ready. Models already in the library will never be regenerated unless you press Regenerate.');
+}
+async function refreshOne(id){
+  const j=await api('GET','/api/concepts?fresh='+Date.now());
+  const c=(j.concepts||[]).find(x=>x.id===id);
+  const cur=ITEMS.find(x=>x.id===id);
+  if(c&&cur){ Object.assign(cur,c,{_saved:true}); return cur; }   // update in place so running jobs keep a live reference
+  return c;
+}
+async function ensureSaved(c){
+  if(c._saved) return c;
+  const {_saved,...body}=c;
+  const j=await api('POST','/api/concepts',body);
+  Object.assign(c,j.concept,{_saved:true});
+  log('Added "'+c.title+'" to the library.');
+  return c;
+}
+async function patch(c,fields){
+  const j=await api('POST','/api/concepts',{id:c.id,...fields});
+  Object.assign(c,j.concept,{_saved:true}); render(); return c;
+}
+
+/* ---------- render ---------- */
+function el(tag,attrs,...kids){ const n=document.createElement(tag);
+  if(attrs) for(const [k,v] of Object.entries(attrs)){ if(v==null||v===false) continue;
+    if(k==='class') n.className=v; else if(k==='text') n.textContent=v; else if(k.startsWith('on')) n.addEventListener(k.slice(2),v); else n.setAttribute(k,v===true?'':v); }
+  for(const c of kids){ if(c!=null) n.append(c.nodeType?c:document.createTextNode(c)); } return n; }
+const mb=b=>!b?'':b<1048576?Math.max(1,Math.round(b/1024))+' KB':(b/1048576).toFixed(1)+' MB';
+function status(c){
+  const L=live[c.id];
+  if(L&&L.state==='run') return {cls:'run',text:'Generating '+(L.progress||0)+'%',note:L.note||''};
+  if(c.modelUrl) return {cls:'ready',text:'Ready',note:[mb(c.modelBytes),c.modelGeneratedAt?new Date(c.modelGeneratedAt).toLocaleDateString():''].filter(Boolean).join(' · ')};
+  if(L&&L.state==='err') return {cls:'err',text:'Failed',note:L.note||''};
+  if(c.meshyTaskId) return {cls:'run',text:'Queued at Meshy',note:'Resumes when your key is entered'};
+  if(!c.meshySource) return {cls:'',text:'No input image',note:'Click the box to add one'};
+  return {cls:'',text:'Not generated',note:''};
+}
+function render(){
+  const tb=$('#rows'); tb.textContent='';
+  let missing=0, ready=0;
+  for(const c of ITEMS){
+    const st=status(c); if(c.modelUrl) ready++; else if(c.meshySource) missing++;
+    const running=live[c.id]&&live[c.id].state==='run';
+    const src=c.meshySource?el('img',{class:'src',src:c.meshySource,alt:'Meshy input for '+c.title,title:'Click to replace the input image',onclick:()=>pickSource(c)})
+                           :el('div',{class:'src none',onclick:()=>pickSource(c)},'+ add image');
+    const prog=running?el('div',{class:'prog'},el('i',{style:'width:'+(live[c.id].progress||2)+'%'})):null;
+    const ch=CH[c.channel]||{no:'—',name:c.channel};
+    const acts=el('div',{class:'acts'});
+    if(c.modelUrl){
+      acts.append(el('a',{class:'btn btn-line btn-sm',href:'/#concept='+encodeURIComponent(c.id),target:'_blank',rel:'noopener'},'Open 3D'),
+                  el('button',{class:'btn btn-line btn-sm',disabled:running||undefined,onclick:()=>generate(c,true)},'Regenerate'),
+                  el('button',{class:'btn btn-line btn-sm',disabled:running||undefined,onclick:()=>removeModel(c)},'Remove'));
+    }else{
+      acts.append(el('button',{class:'btn btn-red btn-sm',disabled:(running||!c.meshySource)||undefined,onclick:()=>generate(c)},c.meshyTaskId?'Resume':'Generate'));
+    }
+    tb.append(el('tr',null,
+      el('td',null,c.thumbUrl?el('img',{class:'pic',src:c.thumbUrl,alt:'',loading:'lazy'}):el('div',{class:'pic'})),
+      el('td',null,src),
+      el('td',{class:'t'},el('b',{text:c.title}),el('small',{text:'CH '+ch.no+' · '+ch.name+(c._saved?'':' · not in library yet')})),
+      el('td',null,el('span',{class:'chip '+st.cls,text:st.text}),prog,st.note?el('div',{class:'meta',text:st.note}):null),
+      el('td',null,acts)));
+  }
+  $('#info').textContent=ready+' of '+ITEMS.filter(c=>c.meshySource||c.modelUrl).length+' concepts have a stored 3D model';
+  $('#bAll').textContent=missing?'Generate all missing ('+missing+')':'All models generated';
+  $('#bAll').disabled=!missing;
+}
+
+/* ---------- Meshy ---------- */
+function blobToDataURI(b){ return new Promise((ok,no)=>{ const r=new FileReader(); r.onload=()=>ok(r.result); r.onerror=no; r.readAsDataURL(b); }); }
+async function imageRef(src){
+  if(/^https:\/\//.test(src)) return src;                        // Blob-hosted source: Meshy fetches it directly
+  const r=await fetch(src,{cache:'force-cache'}); if(!r.ok) throw new Error('Could not read '+src);
+  return blobToDataURI(await r.blob());                           // shipped with the site: send as a data URI
+}
+function qualityParams(){
+  return $('#kQuality').value==='high'
+    ? {should_remesh:false}
+    : {should_remesh:true, topology:'triangle', target_polycount:30000};
+}
+async function meshy(method,url,body){
+  const r=await fetch(url,{method,headers:{'Authorization':'Bearer '+meshyKey(),'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){ const e=new Error(j.message||('Meshy HTTP '+r.status)); e.status=r.status; throw e; }
+  return j;
+}
+const busy=new Set();
+async function generate(c,force){
+  if(busy.has(c.id)) return;
+  if(!meshyKey()||!adminKey()) return msg('Enter both the Meshy key and the admin key first.',true);
+  if(force&&!confirm('Regenerate "'+c.title+'"? This spends Meshy credits and replaces the stored model.')) return;
+  busy.add(c.id);
+  try{
+    await ensureSaved(c);
+    const fresh=await refreshOne(c.id)||c;                      // another tab or device may have finished it
+    if(fresh.modelUrl&&!force){ log('"'+c.title+'" already has a stored model — skipped.','ok'); return; }
+    let taskId=fresh.meshyTaskId;
+    if(!taskId||force){
+      live[c.id]={state:'run',progress:1,note:'Sending image to Meshy'}; render();
+      const created=await meshy('POST',MESHY,{image_url:await imageRef(c.meshySource),should_texture:true,enable_pbr:true,target_formats:['glb'],...qualityParams()});
+      taskId=created.result;
+      await patch(c,{meshyTaskId:taskId});                       // remembered server-side: survives refresh, blocks duplicates
+      log('Meshy task started for "'+c.title+'" ('+taskId+').');
+    }else log('Resuming Meshy task for "'+c.title+'".');
+    await poll(c,taskId);
+  }catch(e){
+    live[c.id]={state:'err',note:e.message}; log('"'+c.title+'": '+e.message,'err'); render();
+    if(e.status===402) msg('Meshy says the account is out of credits. Top up, then press Generate again.',true);
+    if(e.status===401) msg('Meshy rejected the API key.',true);
+  }finally{ busy.delete(c.id); }
+}
+async function poll(c,taskId){
+  for(;;){
+    let t;
+    try{ t=await meshy('GET',MESHY+'/'+taskId); }
+    catch(e){
+      if(e.status===404){ await patch(c,{meshyTaskId:''}); throw new Error('Meshy no longer has that task (different key?). Press Generate to start again.'); }
+      if(e.status===401||e.status===402) throw e;
+      live[c.id]={state:'run',progress:live[c.id]?.progress||0,note:'Network hiccup — retrying'}; render();
+      await new Promise(r=>setTimeout(r,POLL_MS)); continue;
+    }
+    if(t.status==='SUCCEEDED'){
+      live[c.id]={state:'run',progress:100,note:'Copying the model into the library'}; render();
+      const glb=t.model_urls&&t.model_urls.glb; if(!glb) throw new Error('Meshy finished but returned no GLB.');
+      await patch(c,{meshyUrl:glb});
+      delete live[c.id]; render();
+      log('"'+c.title+'" stored — '+mb(c.modelBytes)+'. Every visitor now loads this copy.','ok');
+      return;
+    }
+    if(t.status==='FAILED'||t.status==='CANCELED'){
+      await patch(c,{meshyTaskId:''});
+      throw new Error('Meshy task '+t.status.toLowerCase()+(t.task_error&&t.task_error.message?': '+t.task_error.message:''));
+    }
+    live[c.id]={state:'run',progress:t.progress||0,note:(t.status==='PENDING'?'Waiting in Meshy queue':'Generating')}; render();
+    await new Promise(r=>setTimeout(r,POLL_MS));
+  }
+}
+function resumeAll(){
+  if(!meshyKey()||!adminKey()) return;
+  for(const c of ITEMS) if(c.meshyTaskId&&!c.modelUrl&&!busy.has(c.id)) generate(c);
+}
+$('#bAll').onclick=async()=>{
+  if(!meshyKey()||!adminKey()) return msg('Enter both the Meshy key and the admin key first.',true);
+  const queue=ITEMS.filter(c=>!c.modelUrl&&c.meshySource&&!busy.has(c.id));
+  if(!queue.length) return;
+  msg('Generating '+queue.length+' models, '+MAX_PARALLEL+' at a time. You can leave this tab open; if you close it, press Resume later.');
+  const workers=Array.from({length:Math.min(MAX_PARALLEL,queue.length)},async()=>{ while(queue.length) await generate(queue.shift()); });
+  await Promise.all(workers);
+  msg('Done. Every concept with a green "Ready" is stored and served to visitors from the library.');
+};
+
+/* ---------- sync seeds (text only; never overwrites uploaded media or models) ---------- */
+$('#bSync').onclick=async()=>{
+  if(!adminKey()) return msg('Enter the admin key first.',true);
+  try{
+    for(const s of SEED){
+      const c=ITEMS.find(x=>x.id===s.id);
+      if(!c||!c._saved){ await ensureSaved(c||{...s,_saved:false}); continue; }
+      const {thumbUrl,meshySource,...text}=s;
+      await patch(c,{...text,...(c.thumbUrl?{}:{thumbUrl}),...(c.meshySource?{}:{meshySource})});
+    }
+    log('Built-in concepts synced into the library.','ok'); await load();
+  }catch(e){ msg(e.message,true); }
+};
+
+/* ---------- replace an input image ---------- */
+let pickFor=null, blobClient=null;
+function pickSource(c){ if(!adminKey()) return msg('Enter the admin key first.',true); pickFor=c; $('#srcPick').value=''; $('#srcPick').click(); }
+$('#srcPick').onchange=async e=>{
+  const f=e.target.files[0], c=pickFor; if(!f||!c) return;
+  try{
+    await ensureSaved(c);
+    if(!blobClient) blobClient=await import('https://esm.sh/@vercel/blob@2.8.0/client');
+    const ext=f.type==='image/jpeg'?'jpg':'png';
+    log('Uploading a new input image for "'+c.title+'"…');
+    const r=await blobClient.upload(`concepts/media/${c.id}/source.${ext}`,f,{access:'public',handleUploadUrl:'/api/blob-upload',headers:{'x-admin-key':adminKey()},contentType:f.type});
+    await patch(c,{meshySource:r.url});
+    log('New input image saved. Press '+(c.modelUrl?'Regenerate':'Generate')+' to use it.','ok');
+  }catch(err){ msg(err.message,true); }
+};
+async function removeModel(c){
+  if(!confirm('Remove the stored 3D model for "'+c.title+'"? Visitors will see the mechanism study until you generate again.')) return;
+  try{ await patch(c,{clearModel:true}); log('Model removed from "'+c.title+'".'); }catch(e){ msg(e.message,true); }
+}
+
+load().then(resumeAll);
+})();
+</script>
+</body>
+</html>

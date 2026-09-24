@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "buildCommand": null,
+  "outputDirectory": ".",
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/concepts.html"
+    },
+    {
+      "source": "/concepts",
+      "destination": "/concepts.html"
+    },
+    {
+      "source": "/developer",
+      "destination": "/developer.html"
+    },
+    {
+      "source": "/dev",
+      "destination": "/developer.html"
+    },
+    {
+      "source": "/developers",
+      "destination": "/developer.html"
+    },
+    {
+      "source": "/hologram",
+      "destination": "/karlcon_bim_hologram_v8_gesturecast.html"
+    },
+    {
+      "source": "/pipeline",
+      "destination": "/karlcon_bim_pipeline_v4.html"
+    }
+  ],
+  "functions": {
+    "api/concepts.js": {
+      "maxDuration": 60
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin"
+        }
+      ]
+    },
+    {
+      "source": "/((?!img/|api/).*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/img/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/developer(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    }
+  ]
+}
