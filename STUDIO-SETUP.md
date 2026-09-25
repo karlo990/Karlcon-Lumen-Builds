@@ -120,6 +120,28 @@ The presenters already move procedurally. For more natural upper bodies:
 The studio picks them up automatically and blends them into the spine, neck and shoulders only
 (hands, eyes and lips stay under the rig's control). Without the files nothing changes.
 
+## Background music
+    models/audio/playlist.json   the songs, shuffled
+    models/audio/*.mp3           the songs (loudness-normalised to -18 LUFS, silence trimmed)
+The music starts with the opening sting and never stops: songs play in a shuffled order (each
+once per round, never the same one twice in a row) with a 4-second crossfade between them.
+To add a song: put the mp3 in models/audio/ and add a line to playlist.json:
+    { "src": "song.mp3", "title": "Artist – Song", "duck": -24 }
+"duck" is optional: use -24 for songs with vocals (rap/singing fights the hosts' words more than
+an instrumental does); the default is -20. Mixing is automatic:
+- Between lines the music sits at -8 dB; when a host speaks it dips to -20 dB within a quarter
+  second (about 22 dB under the voice) and stays down across the short gaps between lines, so it
+  doesn't pump. It rises again slowly on stings, title cards and pauses.
+- The music is EQ'd out of the speech band (-2 dB at 300 Hz, -2 to -6 dB at 2.5 kHz), and
+  ElevenLabs voices get a high-pass, a little presence and gentle compression. A limiter on
+  the output stops clipping.
+- Dock: Music button (or M) fades it in/out; ⏭ Song (or N) skips to the next song; Music slider sets the level (0–2).
+- Address options: ?music=0 (off) · ?musicvol=0.6 (quieter) · ?musicsrc=/models/audio/other.mp3 (plays just that one)
+- OBS Browser Source: tick "Control audio via OBS" so music and voices go into the stream.
+COPYRIGHT: commercial songs on Instagram/Facebook Live usually get the live muted or stopped by
+Meta's rights matching. For public streams use music you have a licence for (royalty-free or
+licensed library music, or Meta's Sound Collection).
+
 ## Premium voices with exact lip-sync (ElevenLabs) — optional, paid
 Browser voices are free but robotic. With ElevenLabs the hosts sound human and the lips follow
 the real audio timings.
@@ -132,6 +154,10 @@ the real audio timings.
        ELEVENLABS_VOICE_KARL   Karl's voice id
        ELEVENLABS_MODEL        optional; default eleven_multilingual_v2
 4. Type the studio passcode on the start screen; it shows "Premium voices on."
-Each line is voiced once and kept in Blob storage, so repeated scripted episodes cost nothing
-more. If ElevenLabs fails, that line falls back to the browser voice. Force browser voices with
+Each line is paid for once, ever. Lines are cached three deep: in the streaming browser (Cache
+Storage, survives reloads and site updates, so a repeated line makes no network call at all), then in
+the Blob store (shared by every PC), and only a line never heard before goes to ElevenLabs. In the
+marathon the six scripted episodes cost credits on the first loop only; new Claude-written live
+lines are always new, so they always cost credits. Changing a voice id or the model resets the cache.
+Check in the browser console: `voiceStats` → { browser, server, paid }. If ElevenLabs fails, that line falls back to the browser voice. Force browser voices with
 /studio?voice=browser. Check the voices' licence allows commercial broadcast.
