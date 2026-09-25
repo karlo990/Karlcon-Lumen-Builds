@@ -21,16 +21,19 @@
 */
 window.KC_HOSTS = {
   luma: {
-    name: 'Luma', role: 'Host · KARLCON Systems Intelligence', seat: 0,
+    name: 'Luma', role: 'Host · KARLCON Studios', seat: 0,
     model: '/models/hosts/avaturn.glb', fallback: '/models/hosts/mpfb.glb',
     voice: { gender: 'female', prefer: ['Ava', 'Aria', 'Jenny', 'Sonia', 'Libby', 'Samantha', 'Google UK English Female', 'Zira', 'Female'] },
-    pitch: 1.04, rate: 1.0, mouthGain: 0.7
+    pitch: 1.04, rate: 1.0, mouthGain: 0.7,
+    // optional motion capture (see STUDIO-SETUP.md): used automatically when these files exist
+    clips: { idle: '/models/anim/sitting-idle.fbx', talk: '/models/anim/sitting-talking.fbx' }
   },
   karl: {
     name: 'Karl', role: 'Engineer · KARLCON Lumen Builds', seat: 1,
-    model: '/models/hosts/avatarsdk.glb', fallback: '/models/hosts/mpfb.glb',
+    model: '/models/hosts/avatarsdk.glb?v=3', fallback: '/models/hosts/mpfb.glb',
     voice: { gender: 'male', prefer: ['Andrew', 'Guy', 'Ryan', 'Thomas', 'Daniel', 'Google UK English Male', 'David', 'Male'] },
-    pitch: 0.96, rate: 0.98, mouthGain: 0.9
+    pitch: 0.96, rate: 0.98, mouthGain: 0.9,
+    clips: { idle: '/models/anim/sitting-idle.fbx', talk: '/models/anim/sitting-talking.fbx' }
   }
 };
 
@@ -50,7 +53,7 @@ window.KC_EPISODES = [{
   lines: [
     { who: 'luma', cam: 'wide', build: 7, open: 0, mood: 'smile',
       slide: { kicker: 'Episode 1 · Harare', title: 'The Elevated Glass Cube', lines: ['A glazed living box lifted on four red columns', 'A bi-parting roof light right over the lounge'] },
-      say: "Good evening, and welcome to KARLCON Systems Intelligence. I'm Luma, and tonight we're in Harare, looking at a house that floats." },
+      say: "Good evening, and welcome to KARLCON Studios. I'm Luma, and tonight we're in Harare, looking at a house that floats." },
     { who: 'karl', cam: 'cu', mood: 'smile',
       say: "Evening everyone. Karl here, from Lumen Builds. And yes, it floats. Well, almost. It's a glass box standing on four red steel columns." },
     { who: 'luma', cam: 'two',
@@ -119,7 +122,7 @@ window.KC_EPISODES = [{
   lines: [
     { who: 'luma', cam: 'wide', build: 7, open: 0, mood: 'smile', look: 'globe',
       slide: { kicker: 'Episode 2 · Victoria Falls', title: 'The Lumen Oval', lines: ['A two-storey white oval', 'A wraparound terrace', 'A curved glass roof that slides away'] },
-      say: "Welcome back to KARLCON Systems Intelligence. The Atlas has flown us to Victoria Falls, the town beside the waterfall on the Zambezi, and tonight's house has no corners at all." },
+      say: "Welcome back to KARLCON Studios. The Atlas has flown us to Victoria Falls, the town beside the waterfall on the Zambezi, and tonight's house has no corners at all." },
     { who: 'karl', cam: 'house', look: 'house', point: true,
       say: "This is the Lumen Oval. Two storeys in one white elliptical shell, with a terrace running all the way round the ground floor, and a glass roof over the top floor." },
     { who: 'luma', cam: 'two',

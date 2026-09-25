@@ -95,7 +95,7 @@ export class LiveDirector {
         const j = await this.request('POST', body);
         this.segNo++; this.failures = 0; this.lastError = '';
         const seg = { ...j.segment, no: this.segNo, at: Date.now(), rejected: j.rejected || [], repaired: j.repaired, usage: j.usage };
-        seg.lines.forEach((l, i) => { l.seg = seg.id; l.segNo = seg.no; l.segTitle = seg.title; l.segStart = i === 0; l.conceptId = seg.conceptId; l.conceptTitle = seg.conceptTitle; l.cityName = seg.cityName; });
+        seg.lines.forEach((l, i) => { l.seg = seg.id; l.segNo = seg.no; l.segTitle = seg.title; l.segStart = i === 0; l.conceptId = seg.conceptId; l.conceptTitle = seg.conceptTitle; l.cityName = seg.cityName; l.city = seg.city; });
         this.lines.push(...seg.lines); this.segments.push(seg);
         this.covered.push(`${seg.title}: ${seg.summary}`);
         const u = j.usage || {}, pr = this.info.prices || [2, 10];

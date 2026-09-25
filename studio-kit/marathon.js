@@ -59,7 +59,8 @@ export class Marathon {
         const lines = ep.lines.map((l, i) => ({ ...l, scripted: true, segStart: i === 0, seg: id, segNo: `EP${ep.no}`, segTitle: ep.title,
           conceptId: ep.concept, episode: ep.no, intermission: i === 0 ? { ep, loop: this.loop } : undefined }));
         this.lines.push(...lines); this.blocks++;
-        this.emit('episode', { segment: { id, no: `EP${ep.no}`, type: 'episode', title: `Episode ${ep.no}: ${ep.title}`, summary: ep.subtitle, conceptTitle: ep.title, cityName: '', lines } });
+        const epSeg = { id, no: `EP${ep.no}`, type: 'episode', title: `Episode ${ep.no}: ${ep.title}`, summary: ep.subtitle, conceptTitle: ep.title, cityName: '', lines };
+        this.segments.push(epSeg); this.emit('episode', { segment: epSeg });
         this.director?.covered.push(`Episode ${ep.no}, ${ep.title}: ${ep.subtitle}`);
         this.phase = this.live ? 'live' : 'episode'; this.liveLeft = this.liveSegments;
         if (!this.live) this.advanceEpisode();

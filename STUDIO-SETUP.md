@@ -1,4 +1,4 @@
-# KARLCON Studio — live presenter page
+# KARLCON Studios — live presenter page
 
 ## Address after deploying
     /studio              the studio (two presenters, the building, the Atlas globe)
@@ -7,8 +7,9 @@
 
 ## Files (all at the ROOT of the karlcon-lumen-builds project)
     studio.html              the page: director, voices, captions, on-air graphics
-    studio-kit/hosts.js      the presenters: seated pose, IK arms/legs, eyes, blinks, gestures, lip-sync
-    studio-kit/set.js        the set: blueprint wall, KARLCON SYSTEM desk, Glass Cube, Atlas globe, story screen
+    studio-kit/hosts.js      the presenters: seated pose, IK arms/legs, eyes, blinks, gestures, lip-sync,
+                             listening reactions, weight shifts, drinking, motion-capture blending
+    studio-kit/set.js        the set: blueprint wall, KARLCON STUDIOS desk and bottles, buildings, crane, photographic Atlas globe, story screen
     studio-kit/episodes.js   hosts + the Episode 1 script (edit lines and cues here)
     studio-kit/lipsync-en.mjs   text-to-viseme rules from TalkingHead (MIT, see LICENSE-talkinghead)
     models/hosts/*.glb       presenter avatars (see licences below)
@@ -90,3 +91,47 @@ on-air "HOUR x/20" counter. If live writing is unavailable (no key, no credit) i
 episodes on a loop instead, so the stream never goes dead.
 Cost guide (estimate, claude-sonnet-5, 10 live segments per episode): roughly $10–15 for 20 hours.
 Keep the studio window visible (not minimised) for the whole run, or the browser slows it down.
+
+## Picture and movement (automatic)
+- Quality: High (default) adds ambient occlusion, depth of field on close-ups, a reflective floor
+  and soft area lights. Standard is lighter for slower laptops: /studio?q=standard, or the
+  High/Standard buttons on the start screen. Both add a gentle glow on the brightest highlights.
+- The listener reacts: nods, smiles, raised brows, leaning in on questions, glancing at the screen
+  when a slide changes. The camera sometimes cuts to the listener at the end of a sentence.
+- Now and then a presenter drinks from the Elite Retreats bottle on the desk (long lines only,
+  at most every two minutes).
+- A logo wipe plays when an episode starts or the show moves to a new building; lower thirds slide in; during a build the crane swings and
+  dust rises as each stage lands.
+- The Atlas is a photographic Earth (NASA Blue Marble, public domain) with Zimbabwe marked. It
+  turns to each episode's city and to the city of every live segment.
+
+## Real 3D buildings on stage (Meshy)
+When a concept in the library has a finished 3D model (modelUrl), the studio loads it and, once
+the build sequence reaches the end, the procedural building dissolves into the real model. To make
+the models: open /developer, press "Generate all missing", wait for them to finish. Nothing else to
+do. If a model faces the wrong way on stage, add `stageYaw: 90` (degrees) to that concept.
+Turn it off for a show with /studio?meshy=0.
+
+## Motion capture (Mixamo) — optional, free
+The presenters already move procedurally. For more natural upper bodies:
+1. Sign in at mixamo.com (free Adobe account). Load any character.
+2. Download "Sitting Idle" and "Sitting Talking": Format FBX Binary, Skin "Without Skin", 30 fps.
+3. Save them as models/anim/sitting-idle.fbx and models/anim/sitting-talking.fbx, push.
+The studio picks them up automatically and blends them into the spine, neck and shoulders only
+(hands, eyes and lips stay under the rig's control). Without the files nothing changes.
+
+## Premium voices with exact lip-sync (ElevenLabs) — optional, paid
+Browser voices are free but robotic. With ElevenLabs the hosts sound human and the lips follow
+the real audio timings.
+1. elevenlabs.io → sign up (a paid plan is needed for 20-hour use), create an API key
+   (restrict it to Text to Speech).
+2. Voice Library → pick one voice for Luma and one for Karl → copy each Voice ID.
+3. Vercel → Settings → Environment Variables (Secret; Production + Preview), then redeploy:
+       ELEVENLABS_API_KEY      the key — never in the repo or the page
+       ELEVENLABS_VOICE_LUMA   Luma's voice id
+       ELEVENLABS_VOICE_KARL   Karl's voice id
+       ELEVENLABS_MODEL        optional; default eleven_multilingual_v2
+4. Type the studio passcode on the start screen; it shows "Premium voices on."
+Each line is voiced once and kept in Blob storage, so repeated scripted episodes cost nothing
+more. If ElevenLabs fails, that line falls back to the browser voice. Force browser voices with
+/studio?voice=browser. Check the voices' licence allows commercial broadcast.

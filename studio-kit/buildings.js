@@ -108,10 +108,26 @@ function finish({ id, G, parts, top, centre, mech, beamR = [0.75, 1.3], beamScal
   const beamMat = new THREE.MeshBasicMaterial({ color: 0xFFF1D6, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
   const beamGeo = new THREE.CylinderGeometry(beamR[0], beamR[1], beamH, 40, 1, true); beamGeo.scale(beamScale[0], 1, beamScale[1]);
   const beam = new THREE.Mesh(beamGeo, beamMat); beam.position.set(top.x, top.y - beamH / 2 + 1.6, top.z); G.add(beam);
+  // footprint of the finished building, used to fit a real Meshy model in its place
+  const fb = new THREE.Box3(); for (const o of parts) fb.expandByObject(o);
+  const footprint = { size: fb.getSize(V(0, 0, 0)), centre: fb.getCenter(V(0, 0, 0)) };
   return {
-    id, group: G, parts, lamp, beam, scale, build: 7, open: 0, openTarget: 0, buildTarget: 7, top, centre,
+    id, group: G, parts, lamp, beam, scale, build: 7, open: 0, openTarget: 0, buildTarget: 7, top, centre, footprint,
+    hero: null, heroA: 0, heroMats: [], useHero: true,
+    /** show a real (Meshy) model as the finished building; the procedural model still does the
+        build sequence and the roof mechanism, cross-fading in and out around them */
+    setHero(obj, yaw = 0) {
+      const b = new THREE.Box3().setFromObject(obj), sz = b.getSize(V(0, 0, 0)), c = b.getCenter(V(0, 0, 0));
+      const k = Math.max(footprint.size.x, footprint.size.z) / Math.max(sz.x, sz.z, 1e-3);
+      const holder = new THREE.Group(); obj.position.set(-c.x, -b.min.y, -c.z); holder.add(obj);
+      holder.scale.setScalar(k); holder.rotation.y = yaw; holder.position.set(footprint.centre.x, 0, footprint.centre.z);
+      this.heroMats = [];
+      obj.traverse((n) => { if (n.isMesh) { n.castShadow = n.receiveShadow = true; n.material = (Array.isArray(n.material) ? n.material : [n.material]).map((m) => { const c2 = m.clone(); c2.transparent = true; c2.opacity = 0; this.heroMats.push(c2); return c2; }); if (n.material.length === 1) n.material = n.material[0]; } });
+      if (this.hero) G.remove(this.hero);
+      this.hero = holder; holder.visible = false; G.add(holder);
+    },
     setBuild(p) { this.buildTarget = p; }, setOpen(o) { this.openTarget = o; },
-    reset() { this.build = this.buildTarget = 7; this.open = this.openTarget = 0; this.update(0); },
+    reset() { this.build = this.buildTarget = 7; this.open = this.openTarget = 0; this.heroA = this.hero && this.useHero ? 1 : 0; this.update(0); },
     update(dt) {
       const up = this.buildTarget > this.build;
       this.build += Math.sign(this.buildTarget - this.build) * Math.min(Math.abs(this.buildTarget - this.build), dt * (up ? 0.55 : 3.5));
@@ -124,6 +140,13 @@ function finish({ id, G, parts, top, centre, mech, beamR = [0.75, 1.3], beamScal
         else o.visible = k > 0.02;
       }
       mech(this.build >= 6.5 ? this.open : 0);
+      if (this.hero) {
+        const want = this.useHero && this.build >= 6.99 && this.buildTarget >= 7 && this.openTarget < 0.05 && this.open < 0.08 ? 1 : 0;
+        this.heroA += (want - this.heroA) * Math.min(1, dt * 1.6);
+        this.hero.visible = this.heroA > 0.01;
+        for (const m of this.heroMats) m.opacity = this.heroA;
+        if (this.heroA > 0.985) for (const o of parts) o.visible = false;      // fully swapped: only the real model shows
+      }
       lamp.intensity = this.build > 5.5 ? 6 : 0;
       beamMat.opacity = this.build >= 6.5 ? Math.max(0, this.open - 0.35) * 0.16 : 0;
     }

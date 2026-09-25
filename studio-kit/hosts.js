@@ -87,7 +87,12 @@ export class Host {
       t: 0, speaking: false, lookAt: new V3(0, 1.2, 3), lookCur: null, lookVel: new V3(),
       eyeOff: new V3(), nextSaccade: 0, blink: 0, nextBlink: 1 + Math.random() * 3, blinkT: -1,
       nod: 0, nodV: 0, lean: 0, leanV: 0, smile: 0.12, brow: 0, energy: 0,
-      hands: {}, gesture: null, gestureEnd: 0, nextGesture: 0
+      hands: {}, gesture: null, gestureEnd: 0, nextGesture: 0,
+      // body language
+      turn: 0, turnV: 0, leanBoost: 0, shift: 0, shiftTarget: 0, nextShift: 3 + Math.random() * 6,
+      // face: mood + short reactions that decay
+      mood: 'neutral', react: { smile: 0, brows: 0, surprise: 0, press: 0 }, micro: { k: null, v: 0, until: 0 }, nextMicro: 2,
+      drinkTilt: 0
     };
     for (const s of ['Left', 'Right']) {
       const rest = this.handRest(s);
@@ -156,6 +161,7 @@ export class Host {
     return { words, total: t };
   }
   startSpeech(plan, now) {
+    if (this.drinking) this._endDrink();
     this.plan = plan; this.planStart = now; this.state.speaking = true;
     this.words = plan.words; this.wordIdx = -1;
   }
@@ -175,13 +181,67 @@ export class Host {
   look(target) { this.state.lookAt.copy(target); }
   nod(amount = 1) { this.state.nodV += 2.2 * amount; }
   setSmile(v) { this.state.smile = v; }
-  gesture(kind, dur = 1.6, data = {}) { this.state.gesture = { kind, data }; this.state.gestureEnd = this.state.t + dur; }
+  setMood(m) { this.state.mood = m || 'neutral'; }
+  /** short facial/body reactions: 'nod' | 'smile' | 'brows' | 'surprise' | 'think' */
+  react(kind, amt = 1) {
+    const R = this.state.react;
+    if (kind === 'nod') this.nod(0.5 * amt);
+    else if (kind === 'smile') R.smile = Math.min(1, R.smile + 0.45 * amt);
+    else if (kind === 'brows') R.brows = Math.min(1, R.brows + 0.6 * amt);
+    else if (kind === 'surprise') { R.surprise = Math.min(1, R.surprise + 0.7 * amt); R.brows = Math.min(1, R.brows + 0.4 * amt); }
+    else if (kind === 'think') R.press = Math.min(1, R.press + 0.6 * amt);
+  }
+  leanIn(amt = 0.06) { this.state.leanBoost = Math.max(this.state.leanBoost, amt); }
+  gesture(kind, dur = 1.6, data = {}) { this.state.gesture = { kind, data }; this.state.gestureEnd = this.state.t + dur; this.state.gestureStart = this.state.t; }
+  /** pick up the water bottle, drink, put it back. side: the hand nearer the bottle. */
+  drink(bottle, side, dur = 5.4) {
+    if (!bottle || this.drinking || this.state.speaking) return false;
+    bottle.updateMatrixWorld(true);
+    this.gesture('drink', dur, { bottle, side, home: { p: bottle.position.clone(), q: bottle.quaternion.clone() }, homeW: bottle.getWorldPosition(new V3()) });
+    return true;
+  }
+  get drinking() { return this.state.gesture?.kind === 'drink' && this.state.t < this.state.gestureEnd; }
+  _endDrink() {
+    const g = this.state.gesture; if (g?.kind !== 'drink') return;
+    g.data.bottle.position.copy(g.data.home.p); g.data.bottle.quaternion.copy(g.data.home.q);
+    this.state.gesture = null; this.state.drinkTilt = 0;
+  }
+
+  /* ---------- motion-capture layer (Mixamo / Ready Player Me compatible clips) ---------- */
+  /** clips: { idle?: AnimationClip, talk?: AnimationClip } — applied to the torso, neck and head only,
+      under the procedural rig (which keeps the seated legs, desk hands, gaze and lip-sync). */
+  useClips(clips, weight = 0.75) {
+    this.mixer = new THREE.AnimationMixer(this.model); this.clipActions = {}; this.clipWeight = weight;
+    for (const [k, clip] of Object.entries(clips)) {
+      if (!clip) continue;
+      const rc = Host.retarget(clip, this.bones); if (!rc.tracks.length) continue;
+      const a = this.mixer.clipAction(rc); a.play(); a.setEffectiveWeight(k === 'idle' ? weight : 0); this.clipActions[k] = a;
+    }
+    if (!Object.keys(this.clipActions).length) this.mixer = null;
+    return !!this.mixer;
+  }
+  static retarget(clip, bones) {
+    const KEEP = new Set(['Spine', 'Spine1', 'Spine2', 'Neck', 'Head', 'LeftShoulder', 'RightShoulder']);
+    const tracks = [];
+    for (const tr of clip.tracks) {
+      const m = /^(?:mixamorig:?)?([A-Za-z0-9]+)\.quaternion$/.exec(tr.name.split('|').pop());
+      if (!m || !KEEP.has(m[1]) || !bones[m[1]]) continue;
+      const t = tr.clone(); t.name = `${bones[m[1]].name}.quaternion`; tracks.push(t);
+    }
+    return new THREE.AnimationClip(clip.name + '-upper', clip.duration, tracks);
+  }
 
   /* ---------- per-frame ---------- */
   update(dt, now) {
     const S = this.state, b = this.bones; S.t += dt; const t = S.t;
     // reset to bind pose
     for (const [k, q] of Object.entries(this.rest)) b[k].quaternion.copy(q);
+    if (this.mixer) {
+      const talkingNow = S.speaking && !!this.plan, A = this.clipActions;
+      if (A.talk) { A.talk.setEffectiveWeight(THREE.MathUtils.lerp(A.talk.getEffectiveWeight(), talkingNow ? this.clipWeight : 0, Math.min(1, dt * 2))); }
+      if (A.idle) { A.idle.setEffectiveWeight(THREE.MathUtils.lerp(A.idle.getEffectiveWeight(), talkingNow && A.talk ? 0 : this.clipWeight, Math.min(1, dt * 2))); }
+      this.mixer.update(dt);
+    }
     this.root.updateMatrixWorld(true);
 
     const rq = this.root.getWorldQuaternion(new QT());
@@ -208,7 +268,17 @@ export class Host {
 
     /* torso: seated lean, breathing, sway */
     const breath = Math.sin(t * 2 * Math.PI * 0.24 + this.seed);
-    S.leanV += (((talking ? 0.07 : 0.035) + wave(t * 0.35, this.seed) * 0.02) - S.lean) * dt * 4; S.lean += S.leanV * dt; S.leanV *= 0.9;
+    S.leanBoost *= Math.exp(-dt * 0.5);
+    S.leanV += (((talking ? 0.07 : 0.035) + S.leanBoost + wave(t * 0.35, this.seed) * 0.02) - S.lean) * dt * 4; S.lean += S.leanV * dt; S.leanV *= 0.9;
+    // swivel toward whatever they are looking at (the other host, the screen), within a chair's easy turn
+    { const lt = (S.lookCur || S.lookAt).clone(); const lr = this.root.worldToLocal(lt); const want = clamp(Math.atan2(lr.x, Math.max(0.2, lr.z)) * 0.3, -0.2, 0.2);
+      S.turnV += ((want - S.turn) * 6 - S.turnV * 4.5) * dt; S.turn += S.turnV * dt; }
+    if (t > S.nextShift) { S.shiftTarget = (Math.random() - 0.5) * 0.06; S.nextShift = t + 6 + Math.random() * 9; }
+    S.shift += (S.shiftTarget - S.shift) * Math.min(1, dt * 0.8);
+    rotateWorld(b.Hips, _qc.setFromAxisAngle(up, S.turn * 0.55));
+    rotateWorld(b.Hips, _qc.setFromAxisAngle(fwd, S.shift));
+    rotateWorld(b.Spine, _qc.setFromAxisAngle(up, S.turn * 0.45));
+    rotateWorld(b.Spine1, _qc.setFromAxisAngle(fwd, -S.shift * 0.8));
     rotateWorld(b.Hips, _qc.setFromAxisAngle(right, -0.04));
     rotateWorld(b.Spine, _qc.setFromAxisAngle(right, S.lean));
     rotateWorld(b.Spine, _qc.setFromAxisAngle(up, wave(t * 0.4, this.seed + 2) * 0.03 * (1 + S.energy)));
@@ -231,8 +301,10 @@ export class Host {
       if (b[s + 'Shoulder']) rotateWorld(b[s + 'Shoulder'], _qc.setFromAxisAngle(fwd, -sg * (0.12 + breath * 0.008)));
       this._ik(s + 'Arm', s + 'ForeArm', s + 'Hand', s + 'Arm', s + 'ForeArm', P(H.pos), R(new V3(sg * 0.32, -0.72, -0.6).normalize()));
       this._alignHand(s, R(H.fwd).normalize(), R(H.nrm).normalize());
-      this._fingers(s, 0.36 + (1 - S.energy) * 0.1);
+      const grip = S.gesture?.kind === 'drink' && S.gesture.data.side === s && this._drinkHold ? 0.95 : 0;
+      this._fingers(s, Math.max(grip, 0.36 + (1 - S.energy) * 0.1));
     }
+    if (S.gesture?.kind === 'drink') this._carryBottle();
 
     /* head + neck look-at, nods */
     if (!S.lookCur) S.lookCur = S.lookAt.clone();
@@ -263,6 +335,23 @@ export class Host {
     if (this.morphs.mouthSmile) add('mouthSmile', sm); else { add('mouthSmileLeft', sm); add('mouthSmileRight', sm); }
     S.brow += ((talking && wordNow?.stress ? 0.45 : 0.05) - S.brow) * Math.min(1, dt * 6);
     add('browInnerUp', S.brow * 0.4); add('browOuterUpLeft', S.brow * 0.3); add('browOuterUpRight', S.brow * 0.3);
+    // mood
+    const md = S.mood;
+    if (md === 'serious') { add('browDownLeft', 0.22); add('browDownRight', 0.2); add('mouthPressLeft', talking ? 0.05 : 0.18); add('mouthPressRight', talking ? 0.05 : 0.16); }
+    if (md === 'smile') { add('cheekSquintLeft', 0.3); add('cheekSquintRight', 0.28); add('mouthDimpleLeft', 0.12); add('mouthDimpleRight', 0.12); }
+    // reactions (decay over about a second)
+    const Rx = S.react; for (const k in Rx) Rx[k] *= Math.exp(-dt * 1.4);
+    add('mouthSmileLeft', Rx.smile * 0.5); add('mouthSmileRight', Rx.smile * 0.45); add('cheekSquintLeft', Rx.smile * 0.35); add('cheekSquintRight', Rx.smile * 0.35);
+    add('browInnerUp', Rx.brows * 0.55); add('browOuterUpLeft', Rx.brows * 0.4); add('browOuterUpRight', Rx.brows * 0.35);
+    add('eyeWideLeft', Rx.surprise * 0.45); add('eyeWideRight', Rx.surprise * 0.45); if (!talking) add('jawOpen', Rx.surprise * 0.06);
+    add('mouthPressLeft', Rx.press * 0.35); add('mouthPressRight', Rx.press * 0.3); add('browDownLeft', Rx.press * 0.15);
+    // while listening: small, asymmetric, human flickers
+    if (!talking && t > S.nextMicro) {
+      const opts = [['mouthSmileLeft', 0.18], ['mouthPressRight', 0.25], ['browInnerUp', 0.2], ['mouthDimpleLeft', 0.2], ['cheekSquintRight', 0.15], ['mouthRollLower', 0.15]];
+      const [k, v] = opts[Math.floor(Math.random() * opts.length)]; S.micro = { k, v, until: t + 1.2 + Math.random() * 1.6 }; S.nextMicro = t + 3 + Math.random() * 5;
+    }
+    if (S.micro.k) { const f = clamp((S.micro.until - t) / 0.6, 0, 1); add(S.micro.k, S.micro.v * Math.min(1, f)); if (t > S.micro.until) S.micro.k = null; }
+    if (S.drinkTilt > 0.3) { add('mouthPucker', 0.35); add('eyeBlinkLeft', 0.35); add('eyeBlinkRight', 0.35); }
     this._applyMorphs(W);
   }
 
@@ -285,7 +374,7 @@ export class Host {
     const f = p(s + 'HandMiddle1').sub(p(s + 'Hand')).normalize();
     const l = p(s + 'HandIndex1').sub(p(s + 'HandPinky1')).normalize();
     const n = s === 'Left' ? f.clone().cross(l) : l.clone().cross(f);
-    return { f, n: n.normalize() };
+    return { f, n: n.normalize(), l };
   }
   _alignHand(s, fT, nT) {
     const b = this.bones;
@@ -337,7 +426,8 @@ export class Host {
     this._lookBone(b.Neck, this.restWorldQ.Neck, tgt, 1.2, 0.5, 0.4);
     this._lookBone(b.Head, this.restWorldQ.Head, tgt, 1.2, 0.5, 1);
     // nod + subtle tilt while talking
-    rotateWorld(b.Head, _qc.setFromAxisAngle(right, S.nod * 0.5));
+    rotateWorld(b.Head, _qc.setFromAxisAngle(right, S.nod * 0.5 - S.drinkTilt * 0.24));
+    if (S.drinkTilt) rotateWorld(b.Neck, _qc.setFromAxisAngle(right, -S.drinkTilt * 0.12));
     rotateWorld(b.Head, _qc.setFromAxisAngle(fwd, wave(t * 0.45, this.seed + 11) * 0.035 * (0.5 + S.energy)));
   }
 
@@ -350,8 +440,10 @@ export class Host {
       this.gesture(kinds[Math.floor(r * kinds.length)], 1.1 + Math.random() * 1.4);
       S.nextGesture = t + 1.4 + Math.random() * 1.8;
     }
-    if (S.gesture && t > S.gestureEnd) S.gesture = null;
+    if (S.gesture && t > S.gestureEnd) { if (S.gesture.kind === 'drink') this._endDrink(); S.gesture = null; }
     const g = S.gesture?.kind;
+    this._drinkHold = false;
+    if (g === 'drink') this._planDrink();
     for (const s of ['Left', 'Right']) {
       const sg = s === 'Left' ? 1 : -1, rest = this.handRest(s), H = S.hands[s];
       let pos = rest.pos.clone(), nrm = rest.nrm.clone(), fw = rest.fwd.clone(), freq = 1.3;
@@ -360,6 +452,9 @@ export class Host {
       else if (g === 'explain') { lift(-0.1, 0.17, 0.04); nrm.set(-sg * 0.95, 0.1, 0.1).normalize(); fw.set(-sg * 0.15, 0.3, 1).normalize(); freq = 1.5; }
       else if (g === 'count' && s === 'Right') { lift(0.02, 0.26, 0.02); nrm.set(0, 0.15, -1).normalize(); fw.set(0, 1, 0.25).normalize(); freq = 1.7; }
       else if ((g === 'beatL' && s === 'Left') || (g === 'beatR' && s === 'Right')) { lift(0.03, 0.12 + Math.max(0, Math.sin(t * 7)) * 0.05, 0.03); nrm.set(sg * 0.7, 0.2, 0.1).normalize(); fw.set(-sg * 0.1, 0.1, 1).normalize(); freq = 2; }
+      else if (g === 'drink' && s === S.gesture.data.side && this._drinkTarget) {
+        pos.copy(this._drinkTarget.pos); nrm.copy(this._drinkTarget.nrm); fw.copy(this._drinkTarget.fwd); freq = this._drinkTarget.freq;
+      }
       else if (g === 'point' && s === (S.gesture.data.side || 'Right')) {
         const d = (S.gesture.data.dir || new V3(0, 0.4, 1)).clone().normalize();
         pos.set(sg * 0.2, this.deskY + 0.3, 0.22).addScaledVector(d, 0.28); nrm.set(sg * 0.2, -0.5, 0).normalize(); fw.copy(d); freq = 1.4;
@@ -369,8 +464,42 @@ export class Host {
     }
   }
 
+  /* drink: reach → lift → sip → put back → release, all in root space */
+  _planDrink() {
+    const S = this.state, G = S.gesture, d = G.data, u = (S.t - S.gestureStart) / (S.gestureEnd - S.gestureStart);
+    const sg = d.side === 'Left' ? 1 : -1;
+    const home = this.root.worldToLocal(d.homeW.clone());
+    const grip = home.clone().add(new V3(-sg * 0.045, 0.1, -0.01));
+    const head = this.root.worldToLocal(this.bones.Head.getWorldPosition(new V3()));
+    const mouth = new V3(sg * 0.05, head.y - 0.02, head.z + 0.17);
+    const side = new V3(sg, 0, 0), fwdFlat = new V3(-sg * 0.1, 0.05, 1).normalize(), fwdUp = new V3(-sg * 0.25, 0.9, 0.35).normalize();
+    let pos, fwd = fwdFlat, freq = 2.2, tilt = 0;
+    if (u < 0.2) { pos = grip; }
+    else if (u < 0.34) { const k = smooth((u - 0.2) / 0.14); pos = grip.clone().lerp(mouth, k); }
+    else if (u < 0.6) { const k = smooth(clamp((u - 0.34) / 0.1, 0, 1)) * (1 - smooth(clamp((u - 0.52) / 0.08, 0, 1))); pos = mouth.clone(); fwd = fwdFlat.clone().lerp(fwdUp, k).normalize(); tilt = k; }
+    else if (u < 0.76) { const k = smooth((u - 0.6) / 0.16); pos = mouth.clone().lerp(grip, k); }
+    else { pos = grip.clone().add(new V3(-sg * 0.05, 0.06, -0.04)); freq = 1.4; }
+    this._drinkHold = u > 0.17 && u < 0.78;
+    S.drinkTilt += (tilt - S.drinkTilt) * 0.2;
+    this._drinkTarget = { pos, nrm: side, fwd, freq };
+  }
+  _carryBottle() {
+    const d = this.state.gesture.data, bottle = d.bottle, s = d.side;
+    if (!this._drinkHold) { bottle.position.copy(d.home.p); bottle.quaternion.copy(d.home.q); return; }
+    const b = this.bones, hand = b[s + 'Hand'].getWorldPosition(new V3());
+    const mid = b[s + 'HandMiddle1'] ? b[s + 'HandMiddle1'].getWorldPosition(new V3()) : hand;
+    const { n, l } = this._handFrame(s);
+    const upAxis = l.clone().negate().normalize();            // across the knuckles, thumb side up: the bottle's axis
+    const gripW = hand.clone().lerp(mid, 0.6).addScaledVector(n, 0.045);
+    const baseW = gripW.clone().addScaledVector(upAxis, -0.1);
+    const parent = bottle.parent; parent.updateMatrixWorld(true);
+    bottle.position.copy(parent.worldToLocal(baseW));
+    const pq = parent.getWorldQuaternion(new QT()).invert();
+    bottle.quaternion.setFromUnitVectors(Y, upAxis.applyQuaternion(pq).normalize());
+  }
+
   _applyMorphs(W) {
-    if (!this._managed) this._managed = Object.keys(this.morphs).filter(k => /^viseme_|^eyeBlink|^jawOpen|^mouthSmile|^browInnerUp|^browOuterUp|^eyeSquint/.test(k));
+    if (!this._managed) this._managed = Object.keys(this.morphs).filter(k => /^viseme_|^eyeBlink|^jawOpen|^mouthSmile|^brow|^eyeSquint|^eyeWide|^cheekSquint|^mouthPress|^mouthDimple|^mouthPucker|^mouthRollLower/.test(k));
     for (const k of this._managed) { const v = W[k] || 0; for (const [m, i] of this.morphs[k]) m.morphTargetInfluences[i] = v; }
   }
 }

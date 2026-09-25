@@ -50,6 +50,9 @@
     "api/studio-script.js": {
       "maxDuration": 60,
       "includeFiles": "concepts-data.js"
+    },
+    "api/studio-voice.js": {
+      "maxDuration": 60
     }
   },
   "headers": [

@@ -71,7 +71,7 @@ function drawBlueprint(g, W, H) {
   g.fillText('ROOF LIGHT SECTION', 3350, 960);
   g.beginPath(); g.moveTo(3400, 1230); g.lineTo(3580, 1060); g.lineTo(3760, 1230); g.stroke();
   // brand panels
-  const brand = (x, y, s) => { drawMark(g, x, y, s * 1.3, '#FF5A36'); g.fillStyle = '#FFFFFF'; g.font = `800 ${s * 0.72}px "Montserrat", sans-serif`; g.fillText('KARLCON', x + s * 1.55, y + s * 0.85); g.font = `600 ${s * 0.3}px "Montserrat", sans-serif`; g.fillStyle = 'rgba(255,255,255,0.8)'; g.fillText('SYSTEMS INTELLIGENCE', x + s * 1.6, y + s * 1.25); };
+  const brand = (x, y, s) => { drawMark(g, x, y, s * 1.3, '#FF5A36'); g.fillStyle = '#FFFFFF'; g.font = `800 ${s * 0.72}px "Montserrat", sans-serif`; g.fillText('KARLCON', x + s * 1.55, y + s * 0.85); g.font = `600 ${s * 0.3}px "Montserrat", sans-serif`; g.fillStyle = 'rgba(255,255,255,0.8)'; g.fillText('STUDIOS', x + s * 1.6, y + s * 1.25); };
   brand(120, 1290, 70); brand(3180, 110, 62); brand(1700, 60, 48);
 }
 
@@ -85,7 +85,7 @@ function buildDesk() {
     g.fillStyle = '#D0231A'; g.fillRect(0, 0, w, 16); g.fillRect(0, h - 10, w, 10);
     drawMark(g, 330, 150, 210, '#E8453B');
     g.fillStyle = '#FFFFFF'; g.font = '800 150px "Montserrat", sans-serif'; g.fillText('KARLCON', 600, 290);
-    g.fillStyle = '#E8453B'; g.font = '700 96px "Montserrat", sans-serif'; g.fillText('SYSTEM', 1380, 290);
+    g.fillStyle = '#E8453B'; g.font = '700 96px "Montserrat", sans-serif'; g.fillText('STUDIOS', 1380, 290);
     g.fillStyle = 'rgba(255,255,255,0.7)'; g.font = '600 44px "IBM Plex Mono", monospace'; g.fillText('LUMEN BUILDS · ENGINEERING DESK · HARARE', 600, 390);
   });
   const front = new THREE.Mesh(new THREE.PlaneGeometry(W, H - 0.08), new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 0.55, roughness: 0.4 }));
@@ -94,7 +94,39 @@ function buildDesk() {
   const strip = new THREE.Mesh(new THREE.BoxGeometry(W, 0.012, 0.02), new THREE.MeshBasicMaterial({ color: 0xFF3B2E })); strip.position.set(0, 0.012, D / 2 + 0.005); G.add(strip);
   // laptops / tablets on the desk
   for (const x of [-0.95, 0.95]) { const lap = box(0.34, 0.012, 0.24, mat.alu, x, H + 0.006, 0.05); G.add(lap); }
-  return { group: G, height: H, depth: D, width: W };
+  // a branded water bottle in front of each presenter
+  const bottles = [];
+  for (const x of [-0.5, 0.5]) { const b = buildBottle(); b.position.set(x, H, -0.02); G.add(b); bottles.push(b); }
+  return { group: G, height: H, depth: D, width: W, bottles };
+}
+
+/* ---------------- water bottle with the KARLCON Elite Retreats label ---------------- */
+let bottleLabel = null;
+function labelTexture() {
+  if (bottleLabel) return bottleLabel;
+  const c = canvasTex(1024, 256, (g, w, h) => { g.fillStyle = '#F7F1E6'; g.fillRect(0, 0, w, h); });
+  const img = new Image(); img.src = '/img/brand/elite-retreats-logo.png';
+  img.onload = () => {
+    const g = c.ctx, w = 1024, h = 256; g.fillStyle = '#F7F1E6'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#8C6A3C'; g.fillRect(0, 10, w, 4); g.fillRect(0, h - 14, w, 4);
+    const lh = 190, lw = lh * img.width / img.height;
+    for (const cx of [w * 0.25, w * 0.75]) g.drawImage(img, cx - lw / 2, (h - lh) / 2, lw, lh);   // twice, so it faces the camera from either side
+    c.tex.needsUpdate = true;
+  };
+  bottleLabel = c.tex; return bottleLabel;
+}
+function buildBottle() {
+  const G = new THREE.Group();
+  const glass = new THREE.MeshPhysicalMaterial({ color: 0xE8F4F8, roughness: 0.05, transparent: true, opacity: 0.35, envMapIntensity: 1.4, depthWrite: false });
+  const water = new THREE.MeshPhysicalMaterial({ color: 0xBFE3F0, roughness: 0.1, transparent: true, opacity: 0.45, depthWrite: false });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.034, 0.19, 28), glass); body.position.y = 0.095; body.renderOrder = 3; G.add(body);
+  const shoulder = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.034, 0.045, 28), glass); shoulder.position.y = 0.212; shoulder.renderOrder = 3; G.add(shoulder);
+  const wat = new THREE.Mesh(new THREE.CylinderGeometry(0.031, 0.031, 0.15, 24), water); wat.position.y = 0.078; G.add(wat);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.028, 16), new THREE.MeshStandardMaterial({ color: 0x8C6A3C, roughness: 0.4, metalness: 0.6 })); cap.position.y = 0.248; G.add(cap);
+  const label = new THREE.Mesh(new THREE.CylinderGeometry(0.0355, 0.0355, 0.075, 40, 1, true), new THREE.MeshStandardMaterial({ map: labelTexture(), roughness: 0.6 }));
+  label.position.y = 0.1; label.rotation.y = -Math.PI / 2; G.add(label);
+  G.traverse((n) => { if (n.isMesh) n.castShadow = true; });
+  return G;
 }
 
 function buildChair() {
@@ -140,27 +172,100 @@ function buildGlobe() {
   const G = new THREE.Group(); G.name = 'atlas';
   const ped = cyl(0.32, 0.42, 0.9, mat.dark, 0, 0.45, 0, 32); G.add(ped);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.012, 8, 64), new THREE.MeshBasicMaterial({ color: 0xFF3B2E })); ring.rotation.x = Math.PI / 2; ring.position.y = 0.905; G.add(ring);
-  const { tex } = canvasTex(2048, 1024, (g, w, h) => {
-    g.fillStyle = '#0B1A2A'; g.fillRect(0, 0, w, h);
-    g.strokeStyle = 'rgba(120,200,255,0.35)'; g.lineWidth = 2;
-    for (let lo = -180; lo <= 180; lo += 15) { const x = (lo + 180) / 360 * w; g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
-    for (let la = -75; la <= 75; la += 15) { const y = (90 - la) / 180 * h; g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
-    const P = ([lo, la]) => [(lo + 180) / 360 * w, (90 - la) / 180 * h];
-    const shape = (pts, fill, stroke) => { g.beginPath(); pts.forEach((p, i) => { const [x, y] = P(p); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath(); g.fillStyle = fill; g.fill(); g.strokeStyle = stroke; g.lineWidth = 3; g.stroke(); };
-    shape(AFRICA, 'rgba(90,190,255,0.45)', 'rgba(170,230,255,0.95)'); shape(MADAGASCAR, 'rgba(90,190,255,0.45)', 'rgba(170,230,255,0.95)');
-    shape(ZIMBABWE, 'rgba(232,69,59,0.9)', '#FFD2CC');
-    for (const c of CITIES) { const [x, y] = P([c.lon, c.lat]); g.fillStyle = '#FFFFFF'; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); }
-  });
-  const earth = new THREE.Mesh(new THREE.SphereGeometry(0.34, 64, 32), new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 0.9, roughness: 0.3, transparent: true, opacity: 0.95 }));
+  // photographic Earth (NASA Blue Marble, public domain) with city lights on the dark side
+  const tl = new THREE.TextureLoader();
+  const day = tl.load('/img/atlas/earth-day.jpg'); day.colorSpace = THREE.SRGBColorSpace; day.anisotropy = 8;
+  const night = tl.load('/img/atlas/earth-night.jpg'); night.colorSpace = THREE.SRGBColorSpace;
+  const bump = tl.load('/img/atlas/earth-bump.jpg');
+  const earth = new THREE.Mesh(new THREE.SphereGeometry(0.34, 96, 48), new THREE.MeshStandardMaterial({ map: day, bumpMap: bump, bumpScale: 3, emissiveMap: night, emissive: 0xFFD8A0, emissiveIntensity: 0.35, roughness: 0.75, metalness: 0 }));
   earth.position.y = 1.32; G.add(earth);
-  const halo = new THREE.Mesh(new THREE.SphereGeometry(0.37, 48, 24), new THREE.MeshBasicMaterial({ color: 0x5ABEFF, transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false })); halo.position.y = 1.32; G.add(halo);
-  const pin = new THREE.Mesh(new THREE.SphereGeometry(0.018, 12, 8), new THREE.MeshBasicMaterial({ color: 0xFF3B2E }));
-  const lon = 31.05 * Math.PI / 180, lat = -17.83 * Math.PI / 180, u = (31.05 + 180) / 360 * Math.PI * 2;
-  pin.position.set(-Math.cos(u) * Math.cos(lat) * 0.345, Math.sin(lat) * 0.345, Math.sin(u) * Math.cos(lat) * 0.345); earth.add(pin);
-  const pulse = new THREE.Mesh(new THREE.RingGeometry(0.02, 0.028, 24), new THREE.MeshBasicMaterial({ color: 0xFF3B2E, transparent: true, side: THREE.DoubleSide })); pulse.position.copy(pin.position); pulse.lookAt(pin.position.clone().multiplyScalar(2)); earth.add(pulse);
-  const base = -Math.atan2(pin.position.x, pin.position.z);   // turn Harare to face the audience
-  earth.rotation.x = 0.28;
-  return { group: G, earth, update(t) { earth.rotation.y = base + Math.sin(t * 0.15) * 0.5; const s = 1 + (t * 1.2 % 1) * 2.5; pulse.scale.set(s, s, s); pulse.material.opacity = 1 - (t * 1.2 % 1); } };
+  // Zimbabwe outlined in red, on a transparent layer just above the surface
+  const { tex } = canvasTex(4096, 2048, (g, w, h) => {
+    g.clearRect(0, 0, w, h);
+    const P = ([lo, la]) => [(lo + 180) / 360 * w, (90 - la) / 180 * h];
+    g.beginPath(); ZIMBABWE.forEach((p, i) => { const [x, y] = P(p); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath();
+    g.fillStyle = 'rgba(232,69,59,0.45)'; g.fill(); g.strokeStyle = '#FF5A4A'; g.lineWidth = 5; g.stroke();
+  });
+  const zim = new THREE.Mesh(new THREE.SphereGeometry(0.3415, 96, 48), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false })); earth.add(zim);
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(0.37, 48, 24), new THREE.MeshBasicMaterial({ color: 0x5ABEFF, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false })); halo.position.y = 1.32; G.add(halo);
+  const sun = new THREE.DirectionalLight(0xFFFFFF, 1.6); sun.position.set(1.2, 1.9, 1.4); sun.target = earth; G.add(sun);
+  // a pin for every Atlas city; the focused one pulses
+  const at = (lon, la, r) => { const u = (lon + 180) / 360 * Math.PI * 2, lat = la * Math.PI / 180; return new THREE.Vector3(-Math.cos(u) * Math.cos(lat) * r, Math.sin(lat) * r, Math.sin(u) * Math.cos(lat) * r); };
+  const pins = {};
+  for (const c of CITIES) {
+    const pin = new THREE.Mesh(new THREE.SphereGeometry(0.009, 10, 8), new THREE.MeshBasicMaterial({ color: 0xFFFFFF })); pin.position.copy(at(c.lon, c.lat, 0.343)); earth.add(pin);
+    pins[c.id] = { pin, c };
+  }
+  const pulse = new THREE.Mesh(new THREE.RingGeometry(0.014, 0.02, 24), new THREE.MeshBasicMaterial({ color: 0xFF3B2E, transparent: true, side: THREE.DoubleSide, depthWrite: false })); earth.add(pulse);
+  let focus = 'harare', rotY = 0, rotX = 0;
+  const aimAt = (id) => { const c = pins[id]?.c || pins.harare.c, p = at(c.lon, c.lat, 1); return { y: -Math.atan2(p.x, p.z), x: c.lat * Math.PI / 180 * 0.9 + 0.12 }; };
+  ({ y: rotY, x: rotX } = aimAt(focus)); earth.rotation.set(rotX, rotY, 0);
+  return {
+    group: G, earth,
+    focus(id) { if (pins[id]) focus = id; },
+    get focusName() { return pins[focus]?.c.name; },
+    update(t, dt = 1 / 60) {
+      const a = aimAt(focus), k = Math.min(1, dt * 1.2);
+      rotY += Math.atan2(Math.sin(a.y + Math.sin(t * 0.12) * 0.12 - rotY), Math.cos(a.y + Math.sin(t * 0.12) * 0.12 - rotY)) * k; rotX += (a.x - rotX) * k;
+      earth.rotation.set(rotX, rotY, 0);
+      for (const [id, { pin }] of Object.entries(pins)) pin.material.color.setHex(id === focus ? 0xFF3B2E : 0xFFFFFF);
+      const fp = pins[focus].pin.position; pulse.position.copy(fp).multiplyScalar(1.004); pulse.lookAt(fp.clone().multiplyScalar(3));
+      const ph = t * 1.2 % 1, sc = 1 + ph * 2.5; pulse.scale.set(sc, sc, sc); pulse.material.opacity = 1 - ph;
+    }
+  };
+}
+
+/* ---------------- tower crane + dust for the build sequence ---------------- */
+function buildCrane() {
+  const G = new THREE.Group(); G.name = 'crane';
+  const Y = new THREE.MeshStandardMaterial({ color: 0xF2B21B, roughness: 0.6, metalness: 0.3 });
+  const lattice = (h, w) => { const g = new THREE.Group(); for (const [x, z] of [[-w, -w], [w, -w], [w, w], [-w, w]]) g.add(box(0.035, h, 0.035, Y, x, h / 2, z)); for (let y = 0.3; y < h; y += 0.45) { g.add(box(w * 2, 0.025, 0.025, Y, 0, y, w)); g.add(box(w * 2, 0.025, 0.025, Y, 0, y, -w)); g.add(box(0.025, 0.025, w * 2, Y, w, y, 0)); g.add(box(0.025, 0.025, w * 2, Y, -w, y, 0)); } return g; };
+  G.add(box(0.9, 0.15, 0.9, mat.concrete, 0, 0.075, 0));
+  const mast = lattice(5.8, 0.16); G.add(mast);
+  const slew = new THREE.Group(); slew.position.y = 5.8; G.add(slew);
+  slew.add(box(0.5, 0.35, 0.5, Y, 0, 0.18, 0)); slew.add(box(0.3, 0.3, 0.35, mat.dark, 0.1, 0.5, 0));
+  const jib = box(6.2, 0.14, 0.14, Y, 2.5, 0.45, 0); slew.add(jib);
+  slew.add(box(2.0, 0.14, 0.14, Y, -1.2, 0.45, 0)); slew.add(box(0.6, 0.45, 0.5, mat.concrete, -2.0, 0.3, 0));
+  slew.add(box(0.06, 1.1, 0.06, Y, 0, 1.0, 0));
+  const trolley = new THREE.Group(); trolley.position.set(3.5, 0.36, 0); slew.add(trolley);
+  const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 1, 6), mat.black); trolley.add(cable);
+  const hook = new THREE.Group(); hook.add(box(0.12, 0.08, 0.06, Y, 0, 0, 0)); hook.add(box(0.5, 0.18, 0.5, mat.concrete, 0, -0.25, 0)); trolley.add(hook);
+  let vis = 0;
+  return {
+    group: G,
+    update(t, dt, active) {
+      vis += ((active ? 1 : 0) - vis) * Math.min(1, dt * 1.5); G.visible = vis > 0.02; G.position.y = (1 - vis) * -8;
+      slew.rotation.y = Math.sin(t * 0.18) * 0.45 + 3.5;   // jib swings over the building
+      trolley.position.x = 2.6 + Math.sin(t * 0.23) * 1.2;
+      const drop = 1.8 + Math.sin(t * 0.31) * 1.2; hook.position.y = -drop; cable.scale.y = drop; cable.position.y = -drop / 2;
+    }
+  };
+}
+function buildDust() {
+  const N = 260, geo = new THREE.BufferGeometry(), pos = new Float32Array(N * 3), vel = new Float32Array(N * 3), life = new Float32Array(N);
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const sprite = canvasTex(64, 64, (g) => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(230,220,205,0.9)'); r.addColorStop(1, 'rgba(230,220,205,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); }).tex;
+  const m = new THREE.PointsMaterial({ size: 0.45, map: sprite, transparent: true, depthWrite: false, opacity: 0.55 });
+  const pts = new THREE.Points(geo, m); pts.frustumCulled = false; let next = 0;
+  for (let i = 0; i < N; i++) pos[i * 3 + 1] = -99;
+  return {
+    points: pts,
+    puff(center, radius, y, n = 50) {
+      for (let k = 0; k < n; k++) {
+        const i = next++ % N, a = Math.random() * Math.PI * 2, r = radius * Math.sqrt(Math.random());
+        pos.set([center.x + Math.cos(a) * r, y + Math.random() * 0.3, center.z + Math.sin(a) * r], i * 3);
+        vel.set([Math.cos(a) * (0.3 + Math.random() * 0.5), 0.25 + Math.random() * 0.4, Math.sin(a) * (0.3 + Math.random() * 0.5)], i * 3);
+        life[i] = 1.4 + Math.random();
+      }
+    },
+    update(dt) {
+      for (let i = 0; i < N; i++) {
+        if (life[i] <= 0) { pos[i * 3 + 1] = -99; continue; }
+        life[i] -= dt; for (let k = 0; k < 3; k++) pos[i * 3 + k] += vel[i * 3 + k] * dt; vel[i * 3 + 1] *= 0.97;
+      }
+      geo.attributes.position.needsUpdate = true;
+    }
+  };
 }
 
 /* ---------------- the big story screen (animated journalism) ---------------- */
@@ -181,7 +286,7 @@ function buildScreen() {
       g.strokeStyle = 'rgba(255,255,255,0.05)'; for (let x = 0; x < w; x += 40) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
       g.fillStyle = '#D0231A'; g.fillRect(0, 0, 14, h);
       drawMark(g, 1450, 40, 100, '#E8453B');
-      if (!slide) { g.fillStyle = '#fff'; g.font = '800 90px Montserrat, sans-serif'; g.fillText('KARLCON', 80, 420); g.font = '600 40px "IBM Plex Mono", monospace'; g.fillStyle = '#E8453B'; g.fillText('SYSTEMS INTELLIGENCE · LIVE', 84, 490); c.tex.needsUpdate = true; return; }
+      if (!slide) { g.fillStyle = '#fff'; g.font = '800 90px Montserrat, sans-serif'; g.fillText('KARLCON', 80, 420); g.font = '600 40px "IBM Plex Mono", monospace'; g.fillStyle = '#E8453B'; g.fillText('STUDIOS · LIVE', 84, 490); c.tex.needsUpdate = true; return; }
       g.fillStyle = '#E8453B'; g.font = '600 34px "IBM Plex Mono", monospace'; g.fillText((slide.kicker || '').toUpperCase(), 80, 110);
       g.fillStyle = '#FFFFFF'; g.font = '800 72px Montserrat, sans-serif';
       g.font = `800 ${pic ? 60 : 72}px Montserrat, sans-serif`;
@@ -221,11 +326,16 @@ function wrap(g, text, x, y, maxW, lh, maxLines = 3) {
 }
 
 /* ---------------- assemble ---------------- */
-export function buildStudio(scene, renderer) {
-  const S = {};
-  // floor: polished studio floor
-  const floor = new THREE.Mesh(new THREE.CircleGeometry(16, 96), new THREE.MeshPhysicalMaterial({ color: 0x5C6068, roughness: 0.22, metalness: 0.15, clearcoat: 0.8, clearcoatRoughness: 0.2 }));
+export function buildStudio(scene, renderer, { quality = 'high', Reflector = null } = {}) {
+  const S = { quality };
+  // floor: polished studio floor; on High it really reflects the set
+  const high = quality === 'high' && Reflector;
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(16, 96), new THREE.MeshPhysicalMaterial({ color: 0x5C6068, roughness: 0.22, metalness: 0.15, clearcoat: 0.8, clearcoatRoughness: 0.2, transparent: !!high, opacity: high ? 0.86 : 1 }));
   floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+  if (high) {
+    const mirror = new Reflector(new THREE.CircleGeometry(16, 64), { textureWidth: 1024, textureHeight: 1024, color: 0x777a80, clipBias: 0.003 });
+    mirror.rotation.x = -Math.PI / 2; mirror.position.y = -0.004; scene.add(mirror); S.mirror = mirror;
+  }
   const ringMark = new THREE.Mesh(new THREE.RingGeometry(3.35, 3.4, 128), new THREE.MeshBasicMaterial({ color: 0xD0231A })); ringMark.rotation.x = -Math.PI / 2; ringMark.position.set(0, 0.003, 0.4); scene.add(ringMark);
 
   // curved LED wall
@@ -283,7 +393,27 @@ export function buildStudio(scene, renderer) {
   houseKey.castShadow = true; houseKey.shadow.mapSize.set(2048, 2048); houseKey.shadow.bias = -0.0005; houseKey.shadow.normalBias = 0.03;
   scene.add(houseKey, houseKey.target);
 
-  S.update = (t, dt) => { S.house.update(dt); S.globe.update(t); };
+  // softbox panels on the light stands: real area lights (High)
+  if (quality === 'high') {
+    for (const [x, z, w] of [[-3.4, 3.4, 30], [3.6, 3.6, 22]]) {
+      const ra = new THREE.RectAreaLight(0xFFF1E0, w, 0.9, 0.9); ra.position.set(x, 2.75, z); ra.lookAt(0, 1.1, 0.9); scene.add(ra);
+    }
+  }
+  // the build sequence: a tower crane beside the building, dust as each stage lands
+  S.crane = buildCrane(); S.crane.group.position.set(4.6, 0, -5.9); scene.add(S.crane.group);
+  S.dust = buildDust(); scene.add(S.dust.points);
+  let lastStage = 7;
+  S.update = (t, dt) => {
+    const H = S.house; H.update(dt); S.globe.update(t, dt);
+    const building = H.build < 6.95 || H.buildTarget < 7;
+    S.crane.update(t, dt, building);
+    const st = Math.floor(H.build + 0.02);
+    if (st !== lastStage) {
+      if (st > lastStage && st <= 6) { const c = H.group.localToWorld(H.centre.clone()); const ext = H.group.scale.x * 3; S.dust.puff(new THREE.Vector3(c.x, 0, c.z), ext, st <= 2 ? 0.05 : c.y * (st / 5), 40); }
+      lastStage = st;
+    }
+    S.dust.update(dt);
+  };
   S.aim = aim;
   return S;
 }
