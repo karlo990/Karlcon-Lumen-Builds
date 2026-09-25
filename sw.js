@@ -1,7 +1,7 @@
 /* KARLCON Lumen Builds — service worker.
    Makes the site installable, opens instantly on repeat visits, and keeps
    concepts a visitor has already opened (images and 3D models) available offline. */
-const VERSION = 'kc-v6';
+const VERSION = 'kc-v7';
 const SHELL = ['/', '/concepts-data.js', '/manifest.webmanifest', '/img/icons/icon-192.png'];
 const CACHE_FIRST_HOSTS = ['cdnjs.cloudflare.com', 'cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com', 'www.gstatic.com'];
 

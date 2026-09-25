@@ -67,3 +67,26 @@ Cost guide with claude-sonnet-5: roughly a cent or two per segment.
 1. Open /studio?mode=live in Edge, enter the passcode, press Go live.
 2. Open /writers-room in the same browser (another window) — it links to the studio automatically.
 3. Capture only the studio window in OBS.
+
+## Six episodes and the 20-hour marathon
+    /studio?ep=3                     play one scripted episode (1–6); also chosen on the start screen
+    /studio?mode=marathon            the marathon (start screen: hours, live segments per episode)
+    /studio?mode=marathon&format=vertical&obs   the marathon as a clean 9:16 feed for Instagram Live
+
+Episodes (studio-kit/episodes.js), each with its own building on stage (studio-kit/buildings.js),
+build sequence 0–7, roof reveal, materials list and Zimbabwe segment:
+    1  The Elevated Glass Cube   Harare          bi-parting pair (LB-1 figures)
+    2  The Lumen Oval            Victoria Falls  telescoping curved panels (concept mechanism)
+    3  The Rotunda Fan           Masvingo        radial fan of glass wedges (concept mechanism)
+    4  The Origami Crown         Harare          eight-petal folding crown (concept mechanism)
+    5  The Stone Arcade          Bulawayo        bi-parting pair (LB-1 figures)
+    6  The Granite Tower         Mutare          bi-parting pair on struts (LB-1 figures)
+The five new buildings are also in the concept library (concepts-data.js) with card images and
+Meshy inputs: open /developer and press "Generate all missing" to make their 3D models.
+
+The marathon plays the episodes in turn. After each one, Claude writes fresh segments about that
+building (default 10), then the next episode starts; it loops until the hours run out, with an
+on-air "HOUR x/20" counter. If live writing is unavailable (no key, no credit) it plays the six
+episodes on a loop instead, so the stream never goes dead.
+Cost guide (estimate, claude-sonnet-5, 10 live segments per episode): roughly $10–15 for 20 hours.
+Keep the studio window visible (not minimised) for the whole run, or the browser slows it down.

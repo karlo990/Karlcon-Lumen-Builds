@@ -3,6 +3,7 @@
    two presenters, the featured building on stage behind them, light stands, a broadcast camera,
    and the Atlas globe in the corner. Units are metres; the audience camera looks down -Z. */
 import * as THREE from 'three';
+import { BUILDERS, STAGE_IDS } from './buildings.js';
 
 const RED = 0xD0231A, WHITE = 0xF4F2EF, INK = 0x15181D;
 const mat = {
@@ -72,79 +73,6 @@ function drawBlueprint(g, W, H) {
   // brand panels
   const brand = (x, y, s) => { drawMark(g, x, y, s * 1.3, '#FF5A36'); g.fillStyle = '#FFFFFF'; g.font = `800 ${s * 0.72}px "Montserrat", sans-serif`; g.fillText('KARLCON', x + s * 1.55, y + s * 0.85); g.font = `600 ${s * 0.3}px "Montserrat", sans-serif`; g.fillStyle = 'rgba(255,255,255,0.8)'; g.fillText('SYSTEMS INTELLIGENCE', x + s * 1.6, y + s * 1.25); };
   brand(120, 1290, 70); brand(3180, 110, 62); brand(1700, 60, 48);
-}
-
-/* ---------------- the featured building: Elevated Glass Cube Residence ---------------- */
-function buildHouse() {
-  const G = new THREE.Group(); G.name = 'house';
-  const parts = [];
-  const add = (obj, stage, mode = 'grow') => { obj.userData.stage = stage; obj.userData.mode = mode; obj.userData.baseY = obj.position.y; obj.userData.baseScale = obj.scale.clone(); G.add(obj); parts.push(obj); return obj; };
-  const W = 4.4, D = 3.2, H = 2.7, LIFT = 2.7, T = 0.18;
-  // 0 footings, 1 columns, 2 floor, 3 walls + roof frame, 4 glazing, 5 interior, 6 roof light
-  for (const [x, z] of [[-1.75, -1.1], [1.75, -1.1], [-1.75, 1.1], [1.75, 1.1]]) {
-    add(box(0.62, 0.1, 0.62, mat.concrete, x, 0.05, z), 0, 'grow');
-    add(box(0.24, LIFT, 0.24, mat.red, x, LIFT / 2 + 0.12, z), 1, 'grow');
-  }
-  add(box(W, T, D, mat.white, 0, LIFT + T / 2 + 0.12, 0), 2, 'drop');
-  const y0 = LIFT + T + 0.12;
-  // roof slab built around the roof-light opening (LB-1 benchmark aperture 2.0 × 1.5 m)
-  const kx = 2.0, kz = 1.5, ry = y0 + H + T / 2;
-  add(box(W, T, (D - kz) / 2, mat.white, 0, ry, -(kz / 2 + (D - kz) / 4)), 3, 'drop');
-  add(box(W, T, (D - kz) / 2, mat.white, 0, ry, (kz / 2 + (D - kz) / 4)), 3, 'drop');
-  add(box((W - kx) / 2, T, kz, mat.white, -(kx / 2 + (W - kx) / 4), ry, 0), 3, 'drop');
-  add(box((W - kx) / 2, T, kz, mat.white, (kx / 2 + (W - kx) / 4), ry, 0), 3, 'drop');
-  add(box(T, H, D, mat.white, -W / 2 + T / 2, y0 + H / 2, 0), 3, 'grow');
-  add(box(T, H, D, mat.white, W / 2 - T / 2, y0 + H / 2, 0), 3, 'grow');
-  add(box(W, H, T, mat.white, 0, y0 + H / 2, -D / 2 + T / 2), 3, 'grow');
-  // glazed front with dark aluminium mullions
-  const glass = new THREE.Mesh(new THREE.PlaneGeometry(W - 2 * T, H), mat.glass); glass.position.set(0, y0 + H / 2, D / 2 - 0.04); glass.renderOrder = 2;
-  add(glass, 4, 'fade');
-  for (let i = 0; i <= 4; i++) add(box(0.05, H, 0.07, mat.alu, -W / 2 + T + i * (W - 2 * T) / 4, y0 + H / 2, D / 2 - 0.04), 4, 'grow');
-  add(box(W - 2 * T, 0.06, 0.08, mat.alu, 0, y0 + 0.03, D / 2 - 0.04), 4, 'grow');
-  add(box(W - 2 * T, 0.06, 0.08, mat.alu, 0, y0 + H - 0.03, D / 2 - 0.04), 4, 'grow');
-  // interior: warm floor, sofa, TV, red stools, curtain
-  add(box(W - 2 * T, 0.02, D - T, mat.warm, 0, y0 + 0.01, 0), 5, 'fade');
-  add(box(1.8, 0.42, 0.8, mat.fabric, -0.9, y0 + 0.21, -0.9), 5, 'grow');
-  add(box(1.8, 0.5, 0.18, mat.fabric, -0.9, y0 + 0.55, -1.25), 5, 'grow');
-  add(box(1.2, 0.68, 0.04, mat.black, 0.9, y0 + 1.35, -1.47), 5, 'grow');
-  for (const x of [-0.2, 0.35]) { const s = new THREE.Group(); s.add(cyl(0.2, 0.12, 0.48, mat.red, 0, 0.24, 0)); s.add(cyl(0.21, 0.21, 0.04, mat.red, 0, 0.5, 0)); s.position.set(x, y0, 0.55); add(s, 5, 'grow'); }
-  add(box(0.5, H - 0.1, 0.04, mat.fabric, -1.85, y0 + H / 2, 1.35), 5, 'grow');
-  const lamp = new THREE.PointLight(0xFFD2A0, 0, 7, 1.6); lamp.position.set(0, y0 + H - 0.4, 0); G.add(lamp);
-  // roof light kerb + bi-parting leaves (hinged on the outer edges)
-  const ky = y0 + H + T;
-  add(box(kx + 0.2, 0.16, 0.1, mat.alu, 0, ky + 0.08, -kz / 2), 6, 'grow'); add(box(kx + 0.2, 0.16, 0.1, mat.alu, 0, ky + 0.08, kz / 2), 6, 'grow');
-  add(box(0.1, 0.16, kz, mat.alu, -kx / 2 - 0.05, ky + 0.08, 0), 6, 'grow'); add(box(0.1, 0.16, kz, mat.alu, kx / 2 + 0.05, ky + 0.08, 0), 6, 'grow');
-  const leafGeo = new THREE.BoxGeometry(kx / 2, 0.03, kz); leafGeo.translate(kx / 4, 0, 0);
-  const leafMat = new THREE.MeshPhysicalMaterial({ color: 0xBFD6DF, roughness: 0.05, transparent: true, opacity: 0.55, envMapIntensity: 1.6 });
-  const hingeL = new THREE.Group(); hingeL.position.set(-kx / 2, ky + 0.17, 0); const leafL = new THREE.Mesh(leafGeo, leafMat); hingeL.add(leafL);
-  const hingeR = new THREE.Group(); hingeR.position.set(kx / 2, ky + 0.17, 0); hingeR.rotation.y = Math.PI; const leafR = new THREE.Mesh(leafGeo, leafMat); hingeR.add(leafR);
-  for (const l of [leafL, leafR]) { l.castShadow = true; const fr = new THREE.LineSegments(new THREE.EdgesGeometry(leafGeo), new THREE.LineBasicMaterial({ color: RED })); l.add(fr); }
-  add(hingeL, 6, 'fade'); add(hingeR, 6, 'fade');
-  // shaft of daylight that appears when the roof opens
-  const beamMat = new THREE.MeshBasicMaterial({ color: 0xFFF1D6, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
-  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 1.3, H + 3, 32, 1, true), beamMat); beam.position.set(0, y0 + (H + 3) / 2 - 0.1, 0); G.add(beam);
-
-  const house = {
-    group: G, parts, lamp, beam, build: 7, open: 0, openTarget: 0, buildTarget: 7,
-    top: new THREE.Vector3(0, ky, 0), centre: new THREE.Vector3(0, y0 + H / 2, 0),
-    setBuild(p) { this.buildTarget = p; }, setOpen(o) { this.openTarget = o; },
-    update(dt) {
-      const up = this.buildTarget > this.build; this.build += Math.sign(this.buildTarget - this.build) * Math.min(Math.abs(this.buildTarget - this.build), dt * (up ? 0.55 : 3.5));
-      this.open += (this.openTarget - this.open) * Math.min(1, dt * 0.9);
-      for (const o of parts) {
-        const k = THREE.MathUtils.clamp(this.build - o.userData.stage, 0, 1), e = k * k * (3 - 2 * k);
-        o.visible = k > 0.001;
-        if (o.userData.mode === 'grow') { o.scale.y = o.userData.baseScale.y * Math.max(0.001, e); o.position.y = o.userData.baseY - (1 - e) * (o.geometry?.parameters?.height || 0.5) * 0.5; }
-        else if (o.userData.mode === 'drop') { o.position.y = o.userData.baseY + (1 - e) * 2.2; }
-        else if (o.userData.mode === 'fade') { o.traverse(n => { if (n.material && 'opacity' in n.material && n.material.userData.baseOpacity === undefined) n.material.userData.baseOpacity = n.material.transparent ? n.material.opacity : 1; }); o.visible = k > 0.02; }
-      }
-      const a = this.open * 1.05;       // leaves lift apart from the centre
-      hingeL.rotation.z = a; hingeR.rotation.z = a;
-      lamp.intensity = this.build > 5.5 ? 6 : 0;
-      beamMat.opacity = Math.max(0, this.open - 0.35) * 0.16;
-    }
-  };
-  return house;
 }
 
 /* ---------------- anchor desk ---------------- */
@@ -309,7 +237,20 @@ export function buildStudio(scene, renderer) {
   // lighting truss
 
   // featured building
-  S.house = buildHouse(); S.house.group.position.set(0.9, 0, -4.1); S.house.group.rotation.y = -0.16; S.house.group.scale.setScalar(0.82); scene.add(S.house.group);
+  // one building per episode stands on the same spot; only the current one is shown
+  S.buildings = {};
+  for (const id of STAGE_IDS) {
+    const b = BUILDERS[id](); b.group.position.set(0.9, 0, -4.1); b.group.rotation.y = -0.16; b.group.scale.setScalar(b.scale);
+    b.group.visible = false; scene.add(b.group); S.buildings[id] = b;
+  }
+  S.stageIds = STAGE_IDS;
+  S.house = S.buildings['cantilever-pavilion']; S.house.group.visible = true;
+  S.showBuilding = (id) => {
+    const b = S.buildings[id]; if (!b) return false;
+    if (b !== S.house) { S.house.group.visible = false; b.reset(); b.group.visible = true; S.house = b; }
+    for (const st of S.stools || []) st.visible = id === 'cantilever-pavilion';
+    return true;
+  };
   // desk + chairs
   S.desk = buildDesk(); S.desk.group.position.set(0, 0, 1.38); scene.add(S.desk.group);
   S.seats = [
@@ -318,7 +259,9 @@ export function buildStudio(scene, renderer) {
   ];
   for (const s of S.seats) { const ch = buildChair(); ch.position.copy(s.pos).add(new THREE.Vector3(Math.sin(s.rotY) * -0.05, 0, -0.05)); ch.rotation.y = s.rotY; scene.add(ch); }
   // decor: red stools under the building, like the render
-  for (const [x, z] of [[-0.3, -1.4], [0.25, -1.1]]) { const st = new THREE.Group(); st.add(cyl(0.2, 0.13, 0.46, mat.red, 0, 0.23, 0)); st.add(cyl(0.21, 0.21, 0.04, mat.red, 0, 0.48, 0)); st.position.set(x, 0, z); scene.add(st); }
+  const stools = [];   // from the Glass Cube render: shown only with that building
+  for (const [x, z] of [[-0.3, -1.4], [0.25, -1.1]]) { const st = new THREE.Group(); st.add(cyl(0.2, 0.13, 0.46, mat.red, 0, 0.23, 0)); st.add(cyl(0.21, 0.21, 0.04, mat.red, 0, 0.48, 0)); st.position.set(x, 0, z); scene.add(st); stools.push(st); }
+  S.stools = stools;
   // story screen on the left of the stage
   S.screen = buildScreen(); S.screen.group.position.set(-3.7, 2.75, -2.6); S.screen.group.rotation.y = 0.5; scene.add(S.screen.group);
   const post = cyl(0.05, 0.05, 1.85, mat.black, -3.7, 0.93, -2.62, 12); scene.add(post);

@@ -12,7 +12,8 @@ export function setKey(k) { try { localStorage.setItem(KEY_STORE, k); } catch { 
 
 const EXTRA = ['climate', 'process', 'materials', 'build'];
 const CUBE = 'cantilever-pavilion';
-const TYPE_LABEL = { open: 'Opening', concept: 'The concept', mechanism: 'How it opens', climate: 'Built for Zimbabwe', process: 'How a concept earns its place', materials: 'What it is made of', build: 'How it goes up', atlas: 'The Atlas', viewer: 'Viewer question' };
+const STAGE = new Set([CUBE, 'lumen-oval-residence', 'rotunda-fan-house', 'origami-crown-villa', 'stone-arcade-house', 'granite-plinth-tower']);
+const TYPE_LABEL = { episode: 'Scripted episode', open: 'Opening', concept: 'The concept', mechanism: 'How it opens', climate: 'Built for Zimbabwe', process: 'How a concept earns its place', materials: 'What it is made of', build: 'How it goes up', atlas: 'The Atlas', viewer: 'Viewer question' };
 export const typeLabel = (t) => TYPE_LABEL[t] || t;
 
 export class LiveDirector {
@@ -59,9 +60,9 @@ export class LiveDirector {
     else if (this.segNo === 0) type = 'open';
     else {
       const arc = ['concept', 'mechanism', 'extra', 'atlas'][this.arc % 4];
-      if (arc === 'extra') { type = EXTRA[this.extra % EXTRA.length]; if (type === 'build' && concept.id !== CUBE) type = EXTRA[(this.extra + 1) % EXTRA.length]; }
+      if (arc === 'extra') { type = EXTRA[this.extra % EXTRA.length]; if (type === 'build' && !STAGE.has(concept.id)) type = EXTRA[(this.extra + 1) % EXTRA.length]; }
       else type = arc;
-      if (type === 'mechanism' && !['hinged', 'slide', 'louvre'].includes(concept.mechanism)) type = 'climate';
+      if (type === 'mechanism' && !['hinged', 'slide', 'louvre'].includes(concept.mechanism) && !STAGE.has(concept.id)) type = 'climate';
     }
     return { type, concept, city };
   }

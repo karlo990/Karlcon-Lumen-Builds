@@ -104,6 +104,10 @@ body.idle{cursor:none}
 #start .keyrow{display:flex;flex-direction:column;gap:8px;align-items:center;margin:0 0 16px}
 #start .keyrow input{width:min(320px,100%);background:#1F232A;color:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 14px;font:inherit;font-size:14px;text-align:center}
 #start .keyrow input:focus{outline:2px solid rgba(232,69,59,.4);border-color:var(--red-hi)}
+#start select,#start .mara-set input{background:#1F232A;color:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;font-size:14px}
+#start .mara-set{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+#start .mara-set label,#start .mara-chk{display:flex;align-items:center;gap:8px;font-size:13px;color:#C9CED6}
+#start .mara-set input{width:76px;text-align:center}
 #start .keyrow small{font-size:12.5px;color:#8C939D}#start .keyrow a{color:#FFB9B2}
 #liveStat{font-family:var(--mono);font-size:11.5px;color:#FFB9B2;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #hint{position:fixed;right:14px;top:14px;z-index:20;font-family:var(--mono);font-size:11px;color:var(--muted);background:rgba(21,24,29,.85);border:1px solid var(--line);border-radius:10px;padding:8px 10px;line-height:1.6}
@@ -117,7 +121,7 @@ body.idle{cursor:none}
     <div class="bug">
       <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 3 57 17.5v29L32 61 7 46.5v-29z" fill="none" stroke="#E8453B" stroke-width="4"/><path d="M17 24 32 32l15-8M32 32v19" fill="none" stroke="#E8453B" stroke-width="3.2"/><path d="M19 28v14l11 6.4V35zM45 28v14l-11 6.4V35z" fill="#E8453B"/></svg>
       <div><b>KARLCON</b><small>SYSTEMS INTELLIGENCE</small></div>
-      <span class="live"><i></i>LIVE</span><span class="clock" id="clock"></span>
+      <span class="live"><i></i>LIVE</span><span class="clock" id="clock"></span><span class="live" id="mara" hidden></span>
     </div>
     <div class="topic" id="topic"></div>
     <div class="l3" id="l3"><div class="bar"></div><div class="txt"><b id="l3n"></b><small id="l3r"></small></div></div>
@@ -137,7 +141,13 @@ body.idle{cursor:none}
     <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 3 57 17.5v29L32 61 7 46.5v-29z" fill="none" stroke="#E8453B" stroke-width="4"/><path d="M17 24 32 32l15-8M32 32v19" fill="none" stroke="#E8453B" stroke-width="3.2"/><path d="M19 28v14l11 6.4V35zM45 28v14l-11 6.4V35z" fill="#E8453B"/></svg>
     <h1>KARLCON <em>Studio</em></h1>
     <p id="epLine">Two presenters, one building, the engineering behind it.</p>
-    <div class="row" id="mode"><button data-m="episode" class="on">Episode 1 · scripted</button><button data-m="live">Live · Claude writes</button></div>
+    <div class="row" id="mode"><button data-m="episode" class="on">Episodes · scripted</button><button data-m="live">Live · Claude writes</button><button data-m="marathon">Marathon · 20 h</button></div>
+    <div class="keyrow" id="epRow"><select id="epSel" aria-label="Episode"></select></div>
+    <div class="keyrow" id="maraRow" hidden>
+      <div class="mara-set"><label>Hours <input id="maraHours" type="number" min="1" max="48" value="20"></label><label>Live segments after each episode <input id="maraLive" type="number" min="0" max="40" value="10"></label></div>
+      <label class="mara-chk"><input id="maraUseLive" type="checkbox" checked> Claude writes fresh segments between episodes</label>
+      <small>Six episodes on a loop, with live segments about each building in between. Without live writing it loops the episodes.</small>
+    </div>
     <div class="keyrow" id="keyRow" hidden><input id="keyIn" type="password" placeholder="Studio passcode (STUDIO_KEY)" autocomplete="current-password"><small>Open <a href="/writers-room" target="_blank" rel="noopener">the Writers' Room</a> in another window to watch and steer the script.</small></div>
     <p id="startErr" class="err" hidden></p>
     <div class="row" id="fmt"><button data-f="landscape" class="on">16:9 · YouTube / desktop</button><button data-f="vertical">9:16 · Instagram Live</button></div>
@@ -169,6 +179,7 @@ body.idle{cursor:none}
   <button id="bMin" title="Collapse">⋯</button>
 </div>
 
+<script src="/concepts-data.js"></script>
 <script src="/studio-kit/episodes.js"></script>
 <script type="importmap">{"imports":{"three":"/vendor/three/three.module.min.js","three/addons/":"/vendor/three/addons/"}}</script>
 <script type="module">
@@ -179,6 +190,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Host } from '/studio-kit/hosts.js';
 import { buildStudio } from '/studio-kit/set.js';
 import { LiveDirector, getKey, setKey, CHANNEL, typeLabel } from '/studio-kit/live.js';
+import { Marathon } from '/studio-kit/marathon.js';
 
 const $ = (s) => document.querySelector(s);
 const Q = new URLSearchParams(location.search);
@@ -221,19 +233,28 @@ const setProgress = (p, t) => { $('#barI').style.width = Math.round(p * 100) + '
 let set, hosts = {}, EP = window.KC_EPISODES[0];
 $('#epLine').textContent = EP.subtitle;
 /* ---------------- mode: scripted episode or live writing ---------------- */
-let MODE = Q.get('mode') === 'live' ? 'live' : 'episode', director = null;
-const LIVE = () => MODE === 'live' && director;
+const EPISODES = window.KC_EPISODES;
+const THUMBS = Object.fromEntries((window.KC_SEED || []).map(c => [c.id, c.thumbUrl]).filter(([, u]) => u));
+const pickEp = (n) => EPISODES[Math.min(EPISODES.length, Math.max(1, +n || 1)) - 1];
+EP = pickEp(Q.get('ep'));
+for (const e of EPISODES) $('#epSel').add(new Option(`Episode ${e.no} · ${e.title}`, e.no, false, e === EP));
+$('#epSel').onchange = () => { EP = pickEp($('#epSel').value); $('#epLine').textContent = EP.subtitle; set?.showBuilding(EP.concept); };
+if (Q.get('hours')) $('#maraHours').value = Q.get('hours');
+let MODE = ['live', 'marathon'].includes(Q.get('mode')) ? Q.get('mode') : 'episode', director = null;
+const LIVE = () => (MODE === 'live' || MODE === 'marathon') && director;
 function setMode(m) {
   MODE = m; document.querySelectorAll('#mode button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
-  $('#keyRow').hidden = m !== 'live'; $('#epLine').textContent = m === 'live' ? 'Live: Claude writes the show segment by segment, from our own facts.' : EP.subtitle;
-  if (m === 'live' && !$('#keyIn').value) $('#keyIn').value = getKey();
+  $('#keyRow').hidden = m === 'episode'; $('#epRow').hidden = m !== 'episode'; $('#maraRow').hidden = m !== 'marathon';
+  $('#epLine').textContent = m === 'live' ? 'Live: Claude writes the show segment by segment, from our own facts.'
+    : m === 'marathon' ? 'The marathon: all six episodes on a loop, with live segments in between.' : EP.subtitle;
+  if (m !== 'episode' && !$('#keyIn').value) $('#keyIn').value = getKey();
 }
 document.querySelectorAll('#mode button').forEach(b => b.onclick = () => setMode(b.dataset.m));
 setMode(MODE);
 async function boot() {
   try { await Promise.race([document.fonts.load('800 40px Montserrat'), new Promise(r => setTimeout(r, 2500))]); await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
   setProgress(0.1, 'Building the set…');
-  set = buildStudio(scene, renderer);
+  set = buildStudio(scene, renderer); set.showBuilding(EP.concept);
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   const entries = Object.entries(window.KC_HOSTS);
   let done = 0;
@@ -259,7 +280,17 @@ async function boot() {
       catch (e) { director = null; go.disabled = false; go.textContent = '● Go live'; $('#startErr').textContent = e.message; $('#startErr').hidden = false; return; }
       EP = { title: 'Live from the studio', subtitle: 'KARLCON Systems Intelligence · Live from Harare', lines: director.lines };
       $('#liveStat').hidden = false;
+    } else if (MODE === 'marathon') {
+      const k = $('#keyIn').value.trim(); if (k) setKey(k);
+      const hours = Math.max(1, Math.min(48, +$('#maraHours').value || 20));
+      const useLive = $('#maraUseLive').checked && +$('#maraLive').value > 0 && !!getKey();
+      go.disabled = true; go.textContent = 'Preparing the marathon…';
+      director = await new Marathon({ episodes: EPISODES, hours, liveSegments: +$('#maraLive').value || 0, useLive, onEvent: onLiveEvent }).init();
+      EP = { title: `The ${hours}-Hour Studio Marathon`, subtitle: `KARLCON Systems Intelligence · Six buildings · ${hours} hours live`, lines: director.lines, concept: EPISODES[0].concept };
+      $('#liveStat').hidden = false; $('#mara').hidden = false;
+      liveStatus(director.live ? `Marathon · live writing on (${director.info.model})` : `Marathon · scripted only${director.liveReason ? ' — ' + director.liveReason : ''}`);
     }
+    set.showBuilding(EP.concept || EPISODES[0].concept);
     $('#start').hidden = true; $('#dock').hidden = Q.has('obs'); $('#hint').hidden = Q.has('obs'); setTimeout(() => $('#hint').hidden = true, 9000); startShow();
   };
   if (Q.has('shot')) { $('#start').hidden = true; $('#hint').hidden = true; await shotMode(); }
@@ -385,6 +416,7 @@ function lowerThird(h) {
 function setTicker(items) { $('#tick').innerHTML = items.map(s => `<span>${s.replace(/</g, '&lt;')}</span>`).join(''); }
 function setTopic(slide) { $('#topic').innerHTML = slide ? `${slide.kicker || ''}<b>${(slide.title || '').replace(/</g, '&lt;')}</b>` : ''; }
 function showCard(k, title, sub, on = true) { $('#cardK').textContent = k; $('#cardT').textContent = title; $('#cardS').textContent = sub; $('#card').classList.toggle('on', on); }
+setInterval(() => { if (MODE === 'marathon' && director?.start) { const r = director.remaining, hh = Math.floor(r / 3600e3), mm = Math.floor(r % 3600e3 / 60e3); $('#mara').textContent = `HOUR ${director.hourNo}/${director.hours} · ${hh}h ${String(mm).padStart(2, '0')}m LEFT`; } }, 5000);
 setInterval(() => { const d = new Date(); $('#clock').textContent = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Harare' }) + ' CAT'; }, 1000);
 
 /* ---------------- the show ---------------- */
@@ -406,7 +438,10 @@ function applyCues(line, speaker) {
   const H = set.house;
   if (line.build != null) H.setBuild(line.build);
   if (line.open != null) H.setOpen(line.open);
-  if (line.slide) { set.screen.show(line.slide); setTopic(line.slide); }
+  if (line.slide) {
+    const img = line.slide.image || THUMBS[line.conceptId || EP.concept];
+    set.screen.show(img ? { ...line.slide, image: img } : line.slide); setTopic(line.slide);
+  }
   if (line.ticker) setTicker(line.ticker);
   for (const h of Object.values(hosts)) h.setSmile(line.mood === 'smile' ? 0.3 : line.mood === 'serious' ? 0.04 : 0.14);
   if (autoCam) cut(line.cam || (speaker !== lastSpeaker ? 'cu' : 'two'));
@@ -430,16 +465,31 @@ async function playLine(i) {
       const waitTok = ++lineToken; liveStatus('Writing the next segment…');
       try { await director.ensure(i); } catch (e) { liveStatus(e.message); broadcast('error', { message: e.message }); showCard('We’ll be right back', 'Live writing paused', e.message); playing = false; syncPlay(); return; }
       if (waitTok !== lineToken || !playing) return;
+      if (i >= lines.length) return endShow();
     }
     director.onAir(i);
   } else if (i >= lines.length) return endShow();
-  idx = i; $('#pos').textContent = LIVE() ? `S${lines[idx].segNo || '–'} · ${idx + 1}` : `${idx + 1} / ${lines.length}`;
-  const line = lines[idx], speaker = hosts[line.who] || Object.values(hosts)[0];
+  const line = lines[i], speaker = hosts[line.who] || Object.values(hosts)[0];
+  if (line.intermission && playing) {                       // marathon: title card before each episode
+    const { ep, loop } = line.intermission, waitTok = ++lineToken;
+    speechSynthesis?.cancel?.(); Object.values(hosts).forEach(h => h.stopSpeech()); setCaption('', null); cut('wide');
+    set.showBuilding(ep.concept); set.screen.show({ kicker: `Episode ${ep.no}`, title: ep.title, lines: [ep.subtitle.split('·').slice(1).join('·').trim()], image: THUMBS[ep.concept] });
+    showCard(`Episode ${ep.no}${loop > 1 ? ' · encore' : ''}`, ep.title, ep.subtitle);
+    broadcastState();
+    if (!(await sleep(4200, waitTok)) || !playing) return;
+    showCard('', '', '', false);
+  }
+  idx = i; const sn = String(lines[idx].segNo || '–');
+  $('#pos').textContent = LIVE() ? `${sn.startsWith('EP') ? sn : 'S' + sn} · ${idx + 1}` : `${idx + 1} / ${lines.length}`;
   const tok = ++lineToken;
+  if (line.segStart && line.conceptId) set.showBuilding(line.conceptId);
   if (LIVE() && line.segStart) {
-    setTopic({ kicker: `${line.cityName || ''} · ${line.conceptTitle || ''}`, title: line.segTitle });
-    const c = director.info.concepts.find(x => x.id === line.conceptId);
-    setTicker([`Now: ${line.conceptTitle} — ${c?.status || 'Concept'}`, ...DEFAULT_TICKER]);
+    if (line.scripted) { setTopic({ kicker: `Episode ${line.episode}`, title: line.segTitle }); setTicker(DEFAULT_TICKER); }
+    else {
+      setTopic({ kicker: `${line.cityName || ''} · ${line.conceptTitle || ''}`, title: line.segTitle });
+      const c = director.info?.concepts?.find(x => x.id === line.conceptId);
+      setTicker([`Now: ${line.conceptTitle} — ${c?.status || 'Concept'}`, ...DEFAULT_TICKER]);
+    }
   }
   broadcastState();
   speechSynthesis?.cancel?.(); Object.values(hosts).forEach(h => h.stopSpeech());
@@ -496,11 +546,12 @@ function broadcastState() {
   if (!bc) return;
   const L = EP.lines, cur = L[idx];
   broadcast('state', {
-    mode: LIVE() ? 'live' : 'episode', started: $('#start').hidden, playing, idx,
+    mode: LIVE() ? MODE : 'episode', started: $('#start').hidden, playing, idx,
     line: cur ? { who: cur.who, say: cur.say, src: cur.src, segTitle: cur.segTitle, fallback: cur.fallback } : null,
     upcoming: L.slice(idx + 1, idx + 9).map(l => ({ who: l.who, say: l.say, segTitle: l.segTitle, segStart: l.segStart, fallback: l.fallback })),
     stats: director?.stats || null, questions: director?.questions || [], pin: director?.pin || {}, writing: !!director?.pending, error: director?.lastError || '',
-    model: director?.info?.model || '', nextPlan: director ? director.describe(director.peek()) : ''
+    model: director?.info?.model || '', nextPlan: director ? director.describe(director.peek()) : '',
+    marathon: MODE === 'marathon' && director?.start ? { hour: director.hourNo, hours: director.hours, live: director.live, reason: director.liveReason } : null
   });
 }
 function onLiveEvent(type, data) {
@@ -508,11 +559,13 @@ function onLiveEvent(type, data) {
   if (type === 'segment') { liveStatus(`Ready: ${data.segment.title}`); broadcast('segment', { segment: segMeta(data.segment) }); }
   if (type === 'error') { liveStatus('Retrying: ' + data.message); broadcast('error', data); }
   if (type === 'fallback') liveStatus('Writing is down — playing from the archive');
+  if (type === 'episode') broadcast('segment', { segment: segMeta(data.segment) });
+  if (type === 'livedown') { liveStatus('Scripted only — ' + data.message); broadcast('error', data); }
   broadcastState();
 }
 if (bc) bc.onmessage = ({ data: m }) => {
   if (!m || m.from === 'studio') return;
-  if (m.t === 'ping') { broadcastState(); if (director) for (const s of director.segments) broadcast('segment', { segment: segMeta(s) }); return; }
+  if (m.t === 'ping') { broadcastState(); if (m.full && director) for (const s of director.segments.slice(-60)) broadcast('segment', { segment: segMeta(s) }); return; }
   if (!$('#start').hidden) return;                        // not on air yet: the start button needs a click here
   if (m.t === 'cmd') { if (m.cmd === 'play') resume(); else if (m.cmd === 'pause') pause(); else if (m.cmd === 'next') jump(1); else if (m.cmd === 'skip') skipSegment(); }
   if (m.t === 'question' && director) director.ask(m.text);
@@ -562,6 +615,7 @@ function loop() {
 
 /* ---------------- headless check: ?shot=<camera>&line=<n>&t=<s> ---------------- */
 async function shotMode() {
+  set.showBuilding(EP.concept);
   const n = +(Q.get('line') || 0), line = EP.lines[n], speaker = hosts[line.who];
   applyCues(line, speaker); if (Q.get('cam')) cut(Q.get('cam'));
   lastSpeaker = speaker; direct(line, speaker); setCaption(line.say, speaker); lowerThird(speaker);

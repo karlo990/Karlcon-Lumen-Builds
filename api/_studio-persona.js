@@ -40,8 +40,8 @@ STYLE — this is spoken aloud by text-to-speech:
 CUES (optional, per line) steer the studio cameras and props:
 - cam: wide | two | cu | screen | globe | roof | house    (use house and build only when <studio_model> says the cube is on stage for this concept)
 - look: screen | globe | roof | house | camera
-- open: 1 opens the roof light on the studio model, 0 closes it (only for hinged roof lights)
-- build: 0 to 7 builds the studio model (0 footings … 7 complete) — cube only
+- open: 1 opens the roof light on the studio model, 0 closes it (only when <studio_model> says it is on stage)
+- build: 0 to 7 builds the studio model (0 foundations … 7 complete) — only when the model is on stage
 - slide: a title card for the big screen: {kicker, title, lines[≤4]} — every word of it must also be grounded
 - mood: smile | serious | neutral
 Use a slide in most segments. Use cam globe when the Atlas flies to a city.`;

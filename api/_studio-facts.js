@@ -35,6 +35,7 @@ export const SITE = {
   'plan.size': 'The skylight planner sizes the opening from the room length, the room width, and a soft, balanced or bright daylight level.',
   'plan.glass': 'The planner compares clear, grey and low-e glass by how much heat each lets into the room at noon.',
   'plan.edge': 'A roof light should sit at least 1 m from the roof edges. A site survey confirms the opening, its position and the structure.',
+  'proc.newroofs': 'The fan roof, the folding crown and the telescoping oval roof are concept mechanisms still to be engineered, so no figures are quoted for them yet.',
   'show.atlas': 'The studio Atlas globe marks Harare, Bulawayo, Mutare, Masvingo and Victoria Falls. Each segment can fly to a different city.',
   'show.comments': 'Viewers can drop their city in the comments to choose where the Atlas flies next.'
 };
@@ -51,6 +52,8 @@ export const ZIMBABWE = {
   'city.masvingo': 'Masvingo is in the south-east of Zimbabwe, near the ruins of Great Zimbabwe.',
   'city.vicfalls': 'Victoria Falls is the town beside the waterfall of the same name, on the Zambezi River.',
   'her.greatzim': 'The stone walls of Great Zimbabwe carry a chevron pattern.',
+  'her.drystone': 'The walls of Great Zimbabwe were built of granite blocks laid without mortar, known as dry-stone walling.',
+  'zw.kopjes': 'Granite hills and boulders, called kopjes, are common across much of Zimbabwe.',
   'her.rondavel': 'The rondavel, a round house with a conical roof, is a traditional Zimbabwean building form.'
 };
 
@@ -105,7 +108,7 @@ export async function loadConcepts() {
   const chName = Object.fromEntries(channels.map((c) => [c.id, c.name]));
   const concepts = [...byId.values()].filter((c) => !c.hidden && c.title)
     .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
-    .map((c) => ({ ...c, channelName: chName[c.channel] || c.channel }));
+    .map((c) => ({ ...c, roof: c.roof || seed.find((x) => x.id === c.id)?.roof, channelName: chName[c.channel] || c.channel }));
   cache = { at: Date.now(), concepts };
   return concepts;
 }
@@ -116,7 +119,8 @@ export function conceptFacts(c) {
   f[`${p}.title`] = `${c.title} is a KARLCON Lumen Builds concept on the ${c.channelName || c.channel} channel.`;
   if (c.tagline) f[`${p}.tagline`] = `${c.title}: ${c.tagline}`;
   f[`${p}.status`] = `${c.title} is currently labelled ${c.status || 'Concept'}.`;
-  if (MECH[c.mechanism]) f[`${p}.mech`] = `${c.title} uses ${MECH[c.mechanism]}.`;
+  if (c.roof) f[`${p}.mech`] = `${c.title} has a roof light made of ${c.roof}.`;
+  else if (MECH[c.mechanism]) f[`${p}.mech`] = `${c.title} uses ${MECH[c.mechanism]}.`;
   (c.specs || []).forEach((s, i) => { if (s && s.k && s.v && s.k !== 'Status') f[`${p}.spec${i + 1}`] = `${c.title}, ${s.k}: ${s.v}.`; });
   return f;
 }

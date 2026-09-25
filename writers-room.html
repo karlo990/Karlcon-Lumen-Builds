@@ -221,7 +221,7 @@ const cue = (l) => ['cam', 'look', 'open', 'build', 'mood'].filter((k) => l[k] !
 function renderSeg(seg, isNew, dry) {
   let el = document.getElementById('seg-' + seg.id);
   const html = `
-    <div class="meta"><span class="no">${dry ? 'TEST' : 'S' + (seg.no ?? '')}</span><span>${esc(typeLabel(seg.type))}</span><span>${esc(seg.conceptTitle || '')}</span><span>${esc(seg.cityName || '')}</span>${seg.repaired ? '<span style="color:#FFC36B">rewritten once</span>' : ''}<span style="margin-left:auto">${seg.usage ? `${(seg.usage.input_tokens || 0) + (seg.usage.cache_read_input_tokens || 0)}→${seg.usage.output_tokens || 0} tok` : ''}</span></div>
+    <div class="meta"><span class="no">${dry ? 'TEST' : String(seg.no ?? '').startsWith('EP') ? seg.no : 'S' + (seg.no ?? '')}</span><span>${esc(typeLabel(seg.type))}</span><span>${esc(seg.conceptTitle || '')}</span><span>${esc(seg.cityName || '')}</span>${seg.repaired ? '<span style="color:#FFC36B">rewritten once</span>' : ''}<span style="margin-left:auto">${seg.usage ? `${(seg.usage.input_tokens || 0) + (seg.usage.cache_read_input_tokens || 0)}→${seg.usage.output_tokens || 0} tok` : ''}</span></div>
     <h3>${esc(seg.title)}</h3><p class="sum">${esc(seg.summary)}</p>
     ${seg.question ? `<div class="q"><b>Viewer:</b> ${esc(seg.question)}</div>` : ''}
     ${seg.lines.map((l) => `<div class="ln" data-say="${esc(l.say)}"><span class="who ${l.who}">${l.who.toUpperCase()}</span>${esc(l.say)}<span class="cue">${esc(cue(l))}</span><br>${chips(l.src)}</div>`).join('')}
@@ -236,9 +236,11 @@ function markPlaying() { document.querySelectorAll('.ln.playing').forEach((e) =>
 function renderState(s) {
   lastState = s; lastSeen = Date.now();
   $('#cStudio').className = 'chip ok'; $('#cStudio').innerHTML = '<i></i><b>Studio</b> connected';
-  const live = s.mode === 'live';
+  const live = s.mode === 'live' || s.mode === 'marathon';
   $('#cMode').className = 'chip ' + (s.started && s.playing ? 'live' : '');
-  $('#cMode').innerHTML = `<i></i>${!s.started ? 'waiting for Go live' : live ? (s.playing ? 'LIVE · Claude writing' : 'live · paused') : (s.playing ? 'scripted episode' : 'paused')}`;
+  const mar = s.marathon ? `MARATHON · hour ${s.marathon.hour}/${s.marathon.hours}${s.marathon.live ? '' : ' · scripted only'}` : '';
+  $('#cMode').innerHTML = `<i></i>${!s.started ? 'waiting for Go live' : mar ? (s.playing ? mar : mar + ' · paused') : live ? (s.playing ? 'LIVE · Claude writing' : 'live · paused') : (s.playing ? 'scripted episode' : 'paused')}`;
+  if (s.marathon && !s.marathon.live && s.marathon.reason) $('#qState').textContent = 'Live writing off: ' + s.marathon.reason;
   for (const b of ['#bPlay', '#bNext', '#bSkip']) $(b).disabled = !s.started;
   $('#bPlay').textContent = s.playing ? '❚❚ Pause' : '▶ Play';
   if (s.model) $('#cModel').innerHTML = `model <b>${esc(s.model)}</b>`;
@@ -257,11 +259,16 @@ function renderState(s) {
 if (bc) bc.onmessage = ({ data: m }) => {
   if (!m || m.from !== 'studio') return;
   if (m.t === 'state') renderState(m);
-  if (m.t === 'segment' && m.segment) { const isNew = !segs.has(m.segment.id); segs.set(m.segment.id, m.segment); renderSeg(m.segment, isNew); }
+  if (m.t === 'segment' && m.segment) {
+    if (segs.has(m.segment.id)) return;
+    segs.set(m.segment.id, m.segment); renderSeg(m.segment, true);
+    const feed = document.querySelectorAll('#feed article.seg'); for (let k = 120; k < feed.length; k++) feed[k].remove();   // keep the page light on long runs
+  }
   if (m.t === 'error') $('#qState').textContent = 'Studio: ' + m.message;
 };
-send({ t: 'ping' });
-setInterval(() => { send({ t: 'ping' }); if (Date.now() - lastSeen > 6000) { $('#cStudio').className = 'chip'; $('#cStudio').innerHTML = '<i></i><b>Studio</b> offline'; } }, 3000);
+send({ t: 'ping', full: true });
+// ask for the recent segments only when (re)connecting; otherwise just the on-air state
+setInterval(() => { const off = Date.now() - lastSeen > 6000; send({ t: 'ping', full: off }); if (off) { $('#cStudio').className = 'chip'; $('#cStudio').innerHTML = '<i></i><b>Studio</b> offline'; } }, 3000);
 
 /* ---------- controls ---------- */
 $('#bPlay').onclick = () => send({ t: 'cmd', cmd: lastState?.playing ? 'pause' : 'play' });
@@ -269,7 +276,7 @@ $('#bNext').onclick = () => send({ t: 'cmd', cmd: 'next' });
 $('#bSkip').onclick = () => send({ t: 'cmd', cmd: 'skip' });
 $('#bAsk').onclick = () => {
   const t = $('#q').value.trim(); if (!t) return;
-  if (!lastState?.started || lastState.mode !== 'live') { $('#qState').textContent = 'The studio is not live — start it in Live mode first.'; return; }
+  if (!lastState?.started || !['live', 'marathon'].includes(lastState.mode)) { $('#qState').textContent = 'The studio is not live — start it in Live mode first.'; return; }
   send({ t: 'question', text: t }); $('#q').value = ''; $('#qState').textContent = 'Sent — it will be the next segment.';
 };
 $('#bPin').onclick = () => {

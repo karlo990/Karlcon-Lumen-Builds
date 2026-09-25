@@ -24,7 +24,8 @@ import { systemPrompt, SEGMENT_TYPES, SEGMENT_TOOL, HOSTS, RULES } from './_stud
 const MODEL = process.env.STUDIO_MODEL || 'claude-sonnet-5';
 const API = (process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com').replace(/\/$/, '');
 const PRICES = { 'claude-sonnet-5': [2, 10], 'claude-opus-5-5': [4, 20], 'claude-haiku-4-5-20251001': [1, 5], 'claude-fable-5-1': [10, 50] };
-const CUBE_ID = 'cantilever-pavilion';   // the concept whose model stands in the studio
+// concepts whose model can stand on the studio stage (studio-kit/buildings.js)
+const STAGE = new Set(['cantilever-pavilion', 'lumen-oval-residence', 'rotunda-fan-house', 'origami-crown-villa', 'stone-arcade-house', 'granite-plinth-tower']);
 
 /* ---------- access ---------- */
 function authorised(req) {
@@ -149,11 +150,11 @@ async function callClaude(userText) {
   throw lastErr;
 }
 
-function userPrompt({ type, concept, cityName, facts, recent, covered, question, nextUp, segmentNo, cube }) {
+function userPrompt({ type, concept, cityName, facts, recent, covered, question, nextUp, segmentNo, cube, stageTitle }) {
   const esc = (t) => String(t).replace(/</g, '‹').replace(/>/g, '›');
   return [
     `<segment>\nnumber: ${segmentNo}\ntype: ${type} — ${SEGMENT_TYPES[type]}\nconcept: ${concept ? `${concept.title} (id ${concept.id})` : 'none'}\ncity: ${cityName}\n</segment>`,
-    `<studio_model>${cube ? 'The Elevated Glass Cube model is on stage: house and build cues work.' : 'The cube on stage is NOT this concept: show this concept on the screen; do not use house or build cues.'}</studio_model>`,
+    `<studio_model>${cube ? `The ${esc(stageTitle)} model is on stage: house, roof, build and open cues work.` : 'This concept has no model on stage: show it on the screen; do not use house, roof, build or open cues.'}</studio_model>`,
     `<facts>\n${Object.entries(facts).map(([k, v]) => `${k}: ${esc(v)}`).join('\n')}\n</facts>`,
     `<recent_lines>\n${recent.map((l) => `${l.who.toUpperCase()}: ${esc(l.say)}`).join('\n') || '(the show is just starting)'}\n</recent_lines>`,
     `<covered>\n${covered.map((c) => `- ${esc(c)}`).join('\n') || '(nothing yet)'}\n</covered>`,
@@ -196,11 +197,11 @@ export default async function handler(req, res) {
     const ci = concepts.indexOf(concept);
     const others = [...concepts.slice(ci + 1), ...concepts.slice(0, ci)];
     const facts = factsFor({ concept, city, others });
-    const cube = concept?.id === CUBE_ID;
-    const ctx = { cube, hinged: concept?.mechanism === 'hinged', thumb: concept?.thumbUrl };
+    const cube = STAGE.has(concept?.id);
+    const ctx = { cube, hinged: cube, thumb: concept?.thumbUrl };
     const recent = (Array.isArray(b.recent) ? b.recent : []).slice(-8).map((l) => ({ who: l?.who === 'karl' ? 'karl' : 'luma', say: s(l?.say, 400) })).filter((l) => l.say);
     const covered = (Array.isArray(b.covered) ? b.covered : []).slice(-12).map((x) => s(x, 200)).filter(Boolean);
-    const base = { type, concept, cityName: cityNames[city], facts, recent, covered, question, nextUp: s(b.nextUp, 120), segmentNo: Math.max(1, Math.min(100000, +b.segmentNo || 1)), cube };
+    const base = { type, concept, stageTitle: concept?.title, cityName: cityNames[city], facts, recent, covered, question, nextUp: s(b.nextUp, 120), segmentNo: Math.max(1, Math.min(100000, +b.segmentNo || 1)), cube };
 
     const usage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
     const add = (u) => { for (const k of Object.keys(usage)) usage[k] += u[k] || 0; };
