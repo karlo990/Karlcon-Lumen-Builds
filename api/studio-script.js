@@ -9,6 +9,7 @@
 //   ANTHROPIC_API_KEY   the Claude API key (workspace key). Never sent to the browser.
 //   STUDIO_KEY          passcode the studio and Writers' Room send as x-studio-key (ADMIN_KEY also works).
 //   STUDIO_MODEL        optional, default claude-sonnet-5.
+//   ANTHROPIC_WORKSPACE_ID  only if ANTHROPIC_API_KEY is organization-scoped (a workspace-scoped key needs nothing).
 //
 // Grounding: the prompt carries only facts from api/_studio-facts.js and the concept library.
 // Each returned line is then checked here; a line that cites no fact for a number, names a
@@ -127,7 +128,11 @@ async function callClaude(userText) {
   for (let attempt = 0; attempt < 3; attempt++) {
     const r = await fetch(`${API}/v1/messages`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      headers: {
+        'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01',
+        // only needed for an organization-scoped key; a workspace-scoped key does not need it
+        ...(process.env.ANTHROPIC_WORKSPACE_ID ? { 'anthropic-workspace-id': process.env.ANTHROPIC_WORKSPACE_ID.trim() } : {})
+      },
       body: JSON.stringify(body), signal: AbortSignal.timeout(50000)
     });
     if (r.ok) {
