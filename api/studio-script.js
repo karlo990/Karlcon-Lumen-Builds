@@ -1,6 +1,7 @@
 // /api/studio-script.js — live scripting for /studio, written by Claude, grounded in our own facts.
 //
 //   GET  /api/studio-script           -> persona, segment types, concepts, cities, facts   (studio key)
+//   GET  /api/studio-script?check=1   -> { ok } — passcode check for the Developer Suite     (studio key)
 //   POST /api/studio-script  {conceptId, city, type, segmentNo, recent, covered, question, nextUp}
 //                                      -> { segment: {title, summary, lines[...]}, rejected, usage }
 //
@@ -164,6 +165,8 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
     if (!process.env.STUDIO_KEY && !process.env.ADMIN_KEY) return res.status(503).json({ error: 'Set STUDIO_KEY in Vercel → Settings → Environment Variables, then redeploy.' });
     if (!authorised(req)) return res.status(401).json({ error: 'Studio key missing or wrong.' });
+    // quick passcode check for the Developer Suite on the landing page
+    if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.has('check')) return res.status(200).json({ ok: true, ready: Boolean(process.env.ANTHROPIC_API_KEY), model: MODEL });
 
     if (req.method === 'GET') {
       const concepts = await loadConcepts();
