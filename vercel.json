@@ -28,6 +28,14 @@
       "destination": "/karlcon_bim_hologram_v8_gesturecast.html"
     },
     {
+      "source": "/studio",
+      "destination": "/studio.html"
+    },
+    {
+      "source": "/writers-room",
+      "destination": "/writers-room.html"
+    },
+    {
       "source": "/pipeline",
       "destination": "/karlcon_bim_pipeline_v4.html"
     }
@@ -37,6 +45,13 @@
       "maxDuration": 60
     },
     "api/model-import.js": {
+      "maxDuration": 60
+    },
+    "api/studio-script.js": {
+      "maxDuration": 60,
+      "includeFiles": "concepts-data.js"
+    },
+    "api/studio-voice.js": {
       "maxDuration": 60
     }
   },
@@ -51,11 +66,20 @@
       ]
     },
     {
-      "source": "/((?!img/|api/).*)",
+      "source": "/((?!img/|api/|models/|vendor/).*)",
       "headers": [
         {
           "key": "Cache-Control",
           "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/(models|vendor)/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800"
         }
       ]
     },
@@ -65,6 +89,24 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=604800, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/studio(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/writers-room(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
         }
       ]
     },

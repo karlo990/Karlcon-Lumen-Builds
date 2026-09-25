@@ -74,5 +74,33 @@ window.KC_SEED = [
   { id: 'chevron-pavilion', title: 'Chevron Motif Pavilion', channel: 'heritage', mechanism: 'hinged', order: 33,
     tagline: 'A heritage pavilion wrapped in chevron screens after Great Zimbabwe, crowned with a bi-parting daylight roof.',
     specs: [{ k: 'Roof light', v: 'Bi-parting, 2 leaves' }, { k: 'Frame', v: 'Red steel portal frame' }, { k: 'Walls', v: 'Chevron-perforated panels' }, { k: 'Status', v: 'Concept' }],
-    thumbUrl: '/img/concepts/chevron-pavilion.webp', meshySource: '/img/meshy/chevron-pavilion.png', massing: { w: 6, d: 6, h: 3.4 }, status: 'Concept' }
+    thumbUrl: '/img/concepts/chevron-pavilion.webp', meshySource: '/img/meshy/chevron-pavilion.png', massing: { w: 6, d: 6, h: 3.4 }, status: 'Concept' },
+  /* ---- Studio episodes 2–6 (KARLCON Studio). No engineering figures yet: these roofs are
+         still concept mechanisms, so specs describe them in words. `roof` is read by the
+         live studio (api/_studio-facts.js) to say how each roof opens. ---- */
+  { id: 'lumen-oval-residence', title: 'Lumen Oval Residence', channel: 'residences', mechanism: 'slide', order: 23,
+    tagline: 'A two-storey white oval with a wraparound terrace, crowned by a curved glass roof that slides back in sections and stacks at one end.',
+    roof: 'curved glass panels on red ribs that slide along the oval and stack at one end, like a telescope closing',
+    specs: [{ k: 'Roof light', v: 'Telescoping curved glass panels' }, { k: 'Form', v: 'Two-storey elliptical shell' }, { k: 'Frame', v: 'Red steel ribs' }, { k: 'Terrace', v: 'Wraparound glass balustrade' }],
+    thumbUrl: '/img/concepts/lumen-oval-residence.webp', meshySource: '/img/meshy/lumen-oval-residence.png', massing: { w: 12, d: 7, h: 6 }, status: 'Concept' },
+  { id: 'origami-crown-villa', title: 'Origami Crown Villa', channel: 'residences', mechanism: 'none', order: 24,
+    tagline: 'Two white boxes on red columns around a glazed stair core, topped by a star of glass petals that fold open like a crown.',
+    roof: 'eight triangular glass petals hinged around an octagonal opening that fold outward and upward like a crown',
+    specs: [{ k: 'Roof light', v: 'Eight-petal folding crown' }, { k: 'Form', v: 'Two boxes around a glazed core' }, { k: 'Frame', v: 'Red steel columns' }, { k: 'Outdoor', v: 'Covered terrace with fire table' }],
+    thumbUrl: '/img/concepts/origami-crown-villa.webp', meshySource: '/img/meshy/origami-crown-villa.png', massing: { w: 10, d: 10, h: 7 }, status: 'Concept' },
+  { id: 'granite-plinth-tower', title: 'Granite Plinth Tower', channel: 'residences', mechanism: 'hinged', order: 25,
+    tagline: 'Concrete floors cantilevered on slender red columns above a black granite plinth, with a bi-parting roof light at the top.',
+    roof: 'a bi-parting pair of glass leaves on struts that lift apart from the centre',
+    specs: [{ k: 'Roof light', v: 'Bi-parting pair on struts' }, { k: 'Floors', v: 'Cantilevered concrete slabs' }, { k: 'Frame', v: 'Red steel columns' }, { k: 'Base', v: 'Black granite plinth with stair' }],
+    thumbUrl: '/img/concepts/granite-plinth-tower.webp', meshySource: '/img/meshy/granite-plinth-tower.png', massing: { w: 8, d: 6, h: 9 }, status: 'Concept' },
+  { id: 'rotunda-fan-house', title: 'Rotunda Fan-Roof House', channel: 'pavilions', mechanism: 'none', order: 13,
+    tagline: 'A round glass drum between white stone buttresses, roofed with wedge-shaped glass panels that swing round a central pivot and stack like a fan.',
+    roof: 'wedge-shaped glass panels that turn around a central pivot and stack on top of each other like a closing fan',
+    specs: [{ k: 'Roof light', v: 'Radial fan of glass wedges' }, { k: 'Form', v: 'Round glass drum' }, { k: 'Walls', v: 'Curved glazing, white stone buttresses' }, { k: 'Rim', v: 'Red steel ring beam' }],
+    thumbUrl: '/img/concepts/rotunda-fan-house.webp', meshySource: '/img/meshy/rotunda-fan-house.png', massing: { w: 10, d: 10, h: 4 }, status: 'Concept' },
+  { id: 'stone-arcade-house', title: 'Stone Arcade House', channel: 'heritage', mechanism: 'hinged', order: 34,
+    tagline: 'A dry-stone ground floor of arches around a courtyard, with a white glass-walled floor above and a bi-parting roof light.',
+    roof: 'a bi-parting pair of glass leaves in red frames that lift apart from the centre',
+    specs: [{ k: 'Roof light', v: 'Bi-parting pair' }, { k: 'Base', v: 'Dry-stone walls with arches' }, { k: 'Upper floor', v: 'White frame, full-height glazing' }, { k: 'Outdoor', v: 'Paved courtyard with a tree' }],
+    thumbUrl: '/img/concepts/stone-arcade-house.webp', meshySource: '/img/meshy/stone-arcade-house.png', massing: { w: 10, d: 8, h: 6 }, status: 'Concept' }
 ];

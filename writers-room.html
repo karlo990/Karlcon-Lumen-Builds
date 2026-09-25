@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KARLCON Writers' Room</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0B0C0F">
+<link rel="icon" type="image/png" href="/img/icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--red:#D0231A;--red-hi:#E8453B;--bg:#0B0C0F;--panel:#14171C;--panel2:#1B1F25;--line:#262B33;--ink:#EEF0F3;--muted:#9AA1AB;--dim:#6B727C;--ok:#3FB67A;--luma:#FF9E8F;--karl:#8FC8FF;
+  --head:'Montserrat',system-ui,sans-serif;--body:'Inter',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 18px;background:rgba(11,12,15,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand svg{width:30px;height:30px}
+.brand b{font-family:var(--head);font-weight:800;letter-spacing:.22em;font-size:13px}
+.brand span{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--muted);margin-top:2px}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 11px;font-family:var(--mono);font-size:11.5px;color:var(--muted);white-space:nowrap}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.chip.ok i{background:var(--ok);box-shadow:0 0 0 3px rgba(63,182,122,.18)}
+.chip.live i{background:var(--red-hi);animation:pulse 1.4s infinite}
+.chip b{color:var(--ink);font-weight:600}
+@keyframes pulse{50%{opacity:.3}}
+main{display:grid;grid-template-columns:minmax(300px,1fr) minmax(380px,1.35fr) minmax(300px,1fr);gap:14px;padding:14px 18px 40px;align-items:start}
+@media (max-width:1180px){main{grid-template-columns:1fr 1fr}.col-feed{grid-column:1/-1;order:3}}
+@media (max-width:760px){main{grid-template-columns:1fr;padding:12px}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.card h2{font-family:var(--mono);font-weight:600;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.onair .who{font-family:var(--head);font-weight:800;font-size:13px;letter-spacing:.14em}
+.onair .say{font-size:19px;line-height:1.5;margin:8px 0 10px}
+.who.luma{color:var(--luma)}.who.karl{color:var(--karl)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:9px 13px;font-weight:600;font-size:13px}
+.btn:hover{border-color:var(--red-hi)}
+.btn.red{background:var(--red);border-color:var(--red)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.up{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.up li{font-size:13px;line-height:1.45;color:#CFD3D9;padding-left:12px;border-left:2px solid var(--line)}
+.up li.seg{border-left-color:var(--red)}
+.up li small{display:block;font-family:var(--mono);font-size:10.5px;color:var(--red-hi);letter-spacing:.08em;margin-bottom:2px}
+.src{display:inline-flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.src button{border:1px solid var(--line);background:#101318;border-radius:6px;padding:2px 7px;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.src button:hover{color:#fff;border-color:var(--karl)}
+.seg{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;background:var(--panel)}
+.seg.new{animation:flash 1.6s ease}
+@keyframes flash{from{border-color:var(--red-hi);box-shadow:0 0 0 3px rgba(232,69,59,.2)}}
+.seg .meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:6px}
+.seg .meta .no{background:var(--red);color:#fff;border-radius:6px;padding:2px 7px;font-weight:600}
+.seg h3{font-family:var(--head);font-weight:800;font-size:18px;margin:0 0 4px}
+.seg .sum{color:var(--muted);font-size:13px;margin:0 0 10px}
+.seg .q{background:#1C1612;border:1px solid #3A2A20;border-radius:10px;padding:8px 10px;margin:0 0 10px;font-size:13px}
+.ln{padding:8px 0;border-top:1px solid var(--line)}
+.ln .who{font-family:var(--head);font-weight:800;font-size:11px;letter-spacing:.14em;margin-right:6px}
+.ln .cue{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-left:6px}
+.ln.playing{background:linear-gradient(90deg,rgba(232,69,59,.12),transparent);margin:0 -14px;padding:8px 14px}
+.rej{margin-top:10px;border:1px dashed #5A2A26;border-radius:10px;padding:8px 10px;background:#170F0E}
+.rej summary{cursor:pointer;font-size:12.5px;color:#FFB9B2}
+.rej .r{padding:6px 0;border-top:1px solid #2A1916;font-size:12.5px}
+.rej .r s{color:#B98A84}
+.rej .r em{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;color:#FF8A7D;margin-top:3px}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted);margin-bottom:10px}
+input.t,select,textarea{background:#0F1216;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;width:100%}
+textarea{min-height:74px;resize:vertical}
+input.t:focus,select:focus,textarea:focus{outline:2px solid rgba(232,69,59,.3);border-color:var(--red-hi)}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+@media (max-width:420px){.grid3{grid-template-columns:1fr}}
+.note{font-size:12.5px;color:var(--muted);line-height:1.5;margin:8px 0 0}
+.note b{color:var(--ink)}
+pre{white-space:pre-wrap;font-family:var(--mono);font-size:11.5px;line-height:1.55;color:#C9CED6;background:#0F1216;border:1px solid var(--line);border-radius:10px;padding:12px;max-height:420px;overflow:auto;margin:0}
+details.box summary{cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+details.box[open] summary{margin-bottom:10px}
+.facts{max-height:420px;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.fact{font-size:12.5px;line-height:1.45;color:#CFD3D9}
+.fact code{display:block;font-family:var(--mono);font-size:10.5px;color:var(--karl)}
+.fact.int code{color:#FFC36B}
+#factPop{position:fixed;z-index:20;max-width:340px;background:#0F1216;border:1px solid var(--karl);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.45;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+#factPop code{display:block;font-family:var(--mono);font-size:10.5px;color:var(--karl);margin-bottom:4px}
+.empty{color:var(--dim);font-size:13px;text-align:center;padding:26px 10px;border:1px dashed var(--line);border-radius:12px}
+.err{color:#FFB9B2;font-size:13px;margin:8px 0 0}
+.stat{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat div{background:#0F1216;border:1px solid var(--line);border-radius:10px;padding:8px}
+.stat small{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+.stat b{font-family:var(--head);font-size:16px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 3 57 17.5v29L32 61 7 46.5v-29z" fill="none" stroke="#E8453B" stroke-width="4"/><path d="M17 24 32 32l15-8M32 32v19" fill="none" stroke="#E8453B" stroke-width="3.2"/><path d="M19 28v14l11 6.4V35zM45 28v14l-11 6.4V35z" fill="#E8453B"/></svg>
+    <div><b>KARLCON · WRITERS' ROOM</b><span>LIVE SCRIPT · GROUNDED IN OUR OWN FACTS</span></div>
+  </div>
+  <span class="chip" id="cStudio"><i></i><b>Studio</b> offline</span>
+  <span class="chip" id="cMode"><i></i>not on air</span>
+  <span class="chip" id="cModel">model —</span>
+  <a class="chip" href="/studio?mode=live" target="_blank" rel="noopener" style="text-decoration:none">Open studio ↗</a>
+</header>
+
+<main>
+  <!-- ON AIR -->
+  <section class="col-air">
+    <div class="card onair">
+      <h2>On air <span id="airSeg"></span></h2>
+      <div id="airBody"><div class="empty">Open <b>/studio</b> in this browser, choose <b>Live · Claude writes</b>, and press Go live. The show appears here as it plays.</div></div>
+      <div class="btns" style="margin-top:12px">
+        <button class="btn red" id="bPlay" disabled>❚❚ Pause</button>
+        <button class="btn" id="bNext" disabled>Next line</button>
+        <button class="btn" id="bSkip" disabled>Skip segment</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Up next <span id="nextPlan" style="text-transform:none;letter-spacing:0;color:var(--red-hi)"></span></h2>
+      <ul class="up" id="upNext"><li style="border:0;color:var(--dim)">Nothing queued yet.</li></ul>
+    </div>
+    <div class="card">
+      <h2>Session</h2>
+      <div class="stat"><div><small>Segments</small><b id="sCalls">0</b></div><div><small>Tokens in</small><b id="sIn">0</b></div><div><small>Tokens out</small><b id="sOut">0</b></div><div><small>Est. cost</small><b id="sCost">$0</b></div></div>
+      <p class="note"><b id="sRej">0</b> lines were rejected by the grounding check and never went on air · <b id="sRep">0</b> segments were rewritten once.</p>
+    </div>
+  </section>
+
+  <!-- SCRIPT FEED -->
+  <section class="col-feed">
+    <div class="card" style="padding-bottom:6px">
+      <h2>Script feed <span style="text-transform:none;letter-spacing:0">newest first · click a fact id to see its source</span></h2>
+      <div id="feed"><div class="empty">Segments appear here the moment Claude writes them — each line with the facts it rests on, and anything the grounding check threw out.</div></div>
+    </div>
+  </section>
+
+  <!-- STEER -->
+  <section class="col-steer">
+    <div class="card">
+      <h2>Studio passcode</h2>
+      <div style="display:flex;gap:8px"><input class="t" id="key" type="password" placeholder="STUDIO_KEY" autocomplete="current-password"><button class="btn" id="bLoad">Load</button></div>
+      <p class="err" id="keyErr" hidden></p>
+      <p class="note">Saved in this browser only, and shared with /studio. The Claude API key never leaves Vercel.</p>
+    </div>
+    <div class="card">
+      <h2>Viewer question</h2>
+      <textarea id="q" maxlength="280" placeholder="Paste a question from the Instagram comments…"></textarea>
+      <div class="btns" style="margin-top:8px"><button class="btn red" id="bAsk">Send to the hosts</button><span class="note" id="qState" style="margin:0;align-self:center"></span></div>
+      <p class="note">It becomes the next segment. The hosts answer only from the facts; if the facts don't cover it, Karl says he'll reply on Instagram.</p>
+    </div>
+    <div class="card">
+      <h2>Steer the next segment</h2>
+      <div class="grid3">
+        <label class="f">Concept<select id="pConcept"><option value="">Next in rotation</option></select></label>
+        <label class="f">City<select id="pCity"><option value="">Next in rotation</option></select></label>
+        <label class="f">Segment<select id="pType"><option value="">Next in rotation</option></select></label>
+      </div>
+      <div class="btns"><button class="btn" id="bPin">Pin for the next segment</button><button class="btn" id="bDry">Write a test segment here</button></div>
+      <p class="note" id="pinState">A test segment is written here only — it does not go on air.</p>
+    </div>
+    <div class="card">
+      <details class="box"><summary>Persona and rules — exactly what Claude is told</summary><pre id="persona">Load with the passcode to see it.</pre></details>
+    </div>
+    <div class="card">
+      <details class="box"><summary>Facts the hosts may use (<span id="factCount">0</span>)</summary>
+        <input class="t" id="factQ" placeholder="Search facts…" style="margin-bottom:10px">
+        <div class="facts" id="facts"></div>
+        <p class="note">Edit these in <b>api/_studio-facts.js</b> (site, Zimbabwe, design-intent facts) or through the concept library (/?admin). Yellow ids are design intentions for Karl to confirm.</p>
+      </details>
+    </div>
+  </section>
+</main>
+<div id="factPop" hidden></div>
+
+<script type="module">
+import { LiveDirector, getKey, setKey, CHANNEL, typeLabel } from '/studio-kit/live.js';
+const $ = (s) => document.querySelector(s);
+const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+let INFO = null, FACTS = {}, lastState = null, lastSeen = 0, playingSay = '';
+const segs = new Map();
+const bc = ('BroadcastChannel' in window) ? new BroadcastChannel(CHANNEL) : null;
+const send = (m) => bc?.postMessage({ ...m, from: 'room' });
+
+/* ---------- passcode + info ---------- */
+$('#key').value = getKey();
+async function loadInfo() {
+  const k = $('#key').value.trim(); if (k) setKey(k);
+  $('#keyErr').hidden = true;
+  try {
+    const d = new LiveDirector(); INFO = await d.request('GET');
+    FACTS = INFO.facts || {};
+    $('#cModel').innerHTML = `model <b>${esc(INFO.model)}</b>${INFO.ready ? '' : ' · <span style="color:#FFB9B2">API key missing</span>'}`;
+    $('#persona').textContent = INFO.persona.system;
+    fill('#pConcept', INFO.concepts.map((c) => [c.id, c.title]));
+    fill('#pCity', INFO.cities.map((c) => [c.id, c.name]));
+    fill('#pType', Object.keys(INFO.persona.types).map((t) => [t, typeLabel(t)]));
+    renderFacts();
+  } catch (e) { $('#keyErr').textContent = e.message; $('#keyErr').hidden = false; }
+}
+function fill(sel, rows) { const el = $(sel); el.length = 1; for (const [v, t] of rows) el.add(new Option(t, v)); }
+function renderFacts() {
+  const q = $('#factQ').value.toLowerCase(), ent = Object.entries(FACTS).filter(([k, v]) => !q || k.includes(q) || v.toLowerCase().includes(q));
+  $('#factCount').textContent = Object.keys(FACTS).length;
+  $('#facts').innerHTML = ent.slice(0, 300).map(([k, v]) => `<div class="fact ${k.startsWith('int.') ? 'int' : ''}"><code>${esc(k)}</code>${esc(v)}</div>`).join('') || '<div class="empty">No match.</div>';
+}
+$('#factQ').oninput = renderFacts;
+$('#bLoad').onclick = loadInfo;
+if (getKey()) loadInfo();
+
+/* ---------- fact popover ---------- */
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-fact]'); const pop = $('#factPop');
+  if (!b) { pop.hidden = true; return; }
+  const id = b.dataset.fact; pop.innerHTML = `<code>${esc(id)}</code>${esc(FACTS[id] || 'Load the passcode to see the fact text.')}`;
+  const r = b.getBoundingClientRect(); pop.hidden = false;
+  pop.style.left = Math.min(innerWidth - 360, r.left) + 'px'; pop.style.top = (r.bottom + 6) + 'px';
+});
+const chips = (src) => (src && src.length) ? `<span class="src">${src.map((s) => `<button data-fact="${esc(s)}">${esc(s)}</button>`).join('')}</span>` : '';
+const cue = (l) => ['cam', 'look', 'open', 'build', 'mood'].filter((k) => l[k] != null).map((k) => `${k}:${l[k]}`).join(' ') + (l.slide ? ' · slide' : '');
+
+/* ---------- feed ---------- */
+function renderSeg(seg, isNew, dry) {
+  let el = document.getElementById('seg-' + seg.id);
+  const html = `
+    <div class="meta"><span class="no">${dry ? 'TEST' : String(seg.no ?? '').startsWith('EP') ? seg.no : 'S' + (seg.no ?? '')}</span><span>${esc(typeLabel(seg.type))}</span><span>${esc(seg.conceptTitle || '')}</span><span>${esc(seg.cityName || '')}</span>${seg.repaired ? '<span style="color:#FFC36B">rewritten once</span>' : ''}<span style="margin-left:auto">${seg.usage ? `${(seg.usage.input_tokens || 0) + (seg.usage.cache_read_input_tokens || 0)}→${seg.usage.output_tokens || 0} tok` : ''}</span></div>
+    <h3>${esc(seg.title)}</h3><p class="sum">${esc(seg.summary)}</p>
+    ${seg.question ? `<div class="q"><b>Viewer:</b> ${esc(seg.question)}</div>` : ''}
+    ${seg.lines.map((l) => `<div class="ln" data-say="${esc(l.say)}"><span class="who ${l.who}">${l.who.toUpperCase()}</span>${esc(l.say)}<span class="cue">${esc(cue(l))}</span><br>${chips(l.src)}</div>`).join('')}
+    ${seg.rejected && seg.rejected.length ? `<details class="rej"><summary>${seg.rejected.length} line${seg.rejected.length > 1 ? 's' : ''} rejected by the grounding check</summary>${seg.rejected.map((r) => `<div class="r"><s>${esc((r.who || '').toUpperCase())}: ${esc(r.say)}</s><em>${esc((r.reasons || []).join(' · '))}</em></div>`).join('')}</details>` : ''}`;
+  if (!el) { el = document.createElement('article'); el.className = 'seg'; el.id = 'seg-' + seg.id; const feed = $('#feed'); feed.querySelector('.empty')?.remove(); feed.prepend(el); }
+  el.innerHTML = html; if (isNew) { el.classList.remove('new'); void el.offsetWidth; el.classList.add('new'); }
+  markPlaying();
+}
+function markPlaying() { document.querySelectorAll('.ln.playing').forEach((e) => e.classList.remove('playing')); if (!playingSay) return; for (const e of document.querySelectorAll('.ln')) if (e.dataset.say === playingSay) { e.classList.add('playing'); break; } }
+
+/* ---------- studio link ---------- */
+function renderState(s) {
+  lastState = s; lastSeen = Date.now();
+  $('#cStudio').className = 'chip ok'; $('#cStudio').innerHTML = '<i></i><b>Studio</b> connected';
+  const live = s.mode === 'live' || s.mode === 'marathon';
+  $('#cMode').className = 'chip ' + (s.started && s.playing ? 'live' : '');
+  const mar = s.marathon ? `MARATHON · hour ${s.marathon.hour}/${s.marathon.hours}${s.marathon.live ? '' : ' · scripted only'}` : '';
+  $('#cMode').innerHTML = `<i></i>${!s.started ? 'waiting for Go live' : mar ? (s.playing ? mar : mar + ' · paused') : live ? (s.playing ? 'LIVE · Claude writing' : 'live · paused') : (s.playing ? 'scripted episode' : 'paused')}`;
+  if (s.marathon && !s.marathon.live && s.marathon.reason) $('#qState').textContent = 'Live writing off: ' + s.marathon.reason;
+  for (const b of ['#bPlay', '#bNext', '#bSkip']) $(b).disabled = !s.started;
+  $('#bPlay').textContent = s.playing ? '❚❚ Pause' : '▶ Play';
+  if (s.model) $('#cModel').innerHTML = `model <b>${esc(s.model)}</b>`;
+  if (s.line) {
+    playingSay = s.line.say;
+    $('#airSeg').textContent = s.line.segTitle || '';
+    $('#airBody').innerHTML = `<div class="who ${s.line.who}">${s.line.who.toUpperCase()}${s.line.fallback ? ' · <span style="color:#FFC36B">from the archive</span>' : ''}</div><div class="say">${esc(s.line.say)}</div>${chips(s.line.src)}`;
+  }
+  $('#nextPlan').textContent = s.nextPlan ? (s.writing ? 'writing: ' : 'then: ') + s.nextPlan : '';
+  $('#upNext').innerHTML = (s.upcoming || []).map((l) => `<li class="${l.segStart ? 'seg' : ''}">${l.segStart ? `<small>NEW SEGMENT · ${esc(l.segTitle || '')}</small>` : ''}<span class="who ${l.who}" style="font-family:var(--head);font-weight:800;font-size:10.5px;letter-spacing:.12em">${l.who.toUpperCase()}</span> ${esc(l.say)}</li>`).join('') || `<li style="border:0;color:var(--dim)">${s.writing ? 'Claude is writing the next segment…' : 'Nothing queued yet.'}</li>`;
+  const st = s.stats; if (st) { $('#sCalls').textContent = st.calls; $('#sIn').textContent = (st.input + st.cacheRead).toLocaleString(); $('#sOut').textContent = st.output.toLocaleString(); $('#sCost').textContent = '$' + st.cost.toFixed(st.cost < 1 ? 3 : 2); $('#sRej').textContent = st.rejected; $('#sRep').textContent = st.repaired; }
+  $('#qState').textContent = s.questions?.length ? `${s.questions.length} question${s.questions.length > 1 ? 's' : ''} waiting` : '';
+  if (s.error) $('#qState').textContent = 'Last error: ' + s.error;
+  markPlaying();
+}
+if (bc) bc.onmessage = ({ data: m }) => {
+  if (!m || m.from !== 'studio') return;
+  if (m.t === 'state') renderState(m);
+  if (m.t === 'segment' && m.segment) {
+    if (segs.has(m.segment.id)) return;
+    segs.set(m.segment.id, m.segment); renderSeg(m.segment, true);
+    const feed = document.querySelectorAll('#feed article.seg'); for (let k = 120; k < feed.length; k++) feed[k].remove();   // keep the page light on long runs
+  }
+  if (m.t === 'error') $('#qState').textContent = 'Studio: ' + m.message;
+};
+send({ t: 'ping', full: true });
+// ask for the recent segments only when (re)connecting; otherwise just the on-air state
+setInterval(() => { const off = Date.now() - lastSeen > 6000; send({ t: 'ping', full: off }); if (off) { $('#cStudio').className = 'chip'; $('#cStudio').innerHTML = '<i></i><b>Studio</b> offline'; } }, 3000);
+
+/* ---------- controls ---------- */
+$('#bPlay').onclick = () => send({ t: 'cmd', cmd: lastState?.playing ? 'pause' : 'play' });
+$('#bNext').onclick = () => send({ t: 'cmd', cmd: 'next' });
+$('#bSkip').onclick = () => send({ t: 'cmd', cmd: 'skip' });
+$('#bAsk').onclick = () => {
+  const t = $('#q').value.trim(); if (!t) return;
+  if (!lastState?.started || !['live', 'marathon'].includes(lastState.mode)) { $('#qState').textContent = 'The studio is not live — start it in Live mode first.'; return; }
+  send({ t: 'question', text: t }); $('#q').value = ''; $('#qState').textContent = 'Sent — it will be the next segment.';
+};
+$('#bPin').onclick = () => {
+  const p = { conceptId: $('#pConcept').value, city: $('#pCity').value, type: $('#pType').value };
+  if (!p.conceptId && !p.city && !p.type) { $('#pinState').textContent = 'Choose a concept, a city or a segment type first.'; return; }
+  send({ t: 'pin', ...p }); $('#pinState').textContent = 'Pinned for the next segment the studio writes.';
+};
+/* a test segment written here, off air */
+let dry = null;
+$('#bDry').onclick = async () => {
+  const b = $('#bDry'); b.disabled = true; b.textContent = 'Writing…';
+  try {
+    if (!dry) { dry = new LiveDirector(); await dry.init(); }
+    const p = { conceptId: $('#pConcept').value, city: $('#pCity').value, type: $('#pType').value };
+    if (p.conceptId || p.city || p.type) dry.setPin(p);
+    const seg = await dry.writeNext();
+    renderSeg({ ...seg, id: 'dry-' + seg.id }, true, true);
+    $('#pinState').textContent = `Test segment written (${seg.rejected.length} rejected line${seg.rejected.length === 1 ? '' : 's'}). It did not go on air.`;
+  } catch (e) { $('#pinState').textContent = e.message; }
+  finally { b.disabled = false; b.textContent = 'Write a test segment here'; }
+};
+</script>
+</body>
+</html>
