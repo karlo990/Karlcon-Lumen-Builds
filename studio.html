@@ -215,6 +215,9 @@ import { Marathon } from '/studio-kit/marathon.js';
 
 const $ = (s) => document.querySelector(s);
 const Q = new URLSearchParams(location.search);
+// OBS: the passcode can ride in the address fragment (#key=…) — fragments never reach the server or its logs.
+// It is saved in this browser and removed from the address straight away.
+{ const m = /(?:^#|&)key=([^&]+)/.exec(location.hash); if (m) { setKey(decodeURIComponent(m[1])); history.replaceState(null, '', location.pathname + location.search); } }
 const clock = () => performance.now() / 1000;
 let FORMAT = Q.get('format') === 'vertical' ? 'vertical' : 'landscape';
 if (Q.has('obs')) document.body.classList.add('obs');
@@ -331,6 +334,8 @@ async function boot() {
     $('#start').hidden = true; $('#dock').hidden = Q.has('obs'); $('#hint').hidden = Q.has('obs'); setTimeout(() => $('#hint').hidden = true, 9000); startShow();
   };
   if (Q.has('shot')) { $('#start').hidden = true; $('#hint').hidden = true; await shotMode(); }
+  // ?autostart — press Go live by itself (for an OBS Browser Source); retries if live writing is not reachable yet
+  else if (Q.has('autostart')) { const tryStart = () => { if (!$('#start').hidden) { go.click(); setTimeout(() => { if (!$('#start').hidden && !go.disabled) tryStart(); }, 30000); } }; setTimeout(tryStart, 1200); }
 }
 
 /* ---------------- post-processing: bloom, depth of field on close-ups, ambient occlusion ---------------- */
