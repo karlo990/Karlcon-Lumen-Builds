@@ -19,10 +19,10 @@ import { put, head } from '@vercel/blob';
 import { hasStore } from './_lib.js';
 
 const API = (process.env.ELEVENLABS_BASE_URL || 'https://api.elevenlabs.io').replace(/\/$/, '');
-const MODEL = process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2';
+const MODEL = (process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2').trim();
 const FORMAT = 'mp3_44100_128';
-const VOICES = () => ({ luma: process.env.ELEVENLABS_VOICE_LUMA, karl: process.env.ELEVENLABS_VOICE_KARL });
-const ready = () => Boolean(process.env.ELEVENLABS_API_KEY && VOICES().luma && VOICES().karl);
+const VOICES = () => ({ luma: (process.env.ELEVENLABS_VOICE_LUMA || '').trim(), karl: (process.env.ELEVENLABS_VOICE_KARL || '').trim() });
+const ready = () => Boolean((process.env.ELEVENLABS_API_KEY || '').trim() && VOICES().luma && VOICES().karl);
 
 function authorised(req) {
   const given = Buffer.from(String(req.headers['x-studio-key'] || ''));
@@ -65,7 +65,26 @@ export default async function handler(req, res) {
   try {
     res.setHeader('Cache-Control', 'no-store');
     if (!authorised(req)) return res.status(401).json({ error: 'Studio key missing or wrong.' });
-    if (req.method === 'GET') return res.status(200).json({ ready: ready(), provider: 'elevenlabs', model: MODEL });
+    if (req.method === 'GET') {
+      const missing = [['ELEVENLABS_API_KEY', process.env.ELEVENLABS_API_KEY], ['ELEVENLABS_VOICE_LUMA', VOICES().luma], ['ELEVENLABS_VOICE_KARL', VOICES().karl]].filter(([, v]) => !v).map(([k]) => k);
+      const out = { ready: ready(), provider: 'elevenlabs', model: MODEL, missing };
+      // ?probe=1 → a real two-word request per voice, so the studio can show ElevenLabs' own error
+      if (ready() && String(req.query?.probe || new URL(req.url, 'http://x').searchParams.get('probe')) === '1') {
+        out.probe = {};
+        for (const who of ['luma', 'karl']) {
+          try {
+            const r = await fetch(`${API}/v1/text-to-speech/${encodeURIComponent(VOICES()[who].trim())}/with-timestamps?output_format=${FORMAT}`, {
+              method: 'POST', signal: AbortSignal.timeout(20000),
+              headers: { 'content-type': 'application/json', 'xi-api-key': process.env.ELEVENLABS_API_KEY.trim() },
+              body: JSON.stringify({ text: 'Hello there.', model_id: MODEL })
+            });
+            out.probe[who] = r.ok ? 'ok' : `ElevenLabs ${r.status}: ${(await r.text()).slice(0, 200)}`;
+          } catch (e) { out.probe[who] = `request failed: ${e.message}`; }
+        }
+        out.ready = Object.values(out.probe).every((v) => v === 'ok');
+      }
+      return res.status(200).json(out);
+    }
     if (req.method !== 'POST') { res.setHeader('Allow', 'GET, POST'); return res.status(405).json({ error: 'Method not allowed.' }); }
     if (!ready()) return res.status(503).json({ error: 'Premium voices are not set up (ELEVENLABS_API_KEY, ELEVENLABS_VOICE_LUMA, ELEVENLABS_VOICE_KARL).' });
     if (rateLimited(req)) return res.status(429).json({ error: 'Too many voice requests.' });
@@ -85,7 +104,7 @@ export default async function handler(req, res) {
     for (let attempt = 0; attempt < 3; attempt++) {
       r = await fetch(`${API}/v1/text-to-speech/${encodeURIComponent(voice)}/with-timestamps?output_format=${FORMAT}`, {
         method: 'POST', signal: AbortSignal.timeout(45000),
-        headers: { 'content-type': 'application/json', 'xi-api-key': process.env.ELEVENLABS_API_KEY },
+        headers: { 'content-type': 'application/json', 'xi-api-key': process.env.ELEVENLABS_API_KEY.trim() },
         body: JSON.stringify({ text, model_id: MODEL, voice_settings: { stability: 0.45, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true } })
       });
       if (r.ok || ![429, 500, 502, 503].includes(r.status)) break;

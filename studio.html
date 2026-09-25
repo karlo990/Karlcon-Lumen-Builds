@@ -77,6 +77,9 @@ body.obs #dock,body.obs #hint{display:none!important}
 .card .k{font-family:var(--mono);letter-spacing:.3em;font-size:.95em;color:var(--red-hi);text-transform:uppercase}
 .card h1{font-family:var(--head);font-weight:800;font-size:4.2em;margin:.3em 0 .2em;letter-spacing:-.02em;line-height:1.02}
 .card p{font-size:1.3em;color:#C9CED6;margin:0}
+#voiceWarn{position:fixed;right:12px;top:12px;z-index:50;max-width:420px;padding:.6em .9em;background:#2a0d0d;border:1px solid #d33;color:#fff;font:13px/1.35 system-ui;border-radius:6px;display:none}
+#voiceWarn.on{display:block}
+body.obs #voiceWarn{display:none!important}
 /* vertical (9:16) layout tweaks */
 .vert .gfx{font-size:max(10px,1.05cqh)}
 .vert .topic{display:none}
@@ -303,7 +306,8 @@ async function boot() {
   go.onclick = async () => {
     $('#startErr').hidden = true;
     { const k = $('#keyIn').value.trim(); if (k) setKey(k); }
-    await checkPremium();
+    $('#voiceNote').textContent = 'Checking premium voices…'; await checkPremium(true);
+    if (!premium.ready && getKey() && Q.get('voice') !== 'browser') voiceWarn($('#voiceNote').textContent.replace(/^Premium voices off: /, ''));
     if (MODE === 'live') {
       const k = $('#keyIn').value.trim(); if (k) setKey(k);
       if (!getKey()) { $('#startErr').textContent = 'Enter the studio passcode first.'; $('#startErr').hidden = false; return; }
@@ -495,11 +499,26 @@ function fillVoices() {
 
 /* ---------------- premium voices (ElevenLabs via /api/studio-voice) ---------------- */
 const premium = { ready: false, model: '' };
-async function checkPremium() {
-  premium.ready = false;
-  if (!getKey() || Q.get('voice') === 'browser') return;
-  try { const r = await fetch('/api/studio-voice', { headers: { 'x-studio-key': getKey() } }); const j = await r.json(); premium.ready = r.ok && j.ready; premium.model = j.model || ''; } catch (e) { /* offline */ }
-  $('#voiceNote').textContent = premium.ready ? 'Premium voices on.' : '';
+async function checkPremium(probe = false) {
+  premium.ready = false; const note = $('#voiceNote');
+  if (Q.get('voice') === 'browser') { note.textContent = 'Browser voices (forced by ?voice=browser).'; return; }
+  if (!getKey()) { note.textContent = 'Premium voices: type the studio passcode first.'; return; }
+  try {
+    const r = await fetch('/api/studio-voice' + (probe ? '?probe=1' : ''), { headers: { 'x-studio-key': getKey() } });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401) { note.textContent = 'Premium voices off: the passcode is wrong.'; return; }
+    if (r.status === 404) { note.textContent = 'Premium voices off: /api/studio-voice is not deployed yet.'; return; }
+    if (!r.ok) { note.textContent = 'Premium voices off: ' + (j.error || 'HTTP ' + r.status); return; }
+    premium.model = j.model || '';
+    if (j.missing?.length) { note.textContent = 'Premium voices off: missing in Vercel → ' + j.missing.join(', ') + '. Add them, then Redeploy.'; return; }
+    if (j.probe) { const bad = Object.entries(j.probe).filter(([, v]) => v !== 'ok'); if (bad.length) { note.textContent = 'Premium voices off: ' + bad.map(([w, v]) => w.toUpperCase() + ' → ' + v).join(' | '); console.warn('voice probe', j.probe); return; } }
+    premium.ready = !!j.ready;
+    note.textContent = premium.ready ? `Premium voices on (${premium.model}).` : 'Premium voices off.';
+  } catch (e) { note.textContent = 'Premium voices off: ' + e.message; }
+}
+function voiceWarn(msg) {
+  let el = $('#voiceWarn'); if (!el) { el = document.createElement('div'); el.id = 'voiceWarn'; document.body.append(el); }
+  el.textContent = 'Voice fell back to the browser: ' + msg; el.classList.add('on'); clearTimeout(voiceWarn.t); voiceWarn.t = setTimeout(() => el.classList.remove('on'), 30000);
 }
 const voiceCache = new Map();
 function fetchVoice(who, text) {
@@ -513,7 +532,7 @@ function fetchVoice(who, text) {
   if (voiceCache.size > 16) { const [k0, v0] = voiceCache.entries().next().value; voiceCache.delete(k0); v0.then((v) => URL.revokeObjectURL(v.url)).catch(() => {}); }
   return p;
 }
-function prefetchVoice(i) { const l = EP.lines[i]; if (premium.ready && useVoice && l) fetchVoice(l.who, l.say).catch(() => {}); }
+function prefetchVoice(i) { for (const k of [i, i + 1]) { const l = EP.lines[k]; if (premium.ready && useVoice && l) fetchVoice(l.who, l.say).catch(() => {}); } }
 /** fit the text-based viseme plan onto the real word timings */
 function retime(plan, words) {
   const byIdx = new Map(words.map((w) => [w.i, w]));
@@ -675,7 +694,7 @@ async function playLine(i) {
 async function speak(host, text, tok) {
   if (premium.ready && useVoice) {
     try {
-      const v = await Promise.race([fetchVoice(host.cfg.id || host.id, text), new Promise((_, no) => setTimeout(() => no(new Error('voice timeout')), 9000))]);
+      const v = await Promise.race([fetchVoice(host.cfg.id || host.id, text), new Promise((_, no) => setTimeout(() => no(new Error('ElevenLabs took longer than 20 s')), 20000))]);
       if (tok !== lineToken) return;
       await new Promise((resolve, reject) => {
         const audio = new Audio(v.url); audio.playbackRate = rateMul;
@@ -688,7 +707,7 @@ async function speak(host, text, tok) {
         audio.play().catch((e) => { clearInterval(watch); reject(e); });
       });
       return;
-    } catch (e) { console.warn('premium voice failed, using the browser voice', e.message); if (tok !== lineToken) return; }
+    } catch (e) { console.warn('premium voice failed, using the browser voice', e.message); voiceWarn(e.message); if (tok !== lineToken) return; }
   }
   return new Promise((resolve) => {
     const cfg = host.cfg, rate = (cfg.rate || 1) * rateMul;
