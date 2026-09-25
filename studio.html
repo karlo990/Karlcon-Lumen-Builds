@@ -179,7 +179,7 @@ body.idle{cursor:none}
   </div>
 </div>
 
-<div id="hint" hidden>SPACE play/pause · ←/→ line · 1–7 camera<br>C captions · H hide dock · F fullscreen</div>
+<div id="hint" hidden>SPACE play/pause · ←/→ line · 1–7 camera<br>C captions · M music · N next song · H hide dock · F fullscreen</div>
 
 <div id="dock" hidden>
   <button id="bPlay" title="Play / pause (Space)">❚❚ Pause</button>
@@ -193,6 +193,9 @@ body.idle{cursor:none}
     <button id="bAuto" class="on" title="Follow the script's camera cues">Auto cam</button>
     <button id="bCap" class="on" title="Captions (C)">CC</button>
     <button id="bVoice" class="on" title="Browser voices on/off">Voice</button>
+    <button id="bMusic" class="on" title="Background music (M)">Music</button>
+    <button id="bSong" title="Next song (N)">⏭ Song</button>
+    <label>Music <input type="range" id="mvol" min="0" max="2" step="0.05" value="1"></label>
     <label>Speed <input type="range" id="rate" min="0.8" max="1.2" step="0.02" value="1"></label>
     <select id="vLuma" title="Voice for host 1"></select>
     <select id="vKarl" title="Voice for host 2"></select>
@@ -308,7 +311,7 @@ async function boot() {
   buildCamButtons(); fillVoices(); speechSynthesis?.addEventListener?.('voiceschanged', fillVoices);
   const go = $('#go'); go.disabled = false; go.textContent = '● Go live';
   go.onclick = async () => {
-    $('#startErr').hidden = true;
+    $('#startErr').hidden = true; sound.init();
     { const k = $('#keyIn').value.trim(); if (k) setKey(k); }
     $('#voiceNote').textContent = 'Checking premium voices…'; await checkPremium(true);
     if (!premium.ready && getKey() && Q.get('voice') !== 'browser') voiceWarn($('#voiceNote').textContent.replace(/^Premium voices off: /, ''));
@@ -332,7 +335,7 @@ async function boot() {
       liveStatus(director.live ? `Marathon · live writing on (${director.info.model})` : `Marathon · scripted only${director.liveReason ? ' — ' + director.liveReason : ''}`);
     }
     set.showBuilding(EP.concept || EPISODES[0].concept);
-    $('#start').hidden = true; $('#dock').hidden = Q.has('obs'); $('#hint').hidden = Q.has('obs'); setTimeout(() => $('#hint').hidden = true, 9000); startShow();
+    $('#start').hidden = true; $('#dock').hidden = Q.has('obs'); $('#hint').hidden = Q.has('obs'); setTimeout(() => $('#hint').hidden = true, 9000); if (sound.on) sound.startMusic(); startShow();
   };
   if (Q.has('shot')) { $('#start').hidden = true; $('#hint').hidden = true; await shotMode(); }
   // ?autostart — press Go live by itself (for an OBS Browser Source); retries if live writing is not reachable yet
@@ -504,7 +507,7 @@ function fillVoices() {
 }
 
 /* ---------------- premium voices (ElevenLabs via /api/studio-voice) ---------------- */
-const premium = { ready: false, model: '' };
+const premium = { ready: false, model: '', vkey: '' };
 async function checkPremium(probe = false) {
   premium.ready = false; const note = $('#voiceNote');
   if (Q.get('voice') === 'browser') { note.textContent = 'Browser voices (forced by ?voice=browser).'; return; }
@@ -515,7 +518,7 @@ async function checkPremium(probe = false) {
     if (r.status === 401) { note.textContent = 'Premium voices off: the passcode is wrong.'; return; }
     if (r.status === 404) { note.textContent = 'Premium voices off: /api/studio-voice is not deployed yet.'; return; }
     if (!r.ok) { note.textContent = 'Premium voices off: ' + (j.error || 'HTTP ' + r.status); return; }
-    premium.model = j.model || '';
+    premium.model = j.model || ''; premium.vkey = j.vkey || premium.model;
     if (j.missing?.length) { note.textContent = 'Premium voices off: missing in Vercel → ' + j.missing.join(', ') + '. Add them, then Redeploy.'; return; }
     if (j.probe) { const bad = Object.entries(j.probe).filter(([, v]) => v !== 'ok'); if (bad.length) { note.textContent = 'Premium voices off: ' + bad.map(([w, v]) => w.toUpperCase() + ' → ' + v).join(' | '); console.warn('voice probe', j.probe); return; } }
     premium.ready = !!j.ready;
@@ -526,12 +529,31 @@ function voiceWarn(msg) {
   let el = $('#voiceWarn'); if (!el) { el = document.createElement('div'); el.id = 'voiceWarn'; document.body.append(el); }
   el.textContent = 'Voice fell back to the browser: ' + msg; el.classList.add('on'); clearTimeout(voiceWarn.t); voiceWarn.t = setTimeout(() => el.classList.remove('on'), 30000);
 }
-const voiceCache = new Map();
+/* Voice lines are cached three deep, so a line is paid for once, ever:
+   1. this browser (Cache Storage, survives reloads and site updates) — repeats cost nothing, not even a server call
+   2. the Blob store on the server — shared by every browser / PC
+   3. ElevenLabs — only for a line never heard before (new live segments) */
+const voiceCache = new Map(), VOICE_STORE = 'kc-voice-v1';
+const voiceStats = window.voiceStats = { browser: 0, server: 0, paid: 0 };
+async function voiceJSON(who, text) {
+  let store = null, k = '';
+  try {
+    store = await caches.open(VOICE_STORE);
+    const h = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(who + '|' + text));
+    k = `/__voice/${encodeURIComponent(premium.vkey || 'v')}/${[...new Uint8Array(h)].map((x) => x.toString(16).padStart(2, '0')).join('')}`;
+    const hit = await store.match(k); if (hit) { voiceStats.browser++; return await hit.json(); }
+  } catch { store = null; }
+  const r = await fetch('/api/studio-voice', { method: 'POST', headers: { 'content-type': 'application/json', 'x-studio-key': getKey() }, body: JSON.stringify({ who, text }) });
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'voice ' + r.status);
+  const src = r.headers.get('x-voice-cache') === 'hit' ? 'server' : 'paid'; voiceStats[src]++;
+  if (src === 'paid') console.info('voice: new line rendered by ElevenLabs', voiceStats);
+  if (store && j.audio) store.put(k, new Response(JSON.stringify(j), { headers: { 'content-type': 'application/json' } })).catch(() => {});
+  return j;
+}
 function fetchVoice(who, text) {
   const key = who + '|' + text;
   if (voiceCache.has(key)) return voiceCache.get(key);
-  const p = fetch('/api/studio-voice', { method: 'POST', headers: { 'content-type': 'application/json', 'x-studio-key': getKey() }, body: JSON.stringify({ who, text }) })
-    .then(async (r) => { const j = await r.json(); if (!r.ok) throw new Error(j.error || 'voice ' + r.status); return j; })
+  const p = voiceJSON(who, text)
     .then((j) => { const bin = atob(j.audio), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return { url: URL.createObjectURL(new Blob([u8], { type: j.mime || 'audio/mpeg' })), words: j.words || [] }; });
   p.catch(() => voiceCache.delete(key));
   voiceCache.set(key, p);
@@ -551,6 +573,134 @@ function retime(plan, words) {
   return plan;
 }
 let curAudio = null;   // { audio, host } — drives the mouth clock from the audio clock
+
+/* ---------------- sound: a music bed under the hosts (Web Audio) ----------------
+   voices (ElevenLabs): high-pass 80 Hz → presence +2 dB → gentle compressor → master
+   music: a shuffled playlist (models/audio/playlist.json), two players crossfading between songs → low-mid and presence cuts → ducker → master
+   master: limiter, so nothing clips on Instagram / Facebook
+   The music dips under every line and holds down across the short gaps between lines (no pumping);
+   it comes back up on stings, title cards and pauses. Browser voices can't be routed, but the
+   ducking still follows them. ?music=0 turns it off · ?musicvol=0.5 quieter · ?musicsrc=/other.mp3 (one song only)
+   playlist.json: [{ "src": "song.mp3", "title": "…", "duck": -24 }] — duck (optional) dips a song with vocals deeper */
+const MIX = {
+  dir: '/models/audio/', fallback: 'music-bed.mp3',          // songs normalised to -18 LUFS
+  bed: -8, duck: -20,              // dB: music between lines / under a voice (≈ 22 dB below the hosts)
+  carveBed: -2, carveDuck: -6,     // dB at 2.5 kHz: clears the band speech lives in, deeper while talking
+  attack: 0.25, release: 1.2,      // s: dip fast, come back slowly
+  hold: 1.4,                       // s: stay down across the gap between two lines
+  xfade: 4                         // s: crossfade between songs
+};
+const dB = (v) => Math.pow(10, v / 20);
+const sound = {
+  ctx: null, on: Q.get('music') !== '0', level: Math.max(0, Math.min(2, Q.has('musicvol') ? +Q.get('musicvol') || 0 : 1)),
+  players: [], cur: 0, state: '', lastTalk: -99, fading: false, started: false, tracks: [], queue: [], track: null,
+  init() {
+    if (this.ctx) return this.ctx.state === 'running';
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false;
+    const c = this.ctx = new AC();
+    this.master = c.createDynamicsCompressor();                       // limiter
+    this.master.threshold.value = -3; this.master.knee.value = 0; this.master.ratio.value = 20; this.master.attack.value = 0.002; this.master.release.value = 0.15;
+    this.master.connect(c.destination);
+    // voice bus
+    const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 80;
+    const pres = c.createBiquadFilter(); pres.type = 'peaking'; pres.frequency.value = 3000; pres.Q.value = 1; pres.gain.value = 2;
+    const comp = c.createDynamicsCompressor(); comp.threshold.value = -18; comp.knee.value = 10; comp.ratio.value = 2.5; comp.attack.value = 0.004; comp.release.value = 0.25;
+    const trim = c.createGain(); trim.gain.value = dB(-4);            // offsets the compressor's automatic make-up gain
+    hp.connect(pres).connect(comp).connect(trim).connect(this.master); this.voiceIn = hp;
+    // music bus
+    this.musicIn = c.createGain();
+    const mud = c.createBiquadFilter(); mud.type = 'peaking'; mud.frequency.value = 300; mud.Q.value = 0.8; mud.gain.value = -2;
+    this.carve = c.createBiquadFilter(); this.carve.type = 'peaking'; this.carve.frequency.value = 2500; this.carve.Q.value = 0.9; this.carve.gain.value = MIX.carveBed;
+    this.ducker = c.createGain(); this.ducker.gain.value = dB(MIX.bed);
+    this.fader = c.createGain(); this.fader.gain.value = 0;           // on/off and the Music slider
+    this.musicIn.connect(mud).connect(this.carve).connect(this.ducker).connect(this.fader).connect(this.master);
+    if (c.state !== 'running') { const kick = () => { c.resume(); removeEventListener('pointerdown', kick); removeEventListener('keydown', kick); }; addEventListener('pointerdown', kick); addEventListener('keydown', kick); c.resume().catch(() => {}); }
+    setInterval(() => this.tick(), 60);
+    return true;
+  },
+  /** send an ElevenLabs line through the voice bus (left as a plain element if audio isn't running yet) */
+  route(audio) {
+    if (!this.ctx || this.ctx.state !== 'running') return;
+    try { this.ctx.createMediaElementSource(audio).connect(this.voiceIn); } catch (e) { console.warn('voice routing', e); }
+  },
+  player() {
+    const a = new Audio(); a.preload = 'auto';
+    const g = this.ctx.createGain(); g.gain.value = 0;
+    this.ctx.createMediaElementSource(a).connect(g).connect(this.musicIn);
+    a.onerror = () => console.warn('music could not load:', a.src);
+    a.onended = () => { if (this.players[this.cur] === p && !this.fading) this.advance(0.25); };   // safety net: never stop
+    const p = { a, g }; return p;
+  },
+  async loadTracks() {
+    if (Q.get('musicsrc')) return [{ src: Q.get('musicsrc') }];
+    try {
+      const r = await fetch(MIX.dir + 'playlist.json', { cache: 'no-cache' }); const j = await r.json();
+      const t = (Array.isArray(j) ? j : []).map((x) => (typeof x === 'string' ? { src: x } : x)).filter((x) => x?.src)
+        .map((x) => ({ ...x, src: /^(\/|https?:)/.test(x.src) ? x.src : MIX.dir + x.src }));
+      if (t.length) return t;
+    } catch (e) { console.warn('playlist.json', e.message); }
+    return [{ src: MIX.dir + MIX.fallback }];
+  },
+  /** shuffle: every song once per round, in a new order each round, never the same song twice in a row */
+  nextTrack() {
+    if (!this.queue.length) {
+      const q = [...this.tracks];
+      for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
+      if (q.length > 1 && q[0] === this.lastQueued) q.push(q.shift());
+      this.queue = q;
+    }
+    return (this.lastQueued = this.queue.shift());
+  },
+  load(p) { const t = this.nextTrack(); p.track = t; p.a.src = t.src; p.a.load(); },   // the idle player always holds the next song, preloaded
+  async startMusic() {
+    if (!this.ctx || this.started) return; this.started = true;
+    this.tracks = await this.loadTracks();
+    this.players = [this.player(), this.player()];
+    const p = this.players[0]; this.load(p); this.load(this.players[1]);
+    p.g.gain.value = 1; this.nowPlaying(p); p.a.play().catch((e) => console.warn('music', e.message));
+    this.setLevel();
+  },
+  nowPlaying(p) { this.track = p.track; this.state = ''; console.info('music:', p.track.title || p.track.src); },   // state reset → ducking picks up this song's depth
+  advance(len) {
+    const c = this.ctx, now = c.currentTime, p = this.players[this.cur], n = this.players[1 - this.cur];
+    this.fading = true;
+    n.a.currentTime = 0; n.a.play().catch(() => {});
+    n.g.gain.cancelScheduledValues(now); p.g.gain.cancelScheduledValues(now);
+    n.g.gain.setValueCurveAtTime(this.curve(true), now, len); p.g.gain.setValueCurveAtTime(this.curve(false), now, len);
+    this.cur = 1 - this.cur; this.nowPlaying(n);
+    setTimeout(() => { p.a.pause(); this.load(p); this.fading = false; }, len * 1000 + 400);
+  },
+  curve(up) { const n = 64, out = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1); out[i] = up ? Math.sin(x * Math.PI / 2) : Math.cos(x * Math.PI / 2); } return out; },  // equal-power
+  tick() {
+    const c = this.ctx; if (!c) return;
+    const now = c.currentTime;
+    // ducking: follow whoever is talking
+    const talking = Object.values(hosts).some((h) => h.state?.speaking);
+    if (talking) this.lastTalk = now;
+    const want = talking || now - this.lastTalk < MIX.hold ? 'duck' : 'bed';
+    if (want !== this.state) {
+      this.state = want; const tc = (want === 'duck' ? MIX.attack : MIX.release) / 3;
+      for (const [param, v] of [[this.ducker.gain, dB(want === 'duck' ? (this.track?.duck ?? MIX.duck) : MIX.bed)], [this.carve.gain, want === 'duck' ? MIX.carveDuck : MIX.carveBed]]) {
+        param.cancelScheduledValues(now); param.setValueAtTime(param.value, now); param.setTargetAtTime(v, now, tc);
+      }
+    }
+    // seamless loop: crossfade into the other player before the song ends
+    const p = this.players[this.cur]; if (!p || this.fading || !isFinite(p.a.duration) || p.a.paused) return;
+    const left = (p.a.duration - p.a.currentTime) / (p.a.playbackRate || 1);
+    if (left < MIX.xfade + 1.2) {
+      // the fade always finishes as the old track ends, even if a busy machine noticed late: never a hard cut
+      this.advance(Math.max(0.25, Math.min(MIX.xfade, left - 0.05)));
+    }
+  },
+  setLevel() {
+    if (!this.ctx) return; const g = this.fader.gain, now = this.ctx.currentTime;
+    g.cancelScheduledValues(now); g.setValueAtTime(g.value, now); g.setTargetAtTime(this.on ? this.level : 0, now, 0.5);
+    $('#bMusic')?.classList.toggle('on', this.on);
+  },
+  skip() { if (this.started && !this.fading) this.advance(2); },
+  toggle(v = !this.on) { this.on = v; if (v && !this.started) this.startMusic(); this.setLevel(); }
+};
+window.kcSound = sound;   // for checking the mix from the console
 
 /* ---------------- captions (karaoke) ---------------- */
 let capWords = [];
@@ -703,7 +853,7 @@ async function speak(host, text, tok) {
       const v = await Promise.race([fetchVoice(host.cfg.id || host.id, text), new Promise((_, no) => setTimeout(() => no(new Error('ElevenLabs took longer than 20 s')), 20000))]);
       if (tok !== lineToken) return;
       await new Promise((resolve, reject) => {
-        const audio = new Audio(v.url); audio.playbackRate = rateMul;
+        const audio = new Audio(v.url); audio.playbackRate = rateMul; sound.route(audio);
         const plan = retime(host.prepareSpeech(text, 1), v.words);
         let done = false;
         const finish = () => { if (done) return; done = true; clearInterval(watch); audio.pause(); if (curAudio?.audio === audio) curAudio = null; host.stopSpeech(); capWords.forEach(e => e.classList.add('on')); resolve(); };
@@ -789,6 +939,10 @@ $('#bAuto').onclick = () => setAuto(!autoCam);
 $('#bCap').onclick = () => { captions = !captions; $('#bCap').classList.toggle('on', captions); $('#cap').hidden = !captions; };
 $('#bVoice').onclick = () => { useVoice = !useVoice; $('#bVoice').classList.toggle('on', useVoice); };
 $('#rate').oninput = (e) => { rateMul = +e.target.value; };
+$('#bMusic').onclick = () => sound.toggle();
+$('#bSong').onclick = () => sound.skip();
+$('#mvol').value = sound.level; $('#bMusic').classList.toggle('on', sound.on);
+$('#mvol').oninput = (e) => { sound.level = +e.target.value; sound.setLevel(); };
 $('#bMin').onclick = () => $('#dock').classList.toggle('min');
 /* the dock fades out when the mouse is still, so a window capture shows a clean frame */
 let idleT = 0;
@@ -799,6 +953,8 @@ addEventListener('keydown', (e) => {
   if (e.code === 'Space') { e.preventDefault(); playing ? pause() : resume(); }
   else if (e.key === 'ArrowRight') jump(1); else if (e.key === 'ArrowLeft') jump(-1);
   else if (e.key.toLowerCase() === 'c') $('#bCap').click();
+  else if (e.key.toLowerCase() === 'm') sound.toggle();
+  else if (e.key.toLowerCase() === 'n') sound.skip();
   else if (e.key.toLowerCase() === 'h') $('#dock').hidden = !$('#dock').hidden;
   else if (e.key.toLowerCase() === 'f') { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.(); }
   else { const s = Object.entries(SHOTS).find(([, v]) => v.key === e.key); if (s) { setAuto(false); cut(s[0]); } }

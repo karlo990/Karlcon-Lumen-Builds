@@ -34,6 +34,10 @@ function authorised(req) {
   }
   return false;
 }
+// public base URL of the Blob store, learned from the first head()/put(); after that a cached line is a
+// plain CDN fetch instead of a head() call (head() counts as an advanced Blob operation on your plan)
+let blobBase = '';
+const baseOf = (url, path) => (url && url.endsWith(path) ? url.slice(0, -path.length) : '');
 const hits = new Map();
 function rateLimited(req) {
   const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '?').split(',')[0].trim();
@@ -67,7 +71,9 @@ export default async function handler(req, res) {
     if (!authorised(req)) return res.status(401).json({ error: 'Studio key missing or wrong.' });
     if (req.method === 'GET') {
       const missing = [['ELEVENLABS_API_KEY', process.env.ELEVENLABS_API_KEY], ['ELEVENLABS_VOICE_LUMA', VOICES().luma], ['ELEVENLABS_VOICE_KARL', VOICES().karl]].filter(([, v]) => !v).map(([k]) => k);
-      const out = { ready: ready(), provider: 'elevenlabs', model: MODEL, missing };
+      const out = { ready: ready(), provider: 'elevenlabs', model: MODEL, missing,
+        // changes whenever a voice or the model changes, so browsers drop their cached lines
+        vkey: createHash('sha1').update(`${VOICES().luma}|${VOICES().karl}|${MODEL}|${FORMAT}`).digest('hex').slice(0, 12) };
       // ?probe=1 → a real two-word request per voice, so the studio can show ElevenLabs' own error
       if (ready() && String(req.query?.probe || new URL(req.url, 'http://x').searchParams.get('probe')) === '1') {
         out.probe = {};
@@ -98,7 +104,11 @@ export default async function handler(req, res) {
     const path = `studio-voice/${key}.json`;
 
     if (hasStore()) {
-      try { const h = await head(path); const r = await fetch(h.url); if (r.ok) { res.setHeader('x-voice-cache', 'hit'); return res.status(200).json(await r.json()); } } catch { /* not cached yet */ }
+      if (blobBase) {
+        try { const r = await fetch(blobBase + path); if (r.ok) { res.setHeader('x-voice-cache', 'hit'); return res.status(200).json(await r.json()); } } catch { /* fall through */ }
+      }
+      // not found by URL (or base unknown yet): ask the store itself before paying ElevenLabs
+      try { const h = await head(path); blobBase ||= baseOf(h.url, path); const r = await fetch(h.url); if (r.ok) { res.setHeader('x-voice-cache', 'hit'); return res.status(200).json(await r.json()); } } catch { /* not cached yet */ }
     }
     let r;
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -113,7 +123,7 @@ export default async function handler(req, res) {
     if (!r.ok) return res.status(502).json({ error: `ElevenLabs ${r.status}: ${(await r.text()).slice(0, 240)}` });
     const j = await r.json();
     const out = { audio: j.audio_base64, mime: 'audio/mpeg', words: wordsFrom(text, j.alignment || j.normalized_alignment) };
-    if (hasStore()) { try { await put(path, JSON.stringify(out), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true }); } catch (e) { console.warn('voice cache write failed', e?.message); } }
+    if (hasStore()) { try { const b = await put(path, JSON.stringify(out), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true }); blobBase ||= baseOf(b?.url, path); } catch (e) { console.warn('voice cache write failed', e?.message); } }
     return res.status(200).json(out);
   } catch (err) {
     console.error('studio-voice', err);
