@@ -1,7 +1,7 @@
 /* KARLCON Lumen Builds — service worker.
    Makes the site installable, opens instantly on repeat visits, and keeps
    concepts a visitor has already opened (images and 3D models) available offline. */
-const VERSION = 'kc-v5';
+const VERSION = 'kc-v6';
 const SHELL = ['/', '/concepts-data.js', '/manifest.webmanifest', '/img/icons/icon-192.png'];
 const CACHE_FIRST_HOSTS = ['cdnjs.cloudflare.com', 'cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com', 'www.gstatic.com'];
 
@@ -40,7 +40,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin === location.origin) {
-    if (url.pathname.startsWith('/developer') || url.pathname.startsWith('/studio') || url.pathname.startsWith('/models/') || url.pathname.startsWith('/vendor/three/') || url.searchParams.has('admin') || url.searchParams.has('fresh')) return; // admin tools always live
+    if (url.pathname.startsWith('/developer') || url.pathname.startsWith('/studio') || url.pathname.startsWith('/writers-room') || url.pathname.startsWith('/models/') || url.pathname.startsWith('/vendor/three/') || url.searchParams.has('admin') || url.searchParams.has('fresh')) return; // admin tools always live
     if (url.pathname === '/api/concepts') return e.respondWith(networkFirst(req, '/api/concepts'));
     if (url.pathname.startsWith('/api/')) return;
     if (req.mode === 'navigate') return e.respondWith(networkFirst(req, '/'));

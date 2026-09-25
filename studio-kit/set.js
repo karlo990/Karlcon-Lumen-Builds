@@ -246,6 +246,9 @@ function buildScreen() {
     group: G, slide: null,
     show(slide) {
       this.slide = slide; const g = c.ctx, w = 1600, h = 900;
+      const img = slide?.image ? loadImg(slide.image, () => { if (this.slide === slide) this.show(slide); }) : null;
+      const pic = img && img.complete && img.naturalWidth ? img : null;
+      const tw = pic ? 820 : 1300;
       const bg = g.createLinearGradient(0, 0, w, h); bg.addColorStop(0, '#12161C'); bg.addColorStop(1, '#1D232B'); g.fillStyle = bg; g.fillRect(0, 0, w, h);
       g.strokeStyle = 'rgba(255,255,255,0.05)'; for (let x = 0; x < w; x += 40) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
       g.fillStyle = '#D0231A'; g.fillRect(0, 0, 14, h);
@@ -253,19 +256,35 @@ function buildScreen() {
       if (!slide) { g.fillStyle = '#fff'; g.font = '800 90px Montserrat, sans-serif'; g.fillText('KARLCON', 80, 420); g.font = '600 40px "IBM Plex Mono", monospace'; g.fillStyle = '#E8453B'; g.fillText('SYSTEMS INTELLIGENCE · LIVE', 84, 490); c.tex.needsUpdate = true; return; }
       g.fillStyle = '#E8453B'; g.font = '600 34px "IBM Plex Mono", monospace'; g.fillText((slide.kicker || '').toUpperCase(), 80, 110);
       g.fillStyle = '#FFFFFF'; g.font = '800 72px Montserrat, sans-serif';
-      wrap(g, slide.title || '', 80, 200, 1300, 82, 2);
-      let y = slide.title && slide.title.length > 30 ? 400 : 320;
+      g.font = `800 ${pic ? 60 : 72}px Montserrat, sans-serif`;
+      const ty = wrap(g, slide.title || '', 80, 200, tw, pic ? 70 : 82, 2);
+      let y = Math.max(ty + 40, 320);
       g.font = '500 40px Inter, sans-serif';
       for (const [i, line] of (slide.lines || []).entries()) {
         g.fillStyle = '#E8453B'; g.font = '600 34px "IBM Plex Mono", monospace'; g.fillText(String(i + 1).padStart(2, '0'), 80, y);
-        g.fillStyle = 'rgba(255,255,255,0.92)'; g.font = '500 40px Inter, sans-serif'; y = wrap(g, line, 160, y, 1340, 50, 2) + 26;
+        g.fillStyle = 'rgba(255,255,255,0.92)'; g.font = '500 40px Inter, sans-serif'; y = wrap(g, line, 160, y, tw - 60, 50, 2) + 26;
         if (y > 860) break;
+      }
+      if (pic) {   // the concept render, cropped to a 4:5 panel on the right
+        const pw = 560, ph = 700, px = 960, py = 150, r = pic.naturalWidth / pic.naturalHeight, want = pw / ph;
+        let sw = pic.naturalWidth, sh = pic.naturalHeight, sx = 0, sy = 0;
+        if (r > want) { sw = sh * want; sx = (pic.naturalWidth - sw) / 2; } else { sh = sw / want; sy = (pic.naturalHeight - sh) / 2; }
+        g.fillStyle = '#000'; g.fillRect(px - 6, py - 6, pw + 12, ph + 12);
+        g.drawImage(pic, sx, sy, sw, sh, px, py, pw, ph);
+        g.fillStyle = '#D0231A'; g.fillRect(px - 6, py + ph + 6, pw + 12, 8);
       }
       c.tex.needsUpdate = true;
     }
   };
   screen.show(null);
   return screen;
+}
+const _imgs = new Map();
+function loadImg(url, onload) {
+  let im = _imgs.get(url);
+  if (!im) { im = new Image(); im.decoding = 'async'; im.src = url; _imgs.set(url, im); }
+  if (!im.complete) im.addEventListener('load', onload, { once: true });
+  return im;
 }
 function wrap(g, text, x, y, maxW, lh, maxLines = 3) {
   const words = text.split(' '); let line = '', n = 0;

@@ -100,7 +100,12 @@ body.idle{cursor:none}
 .bar i{display:block;height:100%;width:0;background:var(--red);transition:width .3s}
 #load{font-family:var(--mono);font-size:12px;color:var(--muted)}
 #start .fine{font-size:12.5px;color:#8C939D;margin-top:16px;line-height:1.5}
-#start .err{color:#FFB9B2}
+#start .err{color:#FFB9B2;margin:0 0 14px;font-size:14px}
+#start .keyrow{display:flex;flex-direction:column;gap:8px;align-items:center;margin:0 0 16px}
+#start .keyrow input{width:min(320px,100%);background:#1F232A;color:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 14px;font:inherit;font-size:14px;text-align:center}
+#start .keyrow input:focus{outline:2px solid rgba(232,69,59,.4);border-color:var(--red-hi)}
+#start .keyrow small{font-size:12.5px;color:#8C939D}#start .keyrow a{color:#FFB9B2}
+#liveStat{font-family:var(--mono);font-size:11.5px;color:#FFB9B2;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #hint{position:fixed;right:14px;top:14px;z-index:20;font-family:var(--mono);font-size:11px;color:var(--muted);background:rgba(21,24,29,.85);border:1px solid var(--line);border-radius:10px;padding:8px 10px;line-height:1.6}
 @media (max-width:700px){#hint{display:none}}
 @media (prefers-reduced-motion:reduce){.tick .run{animation-duration:90s}}
@@ -132,6 +137,9 @@ body.idle{cursor:none}
     <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 3 57 17.5v29L32 61 7 46.5v-29z" fill="none" stroke="#E8453B" stroke-width="4"/><path d="M17 24 32 32l15-8M32 32v19" fill="none" stroke="#E8453B" stroke-width="3.2"/><path d="M19 28v14l11 6.4V35zM45 28v14l-11 6.4V35z" fill="#E8453B"/></svg>
     <h1>KARLCON <em>Studio</em></h1>
     <p id="epLine">Two presenters, one building, the engineering behind it.</p>
+    <div class="row" id="mode"><button data-m="episode" class="on">Episode 1 · scripted</button><button data-m="live">Live · Claude writes</button></div>
+    <div class="keyrow" id="keyRow" hidden><input id="keyIn" type="password" placeholder="Studio passcode (STUDIO_KEY)" autocomplete="current-password"><small>Open <a href="/writers-room" target="_blank" rel="noopener">the Writers' Room</a> in another window to watch and steer the script.</small></div>
+    <p id="startErr" class="err" hidden></p>
     <div class="row" id="fmt"><button data-f="landscape" class="on">16:9 · YouTube / desktop</button><button data-f="vertical">9:16 · Instagram Live</button></div>
     <button class="go" id="go" disabled>Loading studio…</button>
     <div class="bar"><i id="barI"></i></div>
@@ -145,7 +153,7 @@ body.idle{cursor:none}
 <div id="dock" hidden>
   <button id="bPlay" title="Play / pause (Space)">❚❚ Pause</button>
   <button id="bPrev" title="Previous line (←)">◀</button>
-  <span class="pos" id="pos">0 / 0</span>
+  <span class="pos" id="pos">0 / 0</span><span id="liveStat" hidden></span>
   <button id="bNext" title="Next line (→)">▶</button>
   <span class="sep"></span>
   <div class="grow" id="cams"></div>
@@ -170,6 +178,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Host } from '/studio-kit/hosts.js';
 import { buildStudio } from '/studio-kit/set.js';
+import { LiveDirector, getKey, setKey, CHANNEL, typeLabel } from '/studio-kit/live.js';
 
 const $ = (s) => document.querySelector(s);
 const Q = new URLSearchParams(location.search);
@@ -211,6 +220,16 @@ const setProgress = (p, t) => { $('#barI').style.width = Math.round(p * 100) + '
 /* ---------------- load ---------------- */
 let set, hosts = {}, EP = window.KC_EPISODES[0];
 $('#epLine').textContent = EP.subtitle;
+/* ---------------- mode: scripted episode or live writing ---------------- */
+let MODE = Q.get('mode') === 'live' ? 'live' : 'episode', director = null;
+const LIVE = () => MODE === 'live' && director;
+function setMode(m) {
+  MODE = m; document.querySelectorAll('#mode button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
+  $('#keyRow').hidden = m !== 'live'; $('#epLine').textContent = m === 'live' ? 'Live: Claude writes the show segment by segment, from our own facts.' : EP.subtitle;
+  if (m === 'live' && !$('#keyIn').value) $('#keyIn').value = getKey();
+}
+document.querySelectorAll('#mode button').forEach(b => b.onclick = () => setMode(b.dataset.m));
+setMode(MODE);
 async function boot() {
   try { await Promise.race([document.fonts.load('800 40px Montserrat'), new Promise(r => setTimeout(r, 2500))]); await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
   setProgress(0.1, 'Building the set…');
@@ -229,7 +248,20 @@ async function boot() {
   setProgress(1, 'Ready.');
   buildCamButtons(); fillVoices(); speechSynthesis?.addEventListener?.('voiceschanged', fillVoices);
   const go = $('#go'); go.disabled = false; go.textContent = '● Go live';
-  go.onclick = () => { $('#start').hidden = true; $('#dock').hidden = Q.has('obs'); $('#hint').hidden = Q.has('obs'); setTimeout(() => $('#hint').hidden = true, 9000); startShow(); };
+  go.onclick = async () => {
+    $('#startErr').hidden = true;
+    if (MODE === 'live') {
+      const k = $('#keyIn').value.trim(); if (k) setKey(k);
+      if (!getKey()) { $('#startErr').textContent = 'Enter the studio passcode first.'; $('#startErr').hidden = false; return; }
+      go.disabled = true; go.textContent = 'Writing the opening…';
+      director = new LiveDirector({ fallbackLines: window.KC_EPISODES[0].lines, onEvent: onLiveEvent });
+      try { await director.init(); await director.writeNext(); }
+      catch (e) { director = null; go.disabled = false; go.textContent = '● Go live'; $('#startErr').textContent = e.message; $('#startErr').hidden = false; return; }
+      EP = { title: 'Live from the studio', subtitle: 'KARLCON Systems Intelligence · Live from Harare', lines: director.lines };
+      $('#liveStat').hidden = false;
+    }
+    $('#start').hidden = true; $('#dock').hidden = Q.has('obs'); $('#hint').hidden = Q.has('obs'); setTimeout(() => $('#hint').hidden = true, 9000); startShow();
+  };
   if (Q.has('shot')) { $('#start').hidden = true; $('#hint').hidden = true; await shotMode(); }
 }
 
@@ -392,10 +424,24 @@ function direct(line, speaker) {
 }
 async function playLine(i) {
   const lines = EP.lines;
-  if (i >= lines.length) return endShow();
-  idx = Math.max(0, i); $('#pos').textContent = `${idx + 1} / ${lines.length}`;
+  i = Math.max(0, i);
+  if (LIVE()) {
+    if (i >= lines.length) {
+      const waitTok = ++lineToken; liveStatus('Writing the next segment…');
+      try { await director.ensure(i); } catch (e) { liveStatus(e.message); broadcast('error', { message: e.message }); showCard('We’ll be right back', 'Live writing paused', e.message); playing = false; syncPlay(); return; }
+      if (waitTok !== lineToken || !playing) return;
+    }
+    director.onAir(i);
+  } else if (i >= lines.length) return endShow();
+  idx = i; $('#pos').textContent = LIVE() ? `S${lines[idx].segNo || '–'} · ${idx + 1}` : `${idx + 1} / ${lines.length}`;
   const line = lines[idx], speaker = hosts[line.who] || Object.values(hosts)[0];
   const tok = ++lineToken;
+  if (LIVE() && line.segStart) {
+    setTopic({ kicker: `${line.cityName || ''} · ${line.conceptTitle || ''}`, title: line.segTitle });
+    const c = director.info.concepts.find(x => x.id === line.conceptId);
+    setTicker([`Now: ${line.conceptTitle} — ${c?.status || 'Concept'}`, ...DEFAULT_TICKER]);
+  }
+  broadcastState();
   speechSynthesis?.cancel?.(); Object.values(hosts).forEach(h => h.stopSpeech());
   applyCues(line, speaker);
   if (speaker !== lastSpeaker) lowerThird(speaker);
@@ -436,9 +482,43 @@ async function endShow() {
   showCard('Thanks for watching', 'Follow the build', '@karlcon_lumen_builds_zw  ·  KARLCON Lumen Builds, Harare');
 }
 function syncPlay() { $('#bPlay').textContent = playing ? '❚❚ Pause' : '▶ Play'; }
-function pause() { playing = false; lineToken++; speechSynthesis?.cancel?.(); Object.values(hosts).forEach(h => h.stopSpeech()); syncPlay(); }
-function resume() { if (idx >= EP.lines.length - 1 && !playing && $('#card').classList.contains('on')) { showCard('', '', '', false); idx = -1; set.house.setBuild(7); set.house.setOpen(0); } playing = true; syncPlay(); showCard('', '', '', false); playLine(Math.max(0, idx)); }
-function jump(d) { const was = playing; playing = true; syncPlay(); showCard('', '', '', false); playLine(Math.min(EP.lines.length - 1, Math.max(0, idx + d))); if (!was) { /* stepping also plays that line */ } }
+function pause() { playing = false; lineToken++; speechSynthesis?.cancel?.(); Object.values(hosts).forEach(h => h.stopSpeech()); syncPlay(); broadcastState(); }
+function resume() { if (!LIVE() && idx >= EP.lines.length - 1 && !playing && $('#card').classList.contains('on')) { showCard('', '', '', false); idx = -1; set.house.setBuild(7); set.house.setOpen(0); } playing = true; syncPlay(); showCard('', '', '', false); playLine(Math.max(0, idx)); }
+function jump(d) { playing = true; syncPlay(); showCard('', '', '', false); playLine(LIVE() ? Math.max(0, idx + d) : Math.min(EP.lines.length - 1, Math.max(0, idx + d))); }
+function skipSegment() { const L = EP.lines; let j = idx + 1; while (j < L.length && !L[j].segStart) j++; playing = true; syncPlay(); showCard('', '', '', false); playLine(j); }
+
+/* ---------------- live: status, Writers' Room link ---------------- */
+function liveStatus(t) { const el = $('#liveStat'); el.textContent = t || ''; el.title = t || ''; }
+const bc = ('BroadcastChannel' in window) ? new BroadcastChannel(CHANNEL) : null;
+function broadcast(t, data = {}) { try { bc?.postMessage({ t, from: 'studio', ...JSON.parse(JSON.stringify(data)) }); } catch (e) { /* ignore */ } }
+function segMeta(s) { return { id: s.id, no: s.no, type: s.type, title: s.title, summary: s.summary, conceptTitle: s.conceptTitle, cityName: s.cityName, question: s.question, lines: s.lines, rejected: s.rejected, repaired: s.repaired, usage: s.usage, at: s.at }; }
+function broadcastState() {
+  if (!bc) return;
+  const L = EP.lines, cur = L[idx];
+  broadcast('state', {
+    mode: LIVE() ? 'live' : 'episode', started: $('#start').hidden, playing, idx,
+    line: cur ? { who: cur.who, say: cur.say, src: cur.src, segTitle: cur.segTitle, fallback: cur.fallback } : null,
+    upcoming: L.slice(idx + 1, idx + 9).map(l => ({ who: l.who, say: l.say, segTitle: l.segTitle, segStart: l.segStart, fallback: l.fallback })),
+    stats: director?.stats || null, questions: director?.questions || [], pin: director?.pin || {}, writing: !!director?.pending, error: director?.lastError || '',
+    model: director?.info?.model || '', nextPlan: director ? director.describe(director.peek()) : ''
+  });
+}
+function onLiveEvent(type, data) {
+  if (type === 'writing') liveStatus('Writing: ' + data.plan);
+  if (type === 'segment') { liveStatus(`Ready: ${data.segment.title}`); broadcast('segment', { segment: segMeta(data.segment) }); }
+  if (type === 'error') { liveStatus('Retrying: ' + data.message); broadcast('error', data); }
+  if (type === 'fallback') liveStatus('Writing is down — playing from the archive');
+  broadcastState();
+}
+if (bc) bc.onmessage = ({ data: m }) => {
+  if (!m || m.from === 'studio') return;
+  if (m.t === 'ping') { broadcastState(); if (director) for (const s of director.segments) broadcast('segment', { segment: segMeta(s) }); return; }
+  if (!$('#start').hidden) return;                        // not on air yet: the start button needs a click here
+  if (m.t === 'cmd') { if (m.cmd === 'play') resume(); else if (m.cmd === 'pause') pause(); else if (m.cmd === 'next') jump(1); else if (m.cmd === 'skip') skipSegment(); }
+  if (m.t === 'question' && director) director.ask(m.text);
+  if (m.t === 'pin' && director) director.setPin({ conceptId: m.conceptId || undefined, city: m.city || undefined, type: m.type || undefined });
+  broadcastState();
+};
 
 $('#bPlay').onclick = () => playing ? pause() : resume();
 $('#bPrev').onclick = () => jump(-1); $('#bNext').onclick = () => jump(1);

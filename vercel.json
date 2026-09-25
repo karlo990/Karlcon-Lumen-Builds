@@ -32,6 +32,10 @@
       "destination": "/studio.html"
     },
     {
+      "source": "/writers-room",
+      "destination": "/writers-room.html"
+    },
+    {
       "source": "/pipeline",
       "destination": "/karlcon_bim_pipeline_v4.html"
     }
@@ -42,6 +46,10 @@
     },
     "api/model-import.js": {
       "maxDuration": 60
+    },
+    "api/studio-script.js": {
+      "maxDuration": 60,
+      "includeFiles": "concepts-data.js"
     }
   },
   "headers": [
@@ -83,6 +91,15 @@
     },
     {
       "source": "/studio(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/writers-room(.*)",
       "headers": [
         {
           "key": "X-Robots-Tag",

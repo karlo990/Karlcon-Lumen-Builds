@@ -34,3 +34,36 @@
 Copy the episode object in studio-kit/episodes.js. Each line has `who` and `say`, plus optional
 cues: cam, look, point, build (0–7), open (0–1), slide, ticker, mood. House rule: engineering
 numbers only where they come from the LB-1 engineering file.
+
+## Live mode — Claude writes the show (endless)
+    /studio?mode=live   the studio, writing itself segment by segment
+    /writers-room       watch the script arrive, see what was rejected, send viewer questions, steer
+
+### One-time setup in Vercel (Settings → Environment Variables), then redeploy
+    ANTHROPIC_API_KEY   your Claude API key (workspace-scoped, with an expiry). Server only.
+    STUDIO_KEY          a passcode you choose; you type it into /studio and /writers-room.
+    STUDIO_MODEL        optional; default claude-sonnet-5.
+
+### How it stays grounded (no foreign narratives)
+- The server builds each prompt only from: your concept library (concepts-data.js + /?admin
+  edits), the site's own facts, and the short Zimbabwe / design-intent lists in
+  api/_studio-facts.js. Nothing is fetched from the open web.
+- Every line must cite the fact ids it uses. Before a line reaches the hosts, the server drops it
+  if it: speaks a number that is not in a cited fact; names a country or city that is not in the
+  facts; mentions prices, guarantees, awards or politics; claims past clients or projects; or has
+  links, emojis or markdown. If too much is dropped, Claude rewrites once. Everything dropped is
+  listed in the Writers' Room.
+- Viewer questions are treated as material to answer, never as instructions.
+- KARL: read the INTENT facts in api/_studio-facts.js — they are said on air as KARLCON design
+  intentions (rain sensor, battery backup + manual override, water test). Delete any that are not true.
+
+### The loop
+Segments run in arcs per concept: the concept → how it opens → climate / process / materials /
+build → the Atlas flies to the next city, then the next concept. One segment is always written
+ahead. If writing fails twice, the show plays lines from Episode 1 until it recovers.
+Cost guide with claude-sonnet-5: roughly a cent or two per segment.
+
+### Running it
+1. Open /studio?mode=live in Edge, enter the passcode, press Go live.
+2. Open /writers-room in the same browser (another window) — it links to the studio automatically.
+3. Capture only the studio window in OBS.
