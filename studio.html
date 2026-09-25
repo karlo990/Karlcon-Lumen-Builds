@@ -79,7 +79,7 @@ body.obs #dock,body.obs #hint{display:none!important}
 .card p{font-size:1.3em;color:#C9CED6;margin:0}
 #voiceWarn{position:fixed;right:12px;top:12px;z-index:50;max-width:420px;padding:.6em .9em;background:#2a0d0d;border:1px solid #d33;color:#fff;font:13px/1.35 system-ui;border-radius:6px;display:none}
 #voiceWarn.on{display:block}
-body.obs #voiceWarn{display:none!important}
+body.obs:not(.debug) #voiceWarn{display:none!important}
 /* vertical (9:16) layout tweaks */
 .vert .gfx{font-size:max(10px,1.05cqh)}
 .vert .topic{display:none}
@@ -221,6 +221,7 @@ const Q = new URLSearchParams(location.search);
 const clock = () => performance.now() / 1000;
 let FORMAT = Q.get('format') === 'vertical' ? 'vertical' : 'landscape';
 if (Q.has('obs')) document.body.classList.add('obs');
+if (Q.has('debug')) document.body.classList.add('debug');
 
 /* ---------------- frame sizing ---------------- */
 const frame = $('#frame');
@@ -717,7 +718,7 @@ async function speak(host, text, tok) {
   return new Promise((resolve) => {
     const cfg = host.cfg, rate = (cfg.rate || 1) * rateMul;
     const plan = host.prepareSpeech(text, rate);
-    let started = false, finished = false, fb = 0, keep = 0;
+    let started = false, finished = false, fb = 0, keep = 0, fb2 = 0;
     const finish = () => { if (finished) return; finished = true; clearTimeout(fb); clearInterval(keep); host.stopSpeech(); capWords.forEach(e => e.classList.add('on')); resolve(); };
     const silent = () => { host.startSpeech(plan, clock()); fb = setTimeout(finish, plan.total * 1000 + 250); };
     const cancelWatch = setInterval(() => { if (tok !== lineToken) { clearInterval(cancelWatch); finish(); } }, 100);
@@ -726,7 +727,10 @@ async function speak(host, text, tok) {
     u.voice = host.voice; u.lang = host.voice.lang; u.rate = rate; u.pitch = cfg.pitch || 1;
     u.onstart = () => { started = true; host.startSpeech(plan, clock()); };
     u.onboundary = (e) => { if (e.charIndex != null) host.syncToChar(e.charIndex, clock()); };
-    u.onend = finish; u.onerror = () => { if (!started) silent(); else finish(); };
+    // some browsers (OBS's built-in one) end an utterance at once without speaking: never let that race the show
+    const t0 = clock();
+    u.onend = () => { if (!started || clock() - t0 < plan.total * 0.35) { if (!finished && !fb2) { fb2 = 1; clearTimeout(fb); const left = Math.max(0.4, plan.total - (clock() - t0)); if (!started) host.startSpeech(plan, t0); fb = setTimeout(finish, left * 1000 + 250); } } else finish(); };
+    u.onerror = () => { if (!started) silent(); else finish(); };
     speechSynthesis.speak(u);
     fb = setTimeout(() => { if (!started) { speechSynthesis.cancel(); silent(); } }, 2500);
     if (/Google/.test(host.voice.name)) keep = setInterval(() => { if (speechSynthesis.speaking) { speechSynthesis.pause(); speechSynthesis.resume(); } }, 9000);
