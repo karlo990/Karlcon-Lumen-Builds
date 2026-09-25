@@ -30,7 +30,7 @@ window.KC_HOSTS = {
   },
   karl: {
     name: 'Karl', role: 'Engineer · KARLCON Lumen Builds', seat: 1,
-    model: '/models/hosts/avatarsdk.glb?v=3', fallback: '/models/hosts/mpfb.glb',
+    model: '/models/hosts/avatarsdk.glb?v=4', fallback: '/models/hosts/mpfb.glb',
     voice: { gender: 'male', prefer: ['Andrew', 'Guy', 'Ryan', 'Thomas', 'Daniel', 'Google UK English Male', 'David', 'Male'] },
     pitch: 0.96, rate: 0.98, mouthGain: 0.9,
     clips: { idle: '/models/anim/sitting-idle.fbx', talk: '/models/anim/sitting-talking.fbx' }
