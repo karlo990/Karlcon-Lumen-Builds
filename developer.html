@@ -49,6 +49,11 @@ td{border-top:1px solid var(--line);padding:10px 12px;vertical-align:middle;font
 .src{width:80px;height:80px;border-radius:8px;object-fit:contain;display:block;cursor:pointer;
   background:repeating-conic-gradient(#EEE 0% 25%,#FFF 0% 50%) 50%/16px 16px;border:1px dashed #E3C8C4}
 .src.none{display:grid;place-items:center;font-size:11px;color:var(--muted);text-align:center;padding:6px}
+.views{display:flex;gap:4px;margin-top:5px;width:80px;flex-wrap:wrap}
+.views img,.views button{width:24px;height:24px;border-radius:5px;object-fit:contain;cursor:pointer;border:1px solid var(--line);
+  background:repeating-conic-gradient(#EEE 0% 25%,#FFF 0% 50%) 50%/8px 8px;padding:0;font-size:13px;line-height:1;color:var(--muted)}
+.views button:hover{border-color:var(--red);color:var(--red)}
+.views .sheet{width:auto;padding:0 5px;font-size:10px;font-family:var(--mono);letter-spacing:.06em;background:#fff}
 .t b{display:block;font-weight:600}
 .t small{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em}
 .chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;border-radius:999px;padding:4px 10px;background:var(--soft);color:var(--ink-2);white-space:nowrap}
@@ -117,12 +122,12 @@ td{border-top:1px solid var(--line);padding:10px 12px;vertical-align:middle;font
   <div class="log" id="log" aria-live="polite"></div>
 </main>
 
-<input type="file" id="srcPick" accept="image/png,image/jpeg" hidden>
+<input type="file" id="srcPick" accept="image/png,image/jpeg,image/webp" hidden>
 <script src="/concepts-data.js"></script>
 <script>
 (function(){
 'use strict';
-const MESHY='https://api.meshy.ai/openapi/v1/image-to-3d';
+const MESHY='https://api.meshy.ai/openapi/v1/image-to-3d', MESHY_MULTI='https://api.meshy.ai/openapi/v1/multi-image-to-3d';
 const POLL_MS=5000, MAX_PARALLEL=2;
 const $=s=>document.querySelector(s);
 const SEED=window.KC_SEED, CH=Object.fromEntries(window.KC_CHANNELS.map(c=>[c.id,c]));
@@ -215,8 +220,14 @@ function render(){
   for(const c of ITEMS){
     const st=status(c); if(c.modelUrl) ready++; else if(c.meshySource) missing++;
     const running=live[c.id]&&live[c.id].state==='run';
-    const src=c.meshySource?el('img',{class:'src',src:c.meshySource,alt:'Meshy input for '+c.title,title:'Click to replace the input image',onclick:()=>pickSource(c)})
-                           :el('div',{class:'src none',onclick:()=>pickSource(c)},'+ add image');
+    const views=c.meshyViews||[];
+    const src=el('div',null,
+      c.meshySource?el('img',{class:'src',src:c.meshySource,alt:'Meshy input for '+c.title,title:'Front view — click to replace'+(views.length?' ('+(views.length+1)+' views: Meshy multi-image)':''),onclick:()=>pickSource(c,'front')})
+                   :el('div',{class:'src none',onclick:()=>pickSource(c,'front')},'+ add image'),
+      el('div',{class:'views'},
+        ...views.map((u,i)=>el('img',{src:u,alt:'View '+(i+2),title:'View '+(i+2)+' — click to remove',onclick:()=>removeView(c,i)})),
+        c.meshySource&&views.length<3?el('button',{title:'Add another angle of the same building (side, back, roof). 2–4 views use Meshy multi-image to 3D.',onclick:()=>pickSource(c,'view')},'+'):null,
+        el('button',{class:'sheet',title:'Upload a 2×2 view sheet (front, side, back, roof): it is cut into 4 views',onclick:()=>pickSource(c,'sheet')},'2×2')));
     const prog=running?el('div',{class:'prog'},el('i',{style:'width:'+(live[c.id].progress||2)+'%'})):null;
     const ch=CH[c.channel]||{no:'—',name:c.channel};
     const acts=el('div',{class:'acts'});
@@ -273,9 +284,14 @@ async function generate(c,force){
     if(fresh.modelUrl&&!force){ log('"'+c.title+'" already has a stored model — skipped.','ok'); return; }
     let taskId=fresh.meshyTaskId;
     if(!taskId||force){
-      live[c.id]={state:'run',progress:1,note:'Sending image to Meshy'}; render();
-      const created=await meshy('POST',MESHY,{image_url:await imageRef(c.meshySource),should_texture:true,enable_pbr:true,target_formats:['glb'],...qualityParams()});
-      taskId=created.result;
+      // 2–4 views of the same building → multi-image to 3D (it sees the roof and back instead of guessing them)
+      const views=(c.meshyViews||[]).filter(Boolean), multi=views.length>0;
+      live[c.id]={state:'run',progress:1,note:multi?'Sending '+(views.length+1)+' views to Meshy':'Sending image to Meshy'}; render();
+      const opts={should_texture:true,enable_pbr:true,target_formats:['glb'],...qualityParams()};
+      const created=multi
+        ? await meshy('POST',MESHY_MULTI,{image_urls:await Promise.all([c.meshySource,...views].map(imageRef)),...opts,...($('#kQuality').value==='high'?{geometry_resolution:'2k'}:{})})
+        : await meshy('POST',MESHY,{image_url:await imageRef(c.meshySource),...opts});
+      taskId=(multi?'multi:':'')+created.result;       // the prefix tells poll() which Meshy endpoint owns the task
       // Remembered server-side: survives refresh, blocks duplicates. A new model has a new roof,
       // so a regenerated concept goes back to automatic skylight placement.
       await patch(c,{meshyTaskId:taskId,...(force?{skylight:{mode:'auto'}}:{})});
@@ -291,7 +307,7 @@ async function generate(c,force){
 async function poll(c,taskId){
   for(;;){
     let t;
-    try{ t=await meshy('GET',MESHY+'/'+taskId); }
+    try{ t=await meshy('GET',taskId.startsWith('multi:')?MESHY_MULTI+'/'+taskId.slice(6):MESHY+'/'+taskId); }
     catch(e){
       if(e.status===404){ await patch(c,{meshyTaskId:''}); throw new Error('Meshy no longer has that task (different key?). Press Generate to start again.'); }
       if(e.status===401||e.status===402) throw e;
@@ -405,21 +421,58 @@ $('#bSync').onclick=async()=>{
   }catch(e){ msg(e.message,true); }
 };
 
-/* ---------- replace an input image ---------- */
+/* ---------- input images: the front view, extra angles, or a 2×2 view sheet ---------- */
 let pickFor=null;
-function pickSource(c){ if(!adminKey()) return msg('Enter the admin key first.',true); pickFor=c; $('#srcPick').value=''; $('#srcPick').click(); }
+function pickSource(c,kind){ if(!adminKey()) return msg('Enter the admin key first.',true); pickFor={c,kind}; $('#srcPick').value=''; $('#srcPick').click(); }
+async function uploadInput(c,name,blob){
+  if(!/^image\/(png|jpeg)$/.test(blob.type)){                     // Meshy reads JPG and PNG only (CapCut can export WebP)
+    const bmp=await createImageBitmap(blob), cv=document.createElement('canvas'); cv.width=bmp.width; cv.height=bmp.height;
+    cv.getContext('2d').drawImage(bmp,0,0); bmp.close(); blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+  }
+  const client=await loadBlobClient(), ext=blob.type==='image/jpeg'?'jpg':'png';
+  return (await client.upload(`concepts/media/${c.id}/${name}.${ext}`,blob,{access:'public',handleUploadUrl:'/api/blob-upload',headers:{'x-admin-key':adminKey()},contentType:blob.type})).url;
+}
+/* A 2×2 sheet (front, side / back, roof) → four square PNGs. A small inset drops the gutters between panels. */
+async function splitSheet(file){
+  const bmp=await createImageBitmap(file), w=bmp.width/2, h=bmp.height/2, inset=Math.round(Math.min(w,h)*0.015), out=[];
+  for(const [x,y] of [[0,0],[1,0],[0,1],[1,1]]){
+    const cv=document.createElement('canvas'); cv.width=Math.round(w-2*inset); cv.height=Math.round(h-2*inset);
+    cv.getContext('2d').drawImage(bmp,x*w+inset,y*h+inset,cv.width,cv.height,0,0,cv.width,cv.height);
+    out.push(await new Promise(r=>cv.toBlob(r,'image/png')));
+  }
+  bmp.close(); return out;
+}
 $('#srcPick').onchange=async e=>{
-  const f=e.target.files[0], c=pickFor; if(!f||!c) return;
+  const f=e.target.files[0], p=pickFor; if(!f||!p) return;
+  const {c,kind}=p;
   try{
     await ensureSaved(c);
-    const client=await loadBlobClient();
-    const ext=f.type==='image/jpeg'?'jpg':'png';
-    log('Uploading a new input image for "'+c.title+'"…');
-    const r=await client.upload(`concepts/media/${c.id}/source.${ext}`,f,{access:'public',handleUploadUrl:'/api/blob-upload',headers:{'x-admin-key':adminKey()},contentType:f.type});
-    await patch(c,{meshySource:r.url});
-    log('New input image saved. Press '+(c.modelUrl?'Regenerate':'Generate')+' to use it.','ok');
+    const next=c.modelUrl?'Regenerate':'Generate';
+    if(kind==='sheet'){
+      log('Cutting the view sheet for "'+c.title+'" into 4 views…');
+      const [front,...rest]=await splitSheet(f);
+      const meshySource=await uploadInput(c,'source',front);
+      const meshyViews=[]; for(let i=0;i<rest.length;i++) meshyViews.push(await uploadInput(c,'view-'+(i+1),rest[i]));
+      await patch(c,{meshySource,meshyViews});
+      log('4 views saved (front, side, back, roof). Press '+next+' — Meshy builds the model from all four.','ok');
+    }else if(kind==='view'){
+      const views=[...(c.meshyViews||[])]; if(views.length>=3) return msg('Meshy takes at most 4 views (the front + 3).',true);
+      log('Uploading view '+(views.length+2)+' for "'+c.title+'"…');
+      views.push(await uploadInput(c,'view-'+(views.length+1),f));
+      await patch(c,{meshyViews:views});
+      log((views.length+1)+' views saved. Press '+next+' to build from all of them.','ok');
+    }else{
+      log('Uploading a new front view for "'+c.title+'"…');
+      await patch(c,{meshySource:await uploadInput(c,'source',f)});
+      log('New input image saved. Press '+next+' to use it.','ok');
+    }
   }catch(err){ msg(err.message,true); }
 };
+async function removeView(c,i){
+  if(!confirm('Remove view '+(i+2)+' of "'+c.title+'"?')) return;
+  try{ const views=[...(c.meshyViews||[])]; views.splice(i,1); await patch(c,{meshyViews:views}); log('View removed.'); }
+  catch(e){ msg(e.message,true); }
+}
 async function removeModel(c){
   if(!confirm('Remove the stored 3D model for "'+c.title+'"? Visitors will see the mechanism study until you generate again.')) return;
   try{ await patch(c,{clearModel:true}); log('Model removed from "'+c.title+'".'); }catch(e){ msg(e.message,true); }
