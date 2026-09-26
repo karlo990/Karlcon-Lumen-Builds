@@ -20,11 +20,17 @@ echo  ==========================================================
 echo.
 
 rem ---- Node.js ------------------------------------------------
+rem Opened from a browser's download bar, this window can miss a Node.js installed a minute ago
+rem (it inherits the browser's old PATH), so also look where the installer puts it.
+where node >nul 2>nul
+if errorlevel 1 if exist "%ProgramFiles%\nodejs\node.exe" set "PATH=%ProgramFiles%\nodejs;%APPDATA%\npm;%PATH%"
+where node >nul 2>nul
+if errorlevel 1 if exist "%LOCALAPPDATA%\Programs\nodejs\node.exe" set "PATH=%LOCALAPPDATA%\Programs\nodejs;%APPDATA%\npm;%PATH%"
 where node >nul 2>nul
 if errorlevel 1 (
   echo  Node.js is not installed.
-  echo  Install the LTS version from https://nodejs.org , then run this again.
-  echo  (Just installed it? Close this window and double-click the file again.)
+  echo  Install it: double-click the node-...-x64.msi you downloaded, Next through to Finish,
+  echo  then double-click this file again. (Download: https://nodejs.org - the LTS version.)
   start "" https://nodejs.org
   pause & exit /b 1
 )
