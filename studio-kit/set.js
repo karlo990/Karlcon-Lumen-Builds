@@ -35,8 +35,10 @@ function drawMark(g, x, y, s, color = '#D0231A') {
 
 /* ---------------- blueprint LED wall ---------------- */
 function drawBlueprint(g, W, H) {
-  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#4A5462'); bg.addColorStop(1, '#343B46');
+  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#44505F'); bg.addColorStop(0.65, '#323A45'); bg.addColorStop(1, '#23272E');
   g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  // the drawings sit high on the wall, above the presenters' heads in every shot, and slightly soft
+  g.save(); g.translate(0, -330); g.filter = 'blur(1.2px)';
   g.strokeStyle = 'rgba(255,255,255,0.06)'; g.lineWidth = 1;
   for (let x = 0; x < W; x += 32) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }
   for (let y = 0; y < H; y += 32) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
@@ -72,7 +74,33 @@ function drawBlueprint(g, W, H) {
   g.beginPath(); g.moveTo(3400, 1230); g.lineTo(3580, 1060); g.lineTo(3760, 1230); g.stroke();
   // brand panels
   const brand = (x, y, s) => { drawMark(g, x, y, s * 1.3, '#FF5A36'); g.fillStyle = '#FFFFFF'; g.font = `800 ${s * 0.72}px "Montserrat", sans-serif`; g.fillText('KARLCON', x + s * 1.55, y + s * 0.85); g.font = `600 ${s * 0.3}px "Montserrat", sans-serif`; g.fillStyle = 'rgba(255,255,255,0.8)'; g.fillText('STUDIOS', x + s * 1.6, y + s * 1.25); };
-  brand(120, 1290, 70); brand(3180, 110, 62); brand(1700, 60, 48);
+  brand(120, 1290, 70); brand(3180, 440, 62); brand(1700, 390, 48);
+  g.restore();
+  // soft pools of light at head height: what an out-of-focus set looks like behind a close-up
+  for (const [x, y, r, c] of [[500, 900, 420, '120,160,255'], [1350, 820, 360, '255,120,90'], [2150, 940, 460, '120,160,255'], [2950, 860, 380, '255,190,140'], [3650, 920, 420, '120,160,255']]) {
+    const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${c},0.32)`); gr.addColorStop(1, `rgba(${c},0)`); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  // LED panel seams
+  g.fillStyle = 'rgba(0,0,0,0.18)'; for (let x = 0; x < W; x += 128) g.fillRect(x, 0, 2, H); for (let y = 0; y < H; y += 128) g.fillRect(0, y, W, 2);
+}
+
+/* ---------------- lighting grid: truss and hanging fixtures over the set ---------------- */
+function buildGrid() {
+  const G = new THREE.Group(); G.name = 'grid';
+  const truss = new THREE.MeshStandardMaterial({ color: 0x2A2C30, roughness: 0.5, metalness: 0.7 });
+  const beam = (x, z, len, rot) => { const b = new THREE.Mesh(new THREE.BoxGeometry(len, 0.22, 0.22), truss); b.position.set(x, 6.4, z); b.rotation.y = rot; G.add(b); };
+  for (const z of [-4.5, -1.5, 1.5, 4.5]) beam(0, z, 14, 0);
+  for (const x of [-6, 0, 6]) beam(x, 0, 10, Math.PI / 2);
+  // the fixtures are two instanced meshes (bodies + lenses): 32 lamps for 2 draw calls
+  const spots = [];
+  for (const z of [-4.5, -1.5, 1.5, 4.5]) for (let x = -5.5; x <= 5.5; x += 1.6) spots.push([x + (z % 3) * 0.2, z]);
+  const cans = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.11, 0.13, 0.32, 12), new THREE.MeshStandardMaterial({ color: 0x151618, roughness: 0.6, metalness: 0.4 }), spots.length);
+  const lensGeo = new THREE.CircleGeometry(0.1, 12); lensGeo.rotateX(Math.PI / 2); lensGeo.translate(0, -0.165, 0);
+  const lenses = new THREE.InstancedMesh(lensGeo, new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0xFFE4C2, emissiveIntensity: 0.9 }), spots.length);
+  const o = new THREE.Object3D();
+  spots.forEach(([x, z], i) => { o.position.set(x, 6.12, z); o.rotation.set((z > 0 ? -1 : 1) * 0.35, 0, 0); o.updateMatrix(); cans.setMatrixAt(i, o.matrix); lenses.setMatrixAt(i, o.matrix); });
+  G.add(cans, lenses);
+  return G;
 }
 
 /* ---------------- anchor desk ---------------- */
@@ -144,7 +172,7 @@ function buildLightStand(x, z, aimAt) {
   G.add(cyl(0.02, 0.02, 2.4, mat.black, 0, 1.5, 0, 8));
   const head = new THREE.Group(); head.position.set(0, 2.75, 0);
   const soft = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.15, 0.45, 16, 1, true), mat.black); soft.rotation.x = Math.PI / 2; head.add(soft);
-  const diff = new THREE.Mesh(new THREE.CircleGeometry(0.44, 24), new THREE.MeshBasicMaterial({ color: 0xFFFFFF })); diff.position.z = 0.23; head.add(diff);
+  const diff = new THREE.Mesh(new THREE.CircleGeometry(0.44, 24), new THREE.MeshStandardMaterial({ color: 0x222222, emissive: 0xFFF1E0, emissiveIntensity: 1.2 })); diff.position.z = 0.23; head.add(diff);
   G.add(head); head.lookAt(new THREE.Vector3(aimAt.x - x, aimAt.y, aimAt.z - z).add(new THREE.Vector3(0, 0, 0)));
   head.lookAt(aimAt.clone().sub(G.position));
   return G;
@@ -330,7 +358,7 @@ export function buildStudio(scene, renderer, { quality = 'high', Reflector = nul
   const S = { quality };
   // floor: polished studio floor; on High it really reflects the set
   const high = quality === 'high' && Reflector;
-  const floor = new THREE.Mesh(new THREE.CircleGeometry(16, 96), new THREE.MeshPhysicalMaterial({ color: 0x5C6068, roughness: 0.22, metalness: 0.15, clearcoat: 0.8, clearcoatRoughness: 0.2, transparent: !!high, opacity: high ? 0.86 : 1 }));
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(16, 96), new THREE.MeshPhysicalMaterial({ color: 0x33363B, roughness: 0.34, metalness: 0.1, clearcoat: 0.6, clearcoatRoughness: 0.28, transparent: !!high, opacity: high ? 0.9 : 1 }));
   floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
   if (high) {
     const mirror = new Reflector(new THREE.CircleGeometry(16, 64), { textureWidth: 1024, textureHeight: 1024, color: 0x777a80, clipBias: 0.003 });
@@ -342,15 +370,17 @@ export function buildStudio(scene, renderer, { quality = 'high', Reflector = nul
   const bp = canvasTex(4096, 1400, drawBlueprint);
   bp.tex.wrapS = THREE.RepeatWrapping; bp.tex.repeat.x = -1; bp.tex.offset.x = 1;   // seen from inside the curve
   const wallGeo = new THREE.CylinderGeometry(10, 10, 7, 96, 1, true, Math.PI * 0.62, Math.PI * 0.76);
-  const wall = new THREE.Mesh(wallGeo, new THREE.MeshBasicMaterial({ map: bp.tex, side: THREE.BackSide, toneMapped: false, color: 0xC8CDD4 }));
+  // an LED wall on camera runs at a fraction of full brightness, about a stop under the presenters
+  const wall = new THREE.Mesh(wallGeo, new THREE.MeshBasicMaterial({ map: bp.tex, side: THREE.BackSide, toneMapped: false, fog: false, color: 0x9AA1AA }));
   wall.position.set(0, 3.5, 2.6); scene.add(wall);
-  // lighting truss
+  // lighting grid overhead: what a real studio has above the set, instead of a black void
+  scene.add(buildGrid());
 
   // featured building
   // one building per episode stands on the same spot; only the current one is shown
   S.buildings = {};
   for (const id of STAGE_IDS) {
-    const b = BUILDERS[id](); b.group.position.set(0.9, 0, -4.1); b.group.rotation.y = -0.16; b.group.scale.setScalar(b.scale);
+    const b = BUILDERS[id](); b.group.position.set(1.1, 0, -5.4); b.group.rotation.y = -0.16; b.group.scale.setScalar(b.scale * 0.8);
     b.group.visible = false; scene.add(b.group); S.buildings[id] = b;
   }
   S.stageIds = STAGE_IDS;
@@ -370,7 +400,7 @@ export function buildStudio(scene, renderer, { quality = 'high', Reflector = nul
   for (const s of S.seats) { const ch = buildChair(); ch.position.copy(s.pos).add(new THREE.Vector3(Math.sin(s.rotY) * -0.05, 0, -0.05)); ch.rotation.y = s.rotY; scene.add(ch); }
   // decor: red stools under the building, like the render
   const stools = [];   // from the Glass Cube render: shown only with that building
-  for (const [x, z] of [[-0.3, -1.4], [0.25, -1.1]]) { const st = new THREE.Group(); st.add(cyl(0.2, 0.13, 0.46, mat.red, 0, 0.23, 0)); st.add(cyl(0.21, 0.21, 0.04, mat.red, 0, 0.48, 0)); st.position.set(x, 0, z); scene.add(st); stools.push(st); }
+  for (const [x, z] of [[0.6, -4.7], [1.35, -4.45]]) { const st = new THREE.Group(); st.add(cyl(0.2, 0.13, 0.46, mat.red, 0, 0.23, 0)); st.add(cyl(0.21, 0.21, 0.04, mat.red, 0, 0.48, 0)); st.position.set(x, 0, z); scene.add(st); stools.push(st); }
   S.stools = stools;
   // story screen on the left of the stage
   S.screen = buildScreen(); S.screen.group.position.set(-3.7, 2.75, -2.6); S.screen.group.rotation.y = 0.5; scene.add(S.screen.group);
@@ -379,19 +409,23 @@ export function buildStudio(scene, renderer, { quality = 'high', Reflector = nul
   S.globe = buildGlobe(); S.globe.group.position.set(-3.3, 0, 1.6); scene.add(S.globe.group);
   // light stands + broadcast camera
   const aim = new THREE.Vector3(0, 1.2, 0.9);
-  for (const [x, z] of [[-3.4, 3.4], [3.6, 3.6], [5.8, -5.6]]) scene.add(buildLightStand(x, z, aim));
+  for (const [x, z] of [[-3.4, 3.4], [3.6, 3.6]]) scene.add(buildLightStand(x, z, aim));
   const rig = buildCameraRig(); rig.position.set(-2.1, 0, 4.6); rig.rotation.y = Math.PI + 0.45; scene.add(rig);
 
   // lights
-  scene.add(new THREE.HemisphereLight(0xDDE6F2, 0x2A2D33, 0.55));
-  const key = new THREE.SpotLight(0xFFF4E8, 90, 30, 0.5, 0.6, 1.6); key.position.set(-3.2, 5.2, 5.5); key.target.position.set(0, 1.1, 0.8);
+  // Broadcast three-point lighting: warm key, softer fill at ~2.5:1, a rim to separate them from the
+  // background, and the set about a stop darker than the faces.
+  scene.add(new THREE.HemisphereLight(0xD6DFEA, 0x1E2024, 0.28));
+  const key = new THREE.SpotLight(0xFFEBD6, 80, 30, 0.5, 0.7, 1.6); key.position.set(-3.2, 5.2, 5.5); key.target.position.set(0, 1.1, 0.8);
   key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02; key.shadow.camera.near = 2; key.shadow.camera.far = 20;
   scene.add(key, key.target);
-  const fill = new THREE.SpotLight(0xE6EEFF, 45, 30, 0.6, 0.8, 1.6); fill.position.set(3.6, 4, 5); fill.target.position.set(0, 1.2, 0.8); scene.add(fill, fill.target);
-  const rim = new THREE.SpotLight(0xFFD8C8, 70, 30, 0.45, 0.6, 1.4); rim.position.set(0, 5.5, -2.2); rim.target.position.set(0, 1.2, 1); scene.add(rim, rim.target);
-  const houseKey = new THREE.SpotLight(0xFFFFFF, 140, 30, 0.55, 0.7, 1.4); houseKey.position.set(5, 8, 2); houseKey.target.position.set(0.9, 3, -4.1);
+  const fill = new THREE.SpotLight(0xE6EEFF, 32, 30, 0.6, 0.9, 1.6); fill.position.set(3.6, 4, 5); fill.target.position.set(0, 1.2, 0.8); scene.add(fill, fill.target);
+  const rim = new THREE.SpotLight(0xFFE2D2, 60, 30, 0.45, 0.6, 1.4); rim.position.set(0, 5.5, -2.2); rim.target.position.set(0, 1.2, 1); scene.add(rim, rim.target);
+  const houseKey = new THREE.SpotLight(0xFFF6EC, 70, 34, 0.5, 0.8, 1.4); houseKey.position.set(5.5, 8, 0.5); houseKey.target.position.set(1.1, 2.4, -5.4);
   houseKey.castShadow = true; houseKey.shadow.mapSize.set(2048, 2048); houseKey.shadow.bias = -0.0005; houseKey.shadow.normalBias = 0.03;
   scene.add(houseKey, houseKey.target);
+  // coloured accents low on the wall give the background depth, the way studio uplights do
+  for (const [x, c] of [[-5.5, 0x3A6BFF], [0, 0xD0231A], [5.5, 0x3A6BFF]]) { const u = new THREE.PointLight(c, 6, 7, 1.6); u.position.set(x, 0.4, -6.4); scene.add(u); }
 
   // softbox panels on the light stands: real area lights (High)
   if (quality === 'high') {

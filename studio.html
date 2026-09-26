@@ -252,12 +252,12 @@ let composer = null, bokeh = null;
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: Q.has('shot') || RENDER });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, Q.has('obs') ? 1 : 1.5));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.95;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 frame.prepend(renderer.domElement);
-const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0B0C0F); scene.fog = new THREE.Fog(0x0B0C0F, 16, 30);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0B0C0F); scene.fog = new THREE.Fog(0x0B0C0F, 14, 30);
 const pm = new THREE.PMREMGenerator(renderer);
-scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.45;
+scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.32;
 const camera = new THREE.PerspectiveCamera(35, 16 / 9, 0.05, 80);
 let curFov = 38;
 layout(); addEventListener('resize', layout);
@@ -429,31 +429,34 @@ const SHOTS = {
   globe:  { key: '6', label: 'Atlas' },
   screen: { key: '7', label: 'Screen' }
 };
+/* Studio camera moves: a pedestal or jib eases in and out of every move (minimum-jerk profile)
+   instead of drifting linearly; close-ups sit further back on a longer lens, like broadcast cameras. */
+const ease = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * x * (x * (6 * x - 15) + 10); };
 function shotPose(name, t, speaker) {
   const vert = FORMAT === 'vertical';
   const hs = Object.values(hosts);
   switch (name) {
     case 'two': {
       const c = hs.reduce((a, h) => a.add(headOf(h)), V(0, 0, 0)).multiplyScalar(1 / hs.length);
-      const d = vert ? 4.6 : 2.9;
-      return { pos: V(Math.sin(t * 0.05) * 0.15, c.y + (vert ? 0.35 : 0.12), c.z + d - t * 0.012), tgt: V(0, c.y - (vert ? 0.45 : 0.18), c.z), fov: vert ? 56 : 30 };
+      const d = (vert ? 4.9 : 3.2) - ease(t / 12) * 0.3, arc = (ease(t / 14) - 0.5) * 0.4;
+      return { pos: V(arc, c.y + (vert ? 0.3 : 0.1), c.z + d), tgt: V(arc * 0.3, c.y - (vert ? 0.42 : 0.16), c.z), fov: vert ? 52 : 28 };
     }
     case 'react': return shotPose('cu', t, hs.find(h => h !== speaker) || speaker);
     case 'cu': {
       const h = speaker || hs[0]; const hp = headOf(h);
       const fwd = V(0, 0, 1).applyQuaternion(h.root.quaternion);
       const side = V(1, 0, 0).applyQuaternion(h.root.quaternion).multiplyScalar(h.cfg.seat === 0 ? 0.28 : -0.28);
-      const dist = (vert ? 1.35 : 1.25) - Math.min(t, 12) * 0.008;
-      return { pos: hp.clone().addScaledVector(fwd, dist).add(side).add(V(0, 0.02, 0)), tgt: hp.clone().add(V(0, -0.1, 0)), fov: vert ? 38 : 22 };
+      const dist = (vert ? 1.6 : 1.5) - ease(t / 10) * 0.12;
+      return { pos: hp.clone().addScaledVector(fwd, dist).add(side).add(V(0, 0.01, 0)), tgt: hp.clone().add(V(0, -0.1, 0)), fov: vert ? 33 : 19 };
     }
     case 'house': {
       const c = set.house.group.localToWorld(set.house.centre.clone()).add(V(0, -0.9, 0));
       const H = set.house, building = H.build < 6.95 || H.buildTarget < 7;
       if (building) {   // crane shot: rises with the building as each stage lands
-        const k = Math.min(1, H.build / 7), a = 0.15 + t * 0.03, r = (vert ? 10.5 : 8.4) - k * 1.2;
+        const k = Math.min(1, H.build / 7), a = 0.15 + t * 0.03, r = (vert ? 8.4 : 6.8) - k * 1.0;
         return { pos: V(c.x + Math.sin(a) * r, 1.0 + k * 3.6, c.z + Math.cos(a) * r), tgt: c.clone().add(V(0, -0.4 + k * 0.9, 0)), fov: vert ? 62 : 40 };
       }
-      const a = 0.22 + t * 0.045, r = vert ? 9.5 : 7.4;
+      const a = 0.22 + ease(t / 16) * 0.5, r = vert ? 7.6 : 6.0;
       return { pos: V(c.x + Math.sin(a) * r, 3.1 + Math.sin(t * 0.2) * 0.15, c.z + Math.cos(a) * r), tgt: c.clone().add(V(0, 0.3, 0)), fov: vert ? 62 : 40 };
     }
     case 'roof': {
@@ -471,7 +474,9 @@ function shotPose(name, t, speaker) {
       return { pos: p.clone().addScaledVector(n, vert ? 5.6 : 4.3 - t * 0.02).add(V(0, -0.25, 0)), tgt: p.clone().add(V(0, -0.2, 0)), fov: vert ? 44 : 36 };
     }
     default: { // wide, as sketched: desk front, building behind, light stands either side
-      return { pos: V(Math.sin(t * 0.04) * 0.5, vert ? 2.1 : 2.5, (vert ? 8.6 : 9.2) - t * 0.03), tgt: V(0.3, vert ? 2.4 : 2.15, -1.2), fov: vert ? 64 : 40 };
+      // a slow jib: starts high, settles to eye level with the desk while tracking sideways
+      const k = ease(t / 9);
+      return { pos: V(-0.6 + k * 1.0, (vert ? 3.0 : 3.2) - k * 0.9, (vert ? 9.0 : 9.6) - k * 0.5), tgt: V(0.3, vert ? 1.9 : 1.8, -1.6), fov: vert ? 62 : 40 };
     }
   }
 }
@@ -1030,7 +1035,8 @@ function frameStep(now, dt) {
   if (curAudio && !curAudio.audio.paused) curAudio.host.planStart = now - curAudio.audio.currentTime;
   for (const h of Object.values(hosts)) h.update(dt, now);
   const p = shotPose(shot.name, t, speaker);
-  shake.set(Math.sin(now * 0.9) * 0.006 + Math.sin(now * 2.3) * 0.002, Math.sin(now * 1.1 + 1) * 0.004, 0);
+  // a camera operator's hands on a pedestal: a few millimetres of slow, irregular drift, never a wobble
+  shake.set((Math.sin(now * 0.31) + Math.sin(now * 0.53 + 2) * 0.6) * 0.0018, (Math.sin(now * 0.27 + 1) + Math.sin(now * 0.61) * 0.5) * 0.0012, 0);
   camera.position.copy(p.pos).add(shake); camera.lookAt(p.tgt);
   if (curFov !== p.fov) { curFov = p.fov; applyFov(); camera.updateProjectionMatrix(); }
   if (bokeh) {
