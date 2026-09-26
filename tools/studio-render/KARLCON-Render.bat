@@ -3,6 +3,16 @@ setlocal EnableExtensions
 title KARLCON Studio - record to video
 cd /d "%~dp0"
 
+rem ---- works on its own too: without the project next to it, it fetches the latest recorder from GitHub
+if exist "%~dp0render.mjs" goto haverecorder
+set "HOME_DIR=%USERPROFILE%\KARLCON-Render"
+if not exist "%HOME_DIR%" mkdir "%HOME_DIR%"
+cd /d "%HOME_DIR%"
+echo  Getting the latest recorder from GitHub...
+powershell -NoProfile -Command "$ErrorActionPreference='Stop'; $b='https://raw.githubusercontent.com/karlo990/Karlcon-Lumen-Builds/main/tools/studio-render/'; foreach($f in 'render.mjs','package.json'){ Invoke-WebRequest -UseBasicParsing ($b+$f) -OutFile $f }"
+if errorlevel 1 ( echo  Could not download the recorder - check the internet connection. & pause & exit /b 1 )
+:haverecorder
+
 echo.
 echo  ==========================================================
 echo    KARLCON STUDIO  -  record the show to an MP4
@@ -14,6 +24,7 @@ where node >nul 2>nul
 if errorlevel 1 (
   echo  Node.js is not installed.
   echo  Install the LTS version from https://nodejs.org , then run this again.
+  echo  (Just installed it? Close this window and double-click the file again.)
   start "" https://nodejs.org
   pause & exit /b 1
 )
@@ -81,5 +92,5 @@ if errorlevel 1 ( echo. & echo  Something went wrong - send a screenshot of this
 
 echo.
 echo  Done! Opening the videos folder...
-start "" explorer "%~dp0videos"
+start "" explorer "%CD%\videos"
 pause
