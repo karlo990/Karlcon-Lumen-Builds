@@ -16,6 +16,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright-core';
 import ffmpegPath from 'ffmpeg-static';
+import { createRequire } from 'node:module';
+
+// Newer npm versions skip install scripts unless approved, which leaves ffmpeg-static without its
+// ffmpeg download. Fetch it here instead of failing at the end of a long render.
+if (!ffmpegPath || !fs.existsSync(ffmpegPath)) {
+  console.log('Downloading ffmpeg (first run only)…');
+  const dir = path.dirname(createRequire(import.meta.url).resolve('ffmpeg-static/package.json'));
+  const r = spawn(process.execPath, ['install.js'], { cwd: dir, stdio: 'inherit' });
+  const code = await new Promise((ok) => r.on('close', ok));
+  if (code !== 0 || !fs.existsSync(ffmpegPath)) { console.error('Could not download ffmpeg. Check the internet connection and run this again.'); process.exit(1); }
+}
 
 /* ---------- options ---------- */
 const argv = process.argv.slice(2), opt = {};
@@ -146,6 +157,7 @@ async function renderShow(browser, ep, tmp) {
 const fmt = (s) => { s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
 
 /* ---------- main ---------- */
+fs.mkdirSync(path.dirname(out), { recursive: true });
 const tmp = fs.mkdtempSync(path.join(path.dirname(out), '.karlcon-render-'));
 const browser = await chromium.launch(launchOptions()).catch((e) => {
   console.error('Could not start the browser (' + e.message.split('\n')[0] + ').\nInstall Microsoft Edge or Google Chrome, or pass --browser "C:\\path\\to\\chrome.exe".'); process.exit(1);
