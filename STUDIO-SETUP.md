@@ -12,6 +12,8 @@
     studio-kit/set.js        the set: blueprint wall, KARLCON STUDIOS desk and bottles, buildings, crane, photographic Atlas globe, story screen
     studio-kit/episodes.js   hosts + the Episode 1 script (edit lines and cues here)
     studio-kit/lipsync-en.mjs   text-to-viseme rules from TalkingHead (MIT, see LICENSE-talkinghead)
+    studio-kit/timeshim.js   the virtual clock for recording (/studio?render only)
+    studio-kit/rendermix.js  the recorded show's sound: voices + music + ducking, mixed offline
     models/hosts/*.glb       presenter avatars (see licences below)
     vendor/three/            three.js r170 (MIT), served locally so the studio runs offline
     vercel.json, sw.js       /studio route added; the service worker leaves the studio alone
@@ -21,6 +23,17 @@
 2. OBS: Window Capture on that browser window + Desktop Audio. Crop to the frame.
 3. Stream to Instagram with Live Producer (it gives you the RTMP URL and key).
 4. Press "Go live". Space = pause, ←/→ = line, 1–7 = camera, C = captions, H = dock.
+
+## No lag: record the show, then stream it from a VPS
+Live, one PC renders the studio, encodes it and uploads it at once — that is where dropped frames come
+from. Instead:
+1. **Record** it on your PC with `tools/studio-render` (`node render.mjs --ep all --key <passcode>`).
+   The studio runs on a virtual clock (`/studio?render`): every frame is drawn at full quality and only
+   then does the show move on, so the video never lags, however slow the PC. Voices must be the premium
+   (ElevenLabs) ones — a page cannot record the browser's own voices. `--mode marathon --dur 3h`
+   records Claude's live segments too.
+2. **Stream** the MP4s on a loop from a $5–10 VPS with `tools/stream-vps` (one command; restarts itself).
+Both folders have a README with the exact steps.
 
 ## Avatar licences — read before a public broadcast
 - avaturn.glb (Luma) and avatarsdk.glb (Karl) are the TalkingHead project's samples:
