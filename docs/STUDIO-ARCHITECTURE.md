@@ -227,6 +227,7 @@ worker (Ollama phi4-mini, CPU-only) is unrelated to rendering and stays as it is
 
 | Phase | Work | Accept when |
 |---|---|---|
+| **P0 · done** | Presenters inside human joint limits, gestures timed to the words, FACS-based face (§9) | `tools/rig-check` passes: no frame past the normal range of motion |
 | **P0 · this week** | Add the ElevenLabs keys in Vercel · pre-compile every shader variant at boot (`renderer.compileAsync` with depth of field on, every building shown once) and turn off `checkShaderErrors` in production · live at Standard / 720p / bitrate at most half the measured upload | **0** shader links on air (measured the same way as §2) · OBS dropped frames < 1 % |
 | **P1 · 1–2 weeks** | Hugging Face GPU spike (§6), then a render node: headless Chrome on EGL → ffmpeg NVENC → RTMPS :443, with the Karlissa-style dashboard | 60 min at 30 fps with p95 frame time < 33 ms and no encoder drops |
 | **P2 · 2–4 weeks** | Performance compiler v1: **Audio2Face-3D** for faces; tracks cached by line hash; renderer plays tracks | Every voice line has an audio-driven face; a repeated line costs no GPU time |
@@ -241,6 +242,43 @@ worker (Ollama phi4-mini, CPU-only) is unrelated to rendering and stays as it is
 - **Don't broadcast from a browser on the presenting PC.** Render and encode on a GPU node
   in a data centre, or pre-record with `render.mjs`.
 - **Don't use free CPU Spaces for rendering.** They have no GPU and go to sleep.
+
+## 9. Done first: the current presenters inside human limits (`studio-kit/hosts.js`)
+
+The 1-minute test render looked cartoonish: hands turned at angles a person can't make, and
+heads turned and tipped back too far. Before building the performance compiler (§5), the procedural
+rig was **measured against the human body**, and rebuilt wherever it broke the body's limits.
+
+**How it was measured:** `tools/rig-check` plays Episode 1 on the virtual clock and measures every
+frame (60 s, 1,800 frames per presenter). It measures:
+- head against chest;
+- trunk lean;
+- wrist against the forearm line;
+- forearm rotation, measured from thumb-up around the elbow's hinge.
+
+These are compared with the normal adult range of motion (AAOS). The check fails if any frame goes
+past it.
+
+| Measure (normal maximum) | Old code: worst frame · share of frames past the maximum | New code |
+|---|---|---|
+| Forearm turned palm-down / palm-up (90°) | **180°** · Luma 89 % / 11 %, Karl 69 % / 21 % | 55° / 71° · 0 % |
+| Head turned against the chest (80°) | **95°** · Karl 22 % | 58° · 0 % |
+| Head tilted back against the chest (60°) | **62°** | 19° · 0 % |
+| Trunk bent forward (45°) | **49°** · Luma 22 % | 16° · 0 % |
+| Wrist bent back (70°) | **149°** (Karl) · 4 % | 40° · 0 % |
+| Wrist bent to the thumb / little-finger side (20° / 35°) | **106° / 164°** (Karl) · up to 31 % | 19° / 31° · 0 % |
+
+| What looked wrong | Cause in the old code | What the rig does now | Grounding |
+|---|---|---|---|
+| Hands twisted, "claw" hands | Palms were aimed as free vectors: palm-out at rest, palm-up-and-out for "open", thumb-down for the bottle. Every finger joint bent by one shared angle, and the thumb bent in the fingers' plane | Palms are given as forearm rotation from thumb-up. Every hand target passes forearm-rotation and wrist (flexion, extension, radial and ulnar) limits before the hand turns. Hand shapes follow the resting cascade: the knuckle carries part of the bend, and the end joint is 2/3 of the middle joint. The thumb has its own axes. There are separate shapes for an open palm, pointing, counting (with the right number of fingers), a precision "ring" and a bottle grip | AAOS range of motion; Rijpkema & Girard, SIGGRAPH 1991 |
+| Head turned and tipped back toward the screen behind the host | A look-at pointed the head straight at the target and clamped only at 69° / 29° against the seat | Gaze is split between eyes, head and trunk. The eyes saccade first (main-sequence timing). The head follows 50 ms later on a minimum-jerk path. The chair swivel takes up to 24°. The neck has soft limits: 55° turn, 15° up, 28° down, 8° tilt. A target behind the shoulder gets a 2–3 s glance, then the host looks back to the front. Big gaze shifts often come with a blink | Guitton & Volle 1987; Lee & Terzopoulos (UCLA), SIGGRAPH 2006; Evinger et al. 1994 |
+| Hunched over the desk while talking | The Mixamo "sitting talking" clip was made for leaning forward on a sofa | Posture limit: the trunk stays between 4° back and 16° forward, whatever the clip does | — |
+| Random, springy gestures | A random gesture every 1.4–3.2 s, moved by springs (fast start, long floaty ease-out) | Gestures come from the words: numbers → counting, "but" → contrast, "this / here" → present, "all / whole" → wide, "exactly / small" → precision ring, questions → palm-up offer, stressed words → beats. The stroke lands on the stressed syllable, prepared 0.3–0.4 s ahead, then held, then retracted or chained. Movements are minimum-jerk (bell-shaped speed) | MIT BEAT (Cassell et al. 2001); McNeill 1992 (phonological synchrony); Kendon 1980; Flash & Hogan (MIT) 1985 |
+| Flat face | A smile, a brow raise on long words, blinks at a fixed rate | Duchenne smile (AU6 + AU12), a little stronger on the left. Brow flashes on stressed words and questions. About 26 blinks a minute talking and 17 listening, with a fast close and a slow open. Extra blinks at sentence ends. Lids follow the eyes. Mouth shapes are smoothed over about 30 ms (coarticulation) and lead the sound by 30 ms | FACS (Ekman & Friesen); Bentivoglio et al. 1997; Evinger et al. 1991; Sackeim et al. 1978 |
+
+What this does **not** fix: the body motion is still synthesised, and the face still comes from text
+visemes, not from the audio. The limits make the motion anatomically possible. Captured data (P2
+Audio2Face, P3 mocopi + motion matching) is what makes it individual.
 
 ---
 
@@ -260,3 +298,10 @@ worker (Ollama phi4-mini, CPU-only) is unrelated to rendering and stays as it is
 - Hugging Face Spaces (networking, lifecycle, hardware): <https://huggingface.co/docs/hub/en/spaces-overview> · <https://huggingface.co/docs/hub/spaces-gpus>
 - three.js `compileAsync` / shader pre-compilation: <https://threejs.org/docs/pages/Renderer.html> · <https://github.com/mrdoob/three.js/issues/9887>
 - Headless Chrome with GPU via EGL: <https://forums.docker.com/t/hardware-acceleration-for-headless-chrome-with-nvidia-gpu/132557>
+- Flash & Hogan, "The coordination of arm movements: an experimentally confirmed mathematical model", J. Neurosci. 1985 (MIT): <https://www.semanticscholar.org/paper/The-coordination-of-arm-movements:-an-confirmed-Flash-Hogan/7d8ac1ed3dc3fc96538372206da015e7dd4b251e>
+- Lee & Terzopoulos, "Heads Up! Biomechanical Modeling and Neuromuscular Control of the Neck", ACM TOG 25(3), SIGGRAPH 2006 (UCLA): <https://lava.kaist.ac.kr/wp-content/uploads/2017/06/siggraph06.pdf> · <http://web.cs.ucla.edu/~dt/theses/lee-thesis.pdf>
+- Guitton & Volle, "Gaze control in humans: eye-head coordination during orienting movements to targets within and beyond the oculomotor range", J. Neurophysiol. 1987: <https://pubmed.ncbi.nlm.nih.gov/3655876/>
+- McNeill, *Hand and Mind* (1992), phonological synchrony rule, as summarised in: <https://pmc.ncbi.nlm.nih.gov/articles/PMC11002957/>
+- Rijpkema & Girard, "Computer animation of knowledge-based human grasping", SIGGRAPH 1991: <https://dl.acm.org/doi/10.1145/127719.122754>
+- Bentivoglio et al., "Analysis of blink rate patterns in normal subjects", Mov. Disord. 1997: <https://pubmed.ncbi.nlm.nih.gov/9399231/>
+- Evinger, Manning & Sibony, "Eyelid movements: mechanisms and normal data", IOVS 1991: <https://pubmed.ncbi.nlm.nih.gov/1993591/> · Evinger et al., "Not looking while leaping", Exp. Brain Res. 1994: <https://link.springer.com/article/10.1007/BF00227203>
