@@ -13,7 +13,13 @@ stutters. The finished MP4 then streams on a loop from a cheap VPS (see `../stre
 
 It uses the **Microsoft Edge** already on the PC. Close other heavy programs while it renders.
 
-## Record
+## Easiest: double-click `KARLCON-Render.bat`
+It installs the recorder on the first run, then asks what to record (test episode, all six, marathon
+1 h / 3 h, or one episode), the shape (9:16 or 16:9), the quality and your studio passcode (typed
+hidden, never saved). The video lands in `tools\studio-render\videos\` and the folder opens when
+it is done. Only Node.js has to be installed first (nodejs.org, LTS).
+
+## Record from the command line
 ```
 node render.mjs --ep 1 --key YOUR_STUDIO_PASSCODE
 node render.mjs --ep all --key YOUR_STUDIO_PASSCODE --out episodes.mp4

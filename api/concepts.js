@@ -98,6 +98,8 @@ function clean(body, existing) {
     arWidth: num(body.arWidth, 0, 80, 0),
     thumbUrl: safeMediaUrl(body.thumbUrl),
     meshySource: safeMediaUrl(body.meshySource),
+    // extra angles of the same building (right, back, roof) for Meshy multi-image to 3D; meshySource is the front
+    meshyViews: (Array.isArray(body.meshyViews) ? body.meshyViews : []).map(safeMediaUrl).filter(Boolean).slice(0, 3),
     modelUrl: safeMediaUrl(body.modelUrl),
     modelBytes: Number.isFinite(+body.modelBytes) ? +body.modelBytes : 0,
     modelGeneratedAt: str(body.modelGeneratedAt, 40),
@@ -165,6 +167,7 @@ export default async function handler(req, res) {
       });
       // Media this save replaced (an old model, thumbnail or input image) is now unreferenced.
       const replaced = MEDIA_KEYS.map((k) => existing?.[k]).filter((u, i) => u && u !== concept[MEDIA_KEYS[i]] && isOwnMedia(u, id));
+      replaced.push(...(existing?.meshyViews || []).filter((u) => !concept.meshyViews.includes(u) && isOwnMedia(u, id)));
       const stale = [...oldBlobs.map((b) => b.url), ...replaced];
       if (stale.length) await del(stale).catch(() => {});
       return res.status(200).json({ ok: true, concept });

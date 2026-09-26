@@ -75,7 +75,17 @@ lit light-well, and "Open roof" drives the real mechanism.
     cd tools/glb-optimizer && npm install && npm run build
 This rewrites vendor/glb-optimizer.js. tools/ is not deployed (.vercelignore).
 
-## Better models
+## Better models: give Meshy 2–4 views of the same building
+One picture makes Meshy guess the roof and the back — that is where skylights get lost. On
+/developer, under each input image:
+- **2×2** — upload a view sheet (front · side / back · roof, one building, same design in every panel):
+  it is cut into four views automatically.
+- **+** — add another angle (up to 4 in total). Click a small view to remove it.
+With 2–4 views, Generate / Regenerate uses Meshy's multi-image to 3D (High detail also asks for its
+finer "2k" geometry). The first image is the front. Use JPG or PNG (WebP is converted), plain
+background, no people, the whole building in frame.
+
+## Better models (single image)
 Three inputs are tight crops rather than clean cut-outs, because the studio background could not
 be separated automatically: Elevated Glass Cube, Matobo Boulder House, Terraced Hillside.
 For better results, render those buildings again on a plain background with no people in front,

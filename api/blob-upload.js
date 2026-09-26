@@ -17,8 +17,8 @@ export default async function handler(req, res) {
       body,
       request: req,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
-        if (!/^concepts\/media\/[a-z0-9-]+\/((thumb|source)\.(webp|jpg|png)|model\.glb)$/.test(pathname)) {
-          throw new Error('Uploads must go to concepts/media/<id>/thumb.*, source.* or model.glb');
+        if (!/^concepts\/media\/[a-z0-9-]+\/((thumb|source|view-[1-3])\.(webp|jpg|png)|model\.glb)$/.test(pathname)) {
+          throw new Error('Uploads must go to concepts/media/<id>/thumb.*, source.*, view-1..3.* or model.glb');
         }
         const isModel = pathname.endsWith('.glb');
         return {
