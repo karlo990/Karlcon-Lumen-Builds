@@ -1,0 +1,13 @@
+{
+  "name": "karlcon-studio-render",
+  "private": true,
+  "type": "module",
+  "description": "Record the KARLCON Studio to MP4, frame by frame (see README.md).",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "ffmpeg-static": "5.2.0",
+    "playwright-core": "1.56.1"
+  }
+}

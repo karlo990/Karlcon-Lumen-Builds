@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script src="/studio-kit/timeshim.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>KARLCON Studios — Live</title>
 <meta name="description" content="KARLCON Lumen Builds live studio: two presenters walk through a concept's engineering, materials and build steps, grounded in Zimbabwe.">
@@ -215,9 +216,11 @@ import { Host } from '/studio-kit/hosts.js';
 import { buildStudio } from '/studio-kit/set.js';
 import { LiveDirector, getKey, setKey, CHANNEL, typeLabel } from '/studio-kit/live.js';
 import { Marathon } from '/studio-kit/marathon.js';
+import { createRecorder, toBase64 } from '/studio-kit/rendermix.js';
 
 const $ = (s) => document.querySelector(s);
 const Q = new URLSearchParams(location.search);
+const RENDER = Q.has('render');      // recording frame by frame (studio-kit/timeshim.js, tools/studio-render)
 // OBS: the passcode can ride in the address fragment (#key=…) — fragments never reach the server or its logs.
 // It is saved in this browser and removed from the address straight away.
 { const m = /(?:^#|&)key=([^&]+)/.exec(location.hash); if (m) { setKey(decodeURIComponent(m[1])); history.replaceState(null, '', location.pathname + location.search); } }
@@ -246,7 +249,7 @@ const clipLoads = [];                 // Mixamo clips loading (shot mode waits f
 let QUALITY = Q.get('q') === 'standard' ? 'standard' : 'high';
 for (const b of document.querySelectorAll('#qual button')) { b.classList.toggle('on', b.dataset.q === QUALITY); b.onclick = () => { QUALITY = b.dataset.q; document.querySelectorAll('#qual button').forEach(x => x.classList.toggle('on', x === b)); try { localStorage.setItem('kc_quality', QUALITY); } catch (e) {} if (confirm('Reload the studio with this quality?')) { const u = new URL(location.href); u.searchParams.set('q', QUALITY); location.href = u; } }; }
 let composer = null, bokeh = null;
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: Q.has('shot') });
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: Q.has('shot') || RENDER });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, Q.has('obs') ? 1 : 1.5));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
@@ -310,6 +313,7 @@ async function boot() {
   setProgress(1, 'Ready.');
   buildCamButtons(); fillVoices(); speechSynthesis?.addEventListener?.('voiceschanged', fillVoices);
   const go = $('#go'); go.disabled = false; go.textContent = '● Go live';
+  if (RENDER) __render.ready = true;
   go.onclick = async () => {
     $('#startErr').hidden = true; sound.init();
     { const k = $('#keyIn').value.trim(); if (k) setKey(k); }
@@ -595,6 +599,7 @@ const sound = {
   ctx: null, on: Q.get('music') !== '0', level: Math.max(0, Math.min(2, Q.has('musicvol') ? +Q.get('musicvol') || 0 : 1)),
   players: [], cur: 0, state: '', lastTalk: -99, fading: false, started: false, tracks: [], queue: [], track: null,
   init() {
+    if (RENDER) return false;                                       // render mode mixes the sound offline (studio-kit/rendermix.js)
     if (this.ctx) return this.ctx.state === 'running';
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false;
     const c = this.ctx = new AC();
@@ -653,7 +658,7 @@ const sound = {
   },
   load(p) { const t = this.nextTrack(); p.track = t; p.a.src = t.src; p.a.load(); },   // the idle player always holds the next song, preloaded
   async startMusic() {
-    if (!this.ctx || this.started) return; this.started = true;
+    if (RENDER || !this.ctx || this.started) return; this.started = true;
     this.tracks = await this.loadTracks();
     this.players = [this.player(), this.player()];
     const p = this.players[0]; this.load(p); this.load(this.players[1]);
@@ -744,6 +749,7 @@ const DEFAULT_TICKER = ['Concept imagery is AI-assisted and indicative', 'Final 
 function sleep(ms, tok) { return new Promise(r => setTimeout(() => r(tok === lineToken), ms)); }
 
 async function startShow() {
+  if (RENDER) { recorder = createRecorder({ MIX, dB, loadTracks: () => sound.loadTracks(), musicOn: sound.on, level: sound.level }); __render.t0 = clock(); __render.onAir = true; }
   setTicker(DEFAULT_TICKER); setTopic({ kicker: EP.subtitle.split('·')[0], title: EP.title });
   cut('wide'); playing = true; syncPlay();
   sting(); setTimeout(() => showCard('KARLCON Studios', EP.title, EP.subtitle), 450);
@@ -797,7 +803,9 @@ async function playLine(i) {
   if (LIVE()) {
     if (i >= lines.length) {
       const waitTok = ++lineToken; liveStatus('Writing the next segment…');
+      const release = RENDER ? __vt.hold() : null;           // a recording never shows the wait
       try { await director.ensure(i); } catch (e) { liveStatus(e.message); broadcast('error', { message: e.message }); showCard('We’ll be right back', 'Live writing paused', e.message); playing = false; syncPlay(); return; }
+      finally { release?.(); }
       if (waitTok !== lineToken || !playing) return;
       if (i >= lines.length) return endShow();
     }
@@ -848,6 +856,7 @@ async function playLine(i) {
   playLine(idx + 1);
 }
 async function speak(host, text, tok) {
+  if (RENDER) return renderSpeak(host, text, tok);
   if (premium.ready && useVoice) {
     try {
       const v = await Promise.race([fetchVoice(host.cfg.id || host.id, text), new Promise((_, no) => setTimeout(() => no(new Error('ElevenLabs took longer than 20 s')), 20000))]);
@@ -890,6 +899,7 @@ async function endShow() {
   playing = false; syncPlay(); cut('wide'); setCaption('', null);
   const tok = ++lineToken; await sleep(1200, tok);
   showCard('Thanks for watching', 'Follow the build', '@karlcon_lumen_builds_zw  ·  +263 78 056 3561  ·  KARLCON Lumen Builds, Harare');
+  if (RENDER) setTimeout(() => { __render.done = true; }, 6000);   // hold the end card, then the recording stops
 }
 function syncPlay() { $('#bPlay').textContent = playing ? '❚❚ Pause' : '▶ Play'; }
 function pause() { playing = false; lineToken++; speechSynthesis?.cancel?.(); curAudio?.audio.pause(); Object.values(hosts).forEach(h => h.stopSpeech()); syncPlay(); broadcastState(); }
@@ -959,6 +969,57 @@ addEventListener('keydown', (e) => {
   else if (e.key.toLowerCase() === 'f') { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.(); }
   else { const s = Object.entries(SHOTS).find(([, v]) => v.key === e.key); if (s) { setAuto(false); cut(s[0]); } }
 });
+
+/* ---------------- render mode: the show recorded frame by frame (tools/studio-render/render.mjs) ----------------
+   The virtual clock (studio-kit/timeshim.js) only moves when the recorder asks for the next frame, so every frame
+   is drawn at full quality however long it takes. Voices must be the premium ones: a page cannot record the
+   browser's built-in voices, so without them the recording is silent speech with music. */
+let recorder = null;
+async function renderSpeak(host, text, tok) {
+  const lineDone = () => { host.stopSpeech(); capWords.forEach(e => e.classList.add('on')); };
+  const wait = (sec) => new Promise((resolve) => {
+    const t = setTimeout(() => { clearInterval(w); resolve(); }, sec * 1000);
+    const w = setInterval(() => { if (tok !== lineToken) { clearTimeout(t); clearInterval(w); resolve(); } }, 100);
+  });
+  if (premium.ready && useVoice) {
+    const release = __vt.hold();                     // the clock waits while the line downloads
+    let v = null, data = null, buf = null;
+    try {
+      v = await Promise.race([fetchVoice(host.cfg.id || host.id, text), new Promise((_, no) => __vt.real.setTimeout(() => no(new Error('ElevenLabs took longer than 60 s')), 60000))]);
+      data = await (await fetch(v.url)).arrayBuffer(); buf = await recorder.decode(data);
+    } catch (e) { console.warn('render: voice failed, this line will be silent', e.message); __render.warnings.push(e.message); }
+    finally { release(); }
+    if (tok !== lineToken) return;
+    if (buf) {
+      const plan = retime(host.prepareSpeech(text, 1), v.words || []);
+      recorder.voice(clock() - __render.t0, data, rateMul, buf.duration);
+      host.startSpeech(plan, clock());
+      await wait(buf.duration / rateMul);
+      if (tok === lineToken) lineDone();
+      return;
+    }
+  }
+  const plan = host.prepareSpeech(text, (host.cfg.rate || 1) * rateMul);
+  host.startSpeech(plan, clock());
+  await wait(plan.total + 0.25);
+  if (tok === lineToken) lineDone();
+}
+if (RENDER) window.__render = {
+  ready: false, onAir: false, done: false, t0: 0, warnings: [],
+  start() { $('#go').click(); },
+  /** before the show: move the clock without recording (loading, the start sequence) */
+  async idle(dt) { await __vt.step(dt); return { onAir: this.onAir, error: $('#startErr').hidden ? '' : $('#startErr').textContent }; },
+  /** the next frame: advance the clock by dt and note who is talking */
+  async frame(dt) {
+    await __vt.step(dt);
+    const t = clock() - this.t0;
+    recorder?.sample(t, Object.values(hosts).some(h => h.state?.speaking));
+    return { t, done: this.done, voices: recorder?.voiceCount || 0, line: idx + 1, lines: EP.lines.length, warnings: this.warnings.splice(0) };
+  },
+  status() { return { premium: premium.ready, voiceNote: $('#voiceNote').textContent, mode: MODE, title: EP.title, quality: QUALITY, format: FORMAT }; },
+  async mix(total) { return recorder.prepare(total); },
+  async mixWindow(a, b) { return toBase64(await recorder.window(a, b)); }
+};
 
 /* ---------------- render loop ---------------- */
 let last = clock(), shake = V(0, 0, 0);

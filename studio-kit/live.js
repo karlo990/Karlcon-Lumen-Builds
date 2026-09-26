@@ -126,7 +126,7 @@ export class LiveDirector {
         if (this.failures >= 2 && this.fallbackLines.length) {
           const l = { ...this.fallbackLines[this.fbIdx++ % this.fallbackLines.length], fallback: true, segTitle: 'From the archive' };
           this.lines.push(l); this.emit('fallback', { line: l });
-        } else await new Promise((ok) => setTimeout(ok, 1500 * this.failures));
+        } else await new Promise((ok) => (globalThis.__vt?.real.setTimeout || setTimeout)(ok, 1500 * this.failures));   // real time: a recording holds its clock while this waits
       }
     }
     return this.lines[i];
