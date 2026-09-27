@@ -206,6 +206,8 @@ body.idle{cursor:none}
 
 <script src="/concepts-data.js"></script>
 <script src="/studio-kit/episodes.js"></script>
+<script src="/studio-kit/episodes-s2.js"></script>
+<script src="/studio-kit/episodes-s2-build.js"></script>
 <script type="importmap">{"imports":{"three":"/vendor/three/three.module.min.js","three/addons/":"/vendor/three/addons/"}}</script>
 <script type="module">
 import * as THREE from 'three';
@@ -213,10 +215,12 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Host } from '/studio-kit/hosts.js';
+import { dressHoodie } from '/studio-kit/wardrobe.js';
 import { buildStudio } from '/studio-kit/set.js';
 import { LiveDirector, getKey, setKey, CHANNEL, typeLabel } from '/studio-kit/live.js';
 import { Marathon } from '/studio-kit/marathon.js';
 import { createRecorder, toBase64 } from '/studio-kit/rendermix.js';
+import { createPicker, span } from '/studio-kit/playlist.js';
 
 const $ = (s) => document.querySelector(s);
 const Q = new URLSearchParams(location.search);
@@ -268,12 +272,15 @@ const setProgress = (p, t) => { $('#barI').style.width = Math.round(p * 100) + '
 let set, hosts = {}, EP = window.KC_EPISODES[0];
 $('#epLine').textContent = EP.subtitle;
 /* ---------------- mode: scripted episode or live writing ---------------- */
-const EPISODES = window.KC_EPISODES;
+// ?season=2 → the Zimbabwean Heritage Studio Series (studio-kit/episodes.js); season 1 otherwise
+const SEASONS = { 1: window.KC_EPISODES, 2: window.KC_EPISODES_S2 || [] };
+const SEASON = SEASONS[+Q.get('season')]?.length ? +Q.get('season') : 1;
+const EPISODES = SEASONS[SEASON];
 const THUMBS = Object.fromEntries((window.KC_SEED || []).map(c => [c.id, c.thumbUrl]).filter(([, u]) => u));
-const pickEp = (n) => EPISODES[Math.min(EPISODES.length, Math.max(1, +n || 1)) - 1];
+const pickEp = (n, s = SEASON) => SEASONS[s][Math.min(SEASONS[s].length, Math.max(1, +n || 1)) - 1];
 EP = pickEp(Q.get('ep'));
-for (const e of EPISODES) $('#epSel').add(new Option(`Episode ${e.no} · ${e.title}`, e.no, false, e === EP));
-$('#epSel').onchange = () => { EP = pickEp($('#epSel').value); $('#epLine').textContent = EP.subtitle; set?.showBuilding(EP.concept); };
+for (const [s, list] of Object.entries(SEASONS)) for (const e of list) $('#epSel').add(new Option(`Season ${s} · Episode ${e.no} · ${e.title}`, `${s}:${e.no}`, false, e === EP));
+$('#epSel').onchange = () => { const [s, n] = $('#epSel').value.split(':'); EP = pickEp(n, s); $('#epLine').textContent = EP.subtitle; set?.showBuilding(EP.concept); };
 if (Q.get('hours')) $('#maraHours').value = Q.get('hours');
 let MODE = ['live', 'marathon'].includes(Q.get('mode')) ? Q.get('mode') : 'episode', director = null;
 const LIVE = () => (MODE === 'live' || MODE === 'marathon') && director;
@@ -281,7 +288,7 @@ function setMode(m) {
   MODE = m; document.querySelectorAll('#mode button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
   $('#keyRow').hidden = false; $('#epRow').hidden = m !== 'episode'; $('#maraRow').hidden = m !== 'marathon';
   $('#epLine').textContent = m === 'live' ? 'Live: Claude writes the show segment by segment, from our own facts.'
-    : m === 'marathon' ? 'The marathon: all six episodes on a loop, with live segments in between.' : EP.subtitle;
+    : m === 'marathon' ? `The marathon: all ${EPISODES.length} episodes of season ${SEASON} on a loop, with live segments in between.` : EP.subtitle;
   if (!$('#keyIn').value) $('#keyIn').value = getKey();
 }
 document.querySelectorAll('#mode button').forEach(b => b.onclick = () => setMode(b.dataset.m));
@@ -307,6 +314,7 @@ async function boot() {
     catch (e) { console.warn('Avatar failed, using fallback', cfg.model, e); gltf = await loader.loadAsync(cfg.fallback); }
     const h = new Host({ id, name: cfg.name, model: gltf.scene, seatY: 0.47, deskY: set.desk.height, deskZ: 0.36, seed: cfg.seat * 3.7 + 1, mouthGain: cfg.mouthGain });
     const seat = set.seats[cfg.seat]; h.root.position.copy(seat.pos); h.root.rotation.y = seat.rotY;
+    if (cfg.outfit === 'hoodie') await dressHoodie(h).catch((e) => console.warn('hoodie failed', e));
     h.cfg = cfg; scene.add(h.root); hosts[id] = h; done++;
     if (cfg.clips) clipLoads.push(loadClips(cfg.clips).then((c) => { if (Object.keys(c).length && h.useClips(c)) console.info('motion capture on for', id, Object.keys(c).join(', ')); }).catch(() => {}));
   }));
@@ -334,7 +342,7 @@ async function boot() {
       const useLive = $('#maraUseLive').checked && +$('#maraLive').value > 0 && !!getKey();
       go.disabled = true; go.textContent = 'Preparing the marathon…';
       director = await new Marathon({ episodes: EPISODES, hours, liveSegments: +$('#maraLive').value || 0, useLive, onEvent: onLiveEvent }).init();
-      EP = { title: `The ${hours}-Hour Studio Marathon`, subtitle: `KARLCON Studios · Six buildings · ${hours} hours live`, lines: director.lines, concept: EPISODES[0].concept };
+      EP = { title: `The ${hours}-Hour Studio Marathon`, subtitle: `KARLCON Studios · ${EPISODES.length} buildings · ${hours} hours live`, lines: director.lines, concept: EPISODES[0].concept };
       $('#liveStat').hidden = false; $('#mara').hidden = false;
       liveStatus(director.live ? `Marathon · live writing on (${director.info.model})` : `Marathon · scripted only${director.liveReason ? ' — ' + director.liveReason : ''}`);
     }
@@ -382,7 +390,7 @@ async function ensureHero(id) {
       heroLoader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).setDRACOLoader(draco);
     }
     const g = await heroLoader.loadAsync(c.modelUrl);
-    set.buildings[id].setHero(g.scene, (c.stageYaw || 0) * Math.PI / 180); heroState[id] = 'ready';
+    set.building(id).setHero(g.scene, (c.stageYaw || 0) * Math.PI / 180); heroState[id] = 'ready';
     if (set.house.id === id && set.house.build >= 7) set.house.heroA = 0;   // fade it in
     console.info('Meshy model on stage for', id);
   } catch (e) { heroState[id] = 'failed'; console.warn('Meshy model failed for', id, e); }
@@ -471,7 +479,7 @@ function shotPose(name, t, speaker) {
     case 'screen': {
       const s = set.screen.group; const p = s.getWorldPosition(new THREE.Vector3());
       const n = V(0, 0, 1).applyQuaternion(s.quaternion);
-      return { pos: p.clone().addScaledVector(n, vert ? 5.6 : 4.3 - t * 0.02).add(V(0, -0.25, 0)), tgt: p.clone().add(V(0, -0.2, 0)), fov: vert ? 44 : 36 };
+      return { pos: p.clone().addScaledVector(n, vert ? 5.6 : 4.3 - t * 0.02).add(V(0, -0.25, 0)), tgt: p.clone().add(V(0, -0.2, 0)), fov: vert ? 57 : 36 };   // vertical: wide enough for the whole 3.2 m screen
     }
     default: { // wide, as sketched: desk front, building behind, light stands either side
       // a slow jib: starts high, settles to eye level with the desk while tracking sideways
@@ -590,19 +598,24 @@ let curAudio = null;   // { audio, host } — drives the mouth clock from the au
    The music dips under every line and holds down across the short gaps between lines (no pumping);
    it comes back up on stings, title cards and pauses. Browser voices can't be routed, but the
    ducking still follows them. ?music=0 turns it off · ?musicvol=0.5 quieter · ?musicsrc=/other.mp3 (one song only)
-   playlist.json: [{ "src": "song.mp3", "title": "…", "duck": -24 }] — duck (optional) dips a song with vocals deeper */
+   playlist.json: [{ "src": "song.mp3", "title": "…", "energy": 2, "duck": -24, "in": 0, "out": 240 }]
+     energy 1 calm · 2 groove · 3 hype (the picker steps between them, studio-kit/playlist.js) · duck dips a song
+     with vocals deeper · in / out skip a video intro or a long tail
+   Shifting songs: the show sets a mood (`music:` on an episode or a line) and the next song leans towards it;
+   near the end of a song the crossfade waits for a line to finish, so a song changes in a breath, not mid-sentence. */
 const MIX = {
   dir: '/models/audio/', fallback: 'music-bed.mp3',          // songs normalised to -18 LUFS
   bed: -8, duck: -20,              // dB: music between lines / under a voice (≈ 22 dB below the hosts)
   carveBed: -2, carveDuck: -6,     // dB at 2.5 kHz: clears the band speech lives in, deeper while talking
   attack: 0.25, release: 1.2,      // s: dip fast, come back slowly
   hold: 1.4,                       // s: stay down across the gap between two lines
-  xfade: 4                         // s: crossfade between songs
+  xfade: 4,                        // s: crossfade between songs
+  early: 24                        // s: in a song's last 24 s, change on the next pause between lines
 };
 const dB = (v) => Math.pow(10, v / 20);
 const sound = {
   ctx: null, on: Q.get('music') !== '0', level: Math.max(0, Math.min(2, Q.has('musicvol') ? +Q.get('musicvol') || 0 : 1)),
-  players: [], cur: 0, state: '', lastTalk: -99, fading: false, started: false, tracks: [], queue: [], track: null,
+  players: [], cur: 0, state: '', lastTalk: -99, fading: false, started: false, tracks: [], picker: null, track: null, mood: '',
   init() {
     if (RENDER) return false;                                       // render mode mixes the sound offline (studio-kit/rendermix.js)
     if (this.ctx) return this.ctx.state === 'running';
@@ -651,17 +664,18 @@ const sound = {
     } catch (e) { console.warn('playlist.json', e.message); }
     return [{ src: MIX.dir + MIX.fallback }];
   },
-  /** shuffle: every song once per round, in a new order each round, never the same song twice in a row */
-  nextTrack() {
-    if (!this.queue.length) {
-      const q = [...this.tracks];
-      for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
-      if (q.length > 1 && q[0] === this.lastQueued) q.push(q.shift());
-      this.queue = q;
-    }
-    return (this.lastQueued = this.queue.shift());
+  /** every song once per round, never twice in a row, stepping the energy and leaning to the show's mood */
+  nextTrack() { return (this.picker ||= createPicker(this.tracks)).next(this.mood); },
+  /** the show's mood: 'calm' | 'groove' | 'hype'. A new mood re-picks the song waiting in the idle player. */
+  setMood(m) {
+    if (!m || m === this.mood) return; this.mood = m; if (RENDER) recorder?.mood(clock() - __render.t0, m);
+    const idle = this.players[1 - this.cur]; if (this.started && !this.fading && idle) this.load(idle);
   },
-  load(p) { const t = this.nextTrack(); p.track = t; p.a.src = t.src; p.a.load(); },   // the idle player always holds the next song, preloaded
+  load(p) {                                                 // the idle player always holds the next song, preloaded, cued to its start
+    const t = this.nextTrack(); p.track = t; p.span = null;
+    p.a.onloadedmetadata = () => { p.span = span(t, p.a.duration); if (p.a.paused || p.a.currentTime < p.span[0]) p.a.currentTime = p.span[0]; };
+    p.a.src = t.src; p.a.load();
+  },
   async startMusic() {
     if (RENDER || !this.ctx || this.started) return; this.started = true;
     this.tracks = await this.loadTracks();
@@ -674,7 +688,7 @@ const sound = {
   advance(len) {
     const c = this.ctx, now = c.currentTime, p = this.players[this.cur], n = this.players[1 - this.cur];
     this.fading = true;
-    n.a.currentTime = 0; n.a.play().catch(() => {});
+    n.a.currentTime = n.span?.[0] ?? 0; n.a.play().catch(() => {});
     n.g.gain.cancelScheduledValues(now); p.g.gain.cancelScheduledValues(now);
     n.g.gain.setValueCurveAtTime(this.curve(true), now, len); p.g.gain.setValueCurveAtTime(this.curve(false), now, len);
     this.cur = 1 - this.cur; this.nowPlaying(n);
@@ -696,7 +710,10 @@ const sound = {
     }
     // seamless loop: crossfade into the other player before the song ends
     const p = this.players[this.cur]; if (!p || this.fading || !isFinite(p.a.duration) || p.a.paused) return;
-    const left = (p.a.duration - p.a.currentTime) / (p.a.playbackRate || 1);
+    const end = p.span?.[1] ?? p.a.duration, left = (end - p.a.currentTime) / (p.a.playbackRate || 1);
+    // near the end, change song in the breath after a line rather than under the next one
+    const gap = now - this.lastTalk;
+    if (left < MIX.early && left > MIX.xfade + 1.2 && !talking && gap > 0.3 && gap < 0.9) { this.advance(MIX.xfade); return; }
     if (left < MIX.xfade + 1.2) {
       // the fade always finishes as the old track ends, even if a busy machine noticed late: never a hard cut
       this.advance(Math.max(0.25, Math.min(MIX.xfade, left - 0.05)));
@@ -756,6 +773,7 @@ function sleep(ms, tok) { return new Promise(r => setTimeout(() => r(tok === lin
 async function startShow() {
   if (RENDER) { recorder = createRecorder({ MIX, dB, loadTracks: () => sound.loadTracks(), musicOn: sound.on, level: sound.level }); __render.t0 = clock(); __render.onAir = true; }
   setTicker(DEFAULT_TICKER); setTopic({ kicker: EP.subtitle.split('·')[0], title: EP.title });
+  sound.setMood(EP.music || 'groove');
   cut('wide'); playing = true; syncPlay();
   sting(); setTimeout(() => showCard('KARLCON Studios', EP.title, EP.subtitle), 450);
   if (EP.city) set.globe.focus(EP.city);
@@ -817,6 +835,7 @@ async function playLine(i) {
     director.onAir(i);
   } else if (i >= lines.length) return endShow();
   const line = lines[i], speaker = hosts[line.who] || Object.values(hosts)[0];
+  sound.setMood(line.music || (line.intermission && line.intermission.ep.music));   // the music leans with the show
   if (line.intermission && playing) {                       // marathon: title card before each episode
     const { ep, loop } = line.intermission, waitTok = ++lineToken;
     speechSynthesis?.cancel?.(); Object.values(hosts).forEach(h => h.stopSpeech()); setCaption('', null); cut('wide');
@@ -831,7 +850,7 @@ async function playLine(i) {
   $('#pos').textContent = LIVE() ? `${sn.startsWith('EP') ? sn : 'S' + sn} · ${idx + 1}` : `${idx + 1} / ${lines.length}`;
   const tok = ++lineToken;
   if (line.segStart && line.conceptId) {
-    if (!line.scripted && LIVE() && set.house.id !== line.conceptId && set.buildings[line.conceptId]) sting();
+    if (!line.scripted && LIVE() && set.house.id !== line.conceptId && set.stageIds.includes(line.conceptId)) sting();
     set.showBuilding(line.conceptId);
   }
   if (line.segStart && line.city) set.globe.focus(line.city);

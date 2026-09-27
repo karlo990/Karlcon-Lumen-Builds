@@ -1,4 +1,8 @@
 [
-  { "src": "music-bed.mp3", "title": "Sun-EL Musician – Angeke" },
-  { "src": "famous.mp3", "title": "French Montana – Famous", "duck": -24 }
+  { "src": "music-bed.mp3",   "title": "Sun-EL Musician – Angeke",                 "energy": 2 },
+  { "src": "famous.mp3",      "title": "French Montana – Famous",                  "energy": 2, "duck": -24 },
+  { "src": "palm-monkey.mp3", "title": "AWGAZI & RUSSI – Palm Monkey (Extended)",  "energy": 2, "in": 2, "out": 378 },
+  { "src": "imithandazo.mp3", "title": "Kabza De Small & Mthunzi – Imithandazo",   "energy": 1, "duck": -24 },
+  { "src": "spin.mp3",        "title": "Kodak Black – Spin",                       "energy": 3, "duck": -24, "out": 150 },
+  { "src": "4x4.mp3",         "title": "Travis Scott – 4X4",                       "energy": 3, "duck": -24, "in": 44, "out": 256 }
 ]

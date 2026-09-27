@@ -33,6 +33,7 @@ window.KC_HOSTS = {
     model: '/models/hosts/avatarsdk.glb?v=4', fallback: '/models/hosts/mpfb.glb',
     voice: { gender: 'male', prefer: ['Andrew', 'Guy', 'Ryan', 'Thomas', 'Daniel', 'Google UK English Male', 'David', 'Male'] },
     pitch: 0.96, rate: 0.98, mouthGain: 0.9,
+    outfit: 'hoodie',            // the black KARLCON Elite Retreats hoodie (studio-kit/wardrobe.js)
     clips: { idle: '/models/anim/sitting-idle.fbx', talk: '/models/anim/sitting-talking.fbx' }
   }
 };

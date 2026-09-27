@@ -3,20 +3,25 @@
    starts on the virtual clock) and when someone is talking. Afterwards it rebuilds the live mix
    offline, in windows of about a minute, with the same chain as the live studio (studio.html `sound`):
      voices → high-pass 80 Hz → presence +2 dB → compressor → trim ─┐
-     shuffled playlist, equal-power crossfades → mud cut → 2.5 kHz carve → ducker → fader ─┴→ limiter
-   Ducking follows the talking exactly as the live 60 ms tick does, so the recording sounds like the stream. */
+     playlist (studio-kit/playlist.js), equal-power crossfades → mud cut → 2.5 kHz carve → ducker → fader ─┴→ limiter
+   Ducking follows the talking exactly as the live 60 ms tick does, and songs are picked and changed by the
+   same rules (energy steps, the show's mood, a change in the pause after a line), so the recording sounds like the stream. */
+import { createPicker, span } from './playlist.js';
 
 const SR = 44100;                       // Instagram / Facebook Live expect 44.1 kHz
 
 export function createRecorder({ MIX, dB, loadTracks, musicOn, level }) {
   const voices = [];                    // { t, data: ArrayBuffer, rate, dur }
   const talk = [];                      // { t, on } transitions
+  const moods = [];                     // { t, m } the show's mood over time
   let talking = false, end = 0;
   const decoder = new OfflineAudioContext(2, 1, SR);
+  const talkingAt = (t) => { let on = false; for (const e of talk) { if (e.t > t) break; on = e.on; } return on; };
 
   const rec = {
     async decode(data) { return decoder.decodeAudioData(data.slice(0)); },
     voice(t, data, rate, dur) { voices.push({ t, data, rate, dur }); },
+    mood(t, m) { moods.push({ t, m }); },
     sample(t, on) { if (on !== talking) { talking = on; talk.push({ t, on }); } end = Math.max(end, t); },
     get length() { return end; },
     get voiceCount() { return voices.length; },
@@ -32,21 +37,18 @@ export function createRecorder({ MIX, dB, loadTracks, musicOn, level }) {
           catch (e) { console.warn('render: music could not load', t.src, e.message); }
         }
         const usable = tracks.filter((t) => decoded.has(t));
-        let queue = [], lastQueued = null;
-        const next = () => {                                   // the live shuffle: each song once per round, no repeats in a row
-          if (!queue.length) {
-            queue = [...usable];
-            for (let i = queue.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [queue[i], queue[j]] = [queue[j], queue[i]]; }
-            if (queue.length > 1 && queue[0] === lastQueued) queue.push(queue.shift());
-          }
-          return (lastQueued = queue.shift());
-        };
+        const picker = createPicker(usable);
+        const moodAt = (t) => { let m = ''; for (const e of moods) if (e.t <= t + 1) m = e.m; return m; };   // the idle player re-picks when the mood changes
+        // the live tick: in a song's last `early` seconds, change in the first breath after a line (0.3 s after it ends)
+        const offs = talk.filter((e) => !e.on).map((e) => e.t + 0.3);
+        const breath = (a, b) => { for (const t of offs) if (t >= a && t < b && !talkingAt(t)) return t; return null; };
         for (let s = 0; usable.length && s < total;) {
-          const track = next(), buf = decoded.get(track), dur = buf.duration;
+          const track = picker.next(moodAt(s)), buf = decoded.get(track), [a, b] = span(track, buf.duration), dur = b - a;
           const lead = plan.songs.length ? MIX.xfade : 0;       // the first song starts at full level
-          const fadeOut = s + dur - (MIX.xfade + 1.2);          // the live tick starts the crossfade 5.2 s before the end
-          plan.songs.push({ track, buf, start: s, fadeIn: lead, fadeOutAt: Math.max(s + 1, fadeOut), len: MIX.xfade });
-          s = Math.max(s + 1, fadeOut);
+          const last = s + dur - (MIX.xfade + 1.2);             // at the latest, 5.2 s before the end
+          const fadeOut = Math.max(s + 1, breath(s + dur - (MIX.early ?? 0), last) ?? last);
+          plan.songs.push({ track, buf, start: s, offset: a, fadeIn: lead, fadeOutAt: fadeOut, len: MIX.xfade });
+          s = fadeOut;
         }
       }
       // ducking: replay the live 60 ms tick against the recorded talking
@@ -103,7 +105,7 @@ export function createRecorder({ MIX, dB, loadTracks, musicOn, level }) {
       fader.gain.setValueCurveAtTime(curve((t) => level * (1 - Math.exp(-t / 0.5))), 0, len);
 
       for (const s of plan.songs) {
-        const songEnd = Math.min(s.start + s.buf.duration, s.fadeOutAt + s.len);
+        const songEnd = Math.min(s.start + s.buf.duration - s.offset, s.fadeOutAt + s.len);
         if (songEnd <= start || s.start >= b) continue;
         const src = ctx.createBufferSource(); src.buffer = s.buf;
         const g = ctx.createGain();
@@ -114,7 +116,7 @@ export function createRecorder({ MIX, dB, loadTracks, musicOn, level }) {
           return 1;
         }), 0, len);
         src.connect(g).connect(musicIn);
-        src.start(Math.max(0, s.start - start), Math.max(0, start - s.start));
+        src.start(Math.max(0, s.start - start), s.offset + Math.max(0, start - s.start));
       }
       for (const v of voices) {
         if (v.t + v.dur / v.rate <= start || v.t >= b) continue;

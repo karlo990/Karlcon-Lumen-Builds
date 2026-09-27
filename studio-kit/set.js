@@ -3,7 +3,9 @@
    two presenters, the featured building on stage behind them, light stands, a broadcast camera,
    and the Atlas globe in the corner. Units are metres; the audience camera looks down -Z. */
 import * as THREE from 'three';
-import { BUILDERS, STAGE_IDS } from './buildings.js';
+import { BUILDERS as BUILDERS_S1 } from './buildings.js';
+import { BUILDERS_S2 } from './buildings-s2.js';
+const BUILDERS = { ...BUILDERS_S1, ...BUILDERS_S2 }, STAGE_IDS = Object.keys(BUILDERS);
 
 const RED = 0xD0231A, WHITE = 0xF4F2EF, INK = 0x15181D;
 const mat = {
@@ -377,16 +379,17 @@ export function buildStudio(scene, renderer, { quality = 'high', Reflector = nul
   scene.add(buildGrid());
 
   // featured building
-  // one building per episode stands on the same spot; only the current one is shown
+  // one building per episode stands on the same spot; each is made the first time it is shown
   S.buildings = {};
-  for (const id of STAGE_IDS) {
+  S.building = (id) => {
+    if (S.buildings[id] || !BUILDERS[id]) return S.buildings[id] || null;
     const b = BUILDERS[id](); b.group.position.set(1.1, 0, -5.4); b.group.rotation.y = -0.16; b.group.scale.setScalar(b.scale * 0.8);
-    b.group.visible = false; scene.add(b.group); S.buildings[id] = b;
-  }
+    b.group.visible = false; scene.add(b.group); return (S.buildings[id] = b);
+  };
   S.stageIds = STAGE_IDS;
-  S.house = S.buildings['cantilever-pavilion']; S.house.group.visible = true;
+  S.house = S.building('cantilever-pavilion'); S.house.group.visible = true;
   S.showBuilding = (id) => {
-    const b = S.buildings[id]; if (!b) return false;
+    const b = S.building(id); if (!b) return false;
     if (b !== S.house) { S.house.group.visible = false; b.reset(); b.group.visible = true; S.house = b; }
     for (const st of S.stools || []) st.visible = id === 'cantilever-pavilion';
     return true;

@@ -431,3 +431,5 @@ export const BUILDERS = {
   'granite-plinth-tower': tower
 };
 export const STAGE_IDS = Object.keys(BUILDERS);
+/* shared kit for the Season 2 buildings (buildings-s2.js) */
+export const KIT = { RED, M, stone, V, mesh, box, cyl, bar, slab, ellipse, sectorShape, drum, tree, stoneWall, kit, finish, ease, clamp01, biparting };
