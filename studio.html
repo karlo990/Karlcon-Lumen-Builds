@@ -479,7 +479,7 @@ function shotPose(name, t, speaker) {
     case 'screen': {
       const s = set.screen.group; const p = s.getWorldPosition(new THREE.Vector3());
       const n = V(0, 0, 1).applyQuaternion(s.quaternion);
-      return { pos: p.clone().addScaledVector(n, vert ? 5.6 : 4.3 - t * 0.02).add(V(0, -0.25, 0)), tgt: p.clone().add(V(0, -0.2, 0)), fov: vert ? 44 : 36 };
+      return { pos: p.clone().addScaledVector(n, vert ? 5.6 : 4.3 - t * 0.02).add(V(0, -0.25, 0)), tgt: p.clone().add(V(0, -0.2, 0)), fov: vert ? 57 : 36 };   // vertical: wide enough for the whole 3.2 m screen
     }
     default: { // wide, as sketched: desk front, building behind, light stands either side
       // a slow jib: starts high, settles to eye level with the desk while tracking sideways

@@ -29,7 +29,7 @@
     subtitle: `Season 2 · Episode 11 · Harare · ${PART}, part 1 of 6`,
     concept: 'rondavel-concept', city: 'harare',
     lines: [
-      { who: 'luma', cam: 'wide', build: 0, open: 0, mood: 'smile', look: 'camera', music: 'hype',
+      { who: 'luma', cam: 'wide', build: 7, open: 0, mood: 'smile', look: 'camera', music: 'hype',
         slide: { kicker: `Season 2 · ${PART}`, title: 'Before you buy a stand, watch this', lines: ['Six episodes', 'One house, from bare ground to the keys', 'Stage 1: the stand'] },
         say: "Before you pay a single dollar for a stand, stay with us for the next few minutes. Welcome to From Stand to Keys, the long build on KARLCON Studios." },
       { who: 'karl', cam: 'cu', mood: 'smile',
@@ -53,7 +53,7 @@
         say: "Exactly. Read the land before you build on it. That hasn't changed. We just have surveyors and soil tests to help us now." },
 
       /* — The Stage — */
-      { who: 'luma', cam: 'house', look: 'house', music: 'groove',
+      { who: 'luma', cam: 'house', look: 'house', music: 'groove', build: 0,
         slide: seg('The stage: choosing the stand', ['Who owns it, and can they sell it?', 'Is it surveyed, with pegs you can find?', 'Is it serviced: road, water, sewer, power?', 'What does the ground do when it rains?']),
         say: "The stage. Walk us round the stand, Karl. What are we checking?" },
       { who: 'karl', cam: 'house', look: 'house', point: true,
@@ -64,9 +64,9 @@
         say: "And three?" },
       { who: 'karl', cam: 'cu',
         say: "Services. Is there a road, council water, a sewer line, power? If not, that's fine, but budget now for a borehole, a tank, a septic system and solar. Those are real costs, and they belong in the plan from day one." },
-      { who: 'karl', cam: 'house', look: 'house', build: 0,
+      { who: 'karl', cam: 'house', look: 'house', build: 1,
         say: "Four, the ground itself. Visit it in the rainy season. Where does the water sit? Where does it run? The best stand in the dry season can be a pond in January." },
-      { who: 'luma', cam: 'globe', look: 'globe',
+      { who: 'luma', cam: 'globe', look: 'globe', build: 2,
         slide: seg('The sun in Zimbabwe', ['We are south of the equator', 'The sun sits in the north', 'Living rooms face north, bedrooms east']),
         say: "And the sun. People forget the sun." },
       { who: 'karl', cam: 'cu',
@@ -96,7 +96,7 @@
         say: "Read your agreement of sale, and ask the developer and the council in writing. Some allow it, some don't. What you don't want is a house on land that isn't legally yours yet." },
       { who: 'luma', cam: 'cu', slide: ASK('How big should my stand be for a rondavel home?'),
         say: "And: how big a stand do I need for something like the Rondavel behind us?" },
-      { who: 'karl', cam: 'house', look: 'house', point: true,
+      { who: 'karl', cam: 'house', look: 'house', point: true, build: 4,
         say: "The Rondavel is compact. The real limits are your council's building lines and coverage rules. Leave room for the septic system if you need one, the tank stand, the solar, and a yard for the children." },
 
       /* — The Costly Mistakes — */
@@ -134,7 +134,7 @@
     subtitle: `Season 2 · Episode 12 · Harare · ${PART}, part 2 of 6`,
     concept: 'chevron-pavilion', city: 'harare',
     lines: [
-      { who: 'luma', cam: 'wide', build: 0, open: 0, mood: 'smile', look: 'camera', music: 'hype',
+      { who: 'luma', cam: 'wide', build: 7, open: 0, mood: 'smile', look: 'camera', music: 'hype',
         slide: { kicker: `Season 2 · ${PART}`, title: 'The paper house comes first', lines: ['Stage 2: plans and approvals', 'Why skipping it costs you twice'] },
         say: "What's the most expensive building in Zimbabwe? The one that has to be knocked down because it was never approved. Welcome back to From Stand to Keys." },
       { who: 'karl', cam: 'cu',
@@ -154,18 +154,18 @@
         say: "In their heads and in their tradition. Today the tradition is a drawing, an engineer's stamp and a council approval. Same idea: everyone agrees on the wall before it goes up." },
 
       /* — The Stage — */
-      { who: 'luma', cam: 'house', look: 'house', music: 'groove',
+      { who: 'luma', cam: 'house', look: 'house', music: 'groove', build: 0,
         slide: seg('The stage: plans and approvals', ['Your brief: how you will live', 'Architect or draughtsman: the drawings', 'Structural engineer: the calculations', 'Council: approval before you dig']),
         say: "The stage. Who does what, Karl?" },
       { who: 'karl', cam: 'cu',
         say: "It starts with you, and a brief. How many people, how you cook, where the children sleep, whether you'll add rooms later. Write it down. That's the most useful page in the whole project." },
-      { who: 'karl', cam: 'house', look: 'house', point: true,
+      { who: 'karl', cam: 'house', look: 'house', point: true, build: 2,
         say: "Then an architect or a qualified draughtsman turns it into drawings. Plans, sections, elevations, where every window goes and which way the house faces." },
       { who: 'luma', cam: 'react',
         say: "And the engineer?" },
       { who: 'karl', cam: 'cu',
         say: "The structural engineer does the calculations. Foundations, beams, the roof. A roof like this chevron, folding up and down in a zigzag, is exactly where you need one, because the loads don't go where a normal roof sends them." },
-      { who: 'karl', cam: 'house', look: 'house',
+      { who: 'karl', cam: 'house', look: 'house', build: 4,
         say: "Then the drawings go to your local council for approval. Every council has its own forms and fees, so ask them directly. Don't dig until the plans are approved." },
       { who: 'luma', cam: 'cu', mood: 'serious',
         slide: seg('The building inspector', ['Visits at key stages', 'Call before you cover work up', 'Your free second pair of eyes']),
@@ -233,7 +233,7 @@
     subtitle: `Season 2 · Episode 13 · Bulawayo · ${PART}, part 3 of 6`,
     concept: 'matobo-boulder-house', city: 'bulawayo',
     lines: [
-      { who: 'luma', cam: 'wide', build: 0, open: 0, mood: 'smile', look: 'camera', music: 'hype',
+      { who: 'luma', cam: 'wide', build: 7, open: 0, mood: 'smile', look: 'camera', music: 'hype',
         slide: { kicker: `Season 2 · ${PART}`, title: 'Why do so many walls crack?', lines: ['Stage 3: foundations', 'The part of the house nobody sees'] },
         say: "Seen a crack running up a wall from the corner of a window? Tonight you'll find out where it really started. Welcome to From Stand to Keys." },
       { who: 'karl', cam: 'cu',
@@ -253,10 +253,10 @@
         say: "The lesson is the same. Know your ground. Our ancestors could see the granite. We have to dig and test to find out what we're standing on." },
 
       /* — The Stage — */
-      { who: 'luma', cam: 'house', look: 'house', music: 'groove',
+      { who: 'luma', cam: 'house', look: 'house', music: 'groove', build: 0,
         slide: seg('The stage: foundations', ['Soil test first', 'Setting out and trenches', 'Footings and foundation walls', 'Damp-proof course and slab']),
         say: "The stage. From bare ground, Karl." },
-      { who: 'karl', cam: 'house', look: 'house', build: 0, point: true,
+      { who: 'karl', cam: 'house', look: 'house', point: true,
         say: "A soil test first, so the engineer knows what the foundations sit on. Then the setting out, the house marked on the ground from the pegs and the drawings, and the trenches dug." },
       { who: 'luma', cam: 'cu', mood: 'serious',
         slide: seg('Black cotton soil', ['Dark clay found in many parts of Zimbabwe', 'Swells when wet, shrinks when dry', 'Moves foundations, cracks walls', 'The engineer designs for it']),
@@ -293,7 +293,7 @@
       /* — Your Questions — */
       { who: 'luma', cam: 'two', music: 'groove', slide: ASK('My stand is on a slope. Is that a problem?'),
         say: "Your questions. My stand is on a slope. Is that a problem?" },
-      { who: 'karl', cam: 'house', look: 'house', point: true,
+      { who: 'karl', cam: 'house', look: 'house', point: true, build: 4,
         say: "It's an opportunity, if it's designed for. Stepped foundations, or a house that terraces down the hill. It costs more in the ground, and gives you views. Look at this one, standing among the boulders." },
       { who: 'luma', cam: 'cu', slide: ASK('How long should concrete cure?'),
         say: "And: how long should I wait before building on the slab?" },
@@ -333,7 +333,7 @@
     subtitle: `Season 2 · Episode 14 · Masvingo · ${PART}, part 4 of 6`,
     concept: 'triple-rondavel-cluster', city: 'masvingo',
     lines: [
-      { who: 'luma', cam: 'wide', build: 1, open: 0, mood: 'smile', look: 'camera', music: 'hype',
+      { who: 'luma', cam: 'wide', build: 7, open: 0, mood: 'smile', look: 'camera', music: 'hype',
         slide: { kicker: `Season 2 · ${PART}`, title: 'A cool house with no aircon?', lines: ['Stage 4: walls', 'Bricks, mortar and the ring beam'] },
         say: "Can a house stay cool in an October heatwave with no air conditioning? Yes, and it starts with the walls. Welcome back to From Stand to Keys." },
       { who: 'karl', cam: 'cu',
@@ -353,7 +353,7 @@
         say: "Never. A kitchen hut, sleeping huts, all round a shared yard. That's the idea behind the Triple Rondavel Cluster." },
 
       /* — The Stage — */
-      { who: 'luma', cam: 'house', look: 'house', music: 'groove',
+      { who: 'luma', cam: 'house', look: 'house', music: 'groove', build: 1,
         slide: seg('The stage: walls', ['Choosing the brick', 'Mortar, courses and openings', 'Lintels over doors and windows', 'The ring beam on top']),
         say: "The stage. Let's build the walls." },
       { who: 'karl', cam: 'cu',
@@ -395,7 +395,7 @@
         say: "People do, and it can work. But test them. A few bricks from every batch, checked for strength. A cheap brick that crumbles is the most expensive brick you'll ever buy." },
       { who: 'luma', cam: 'cu', slide: ASK('Round rooms: where does the furniture go?'),
         say: "And a fun one: in a round room, where does the furniture go?" },
-      { who: 'karl', cam: 'house', look: 'house', point: true, mood: 'smile',
+      { who: 'karl', cam: 'house', look: 'house', point: true, mood: 'smile', build: 5,
         say: "In the middle, facing each other, the way people have always sat in a round hut, around the fire. Built-in curved shelves on the walls. Round rooms make you gather." },
 
       /* — The Costly Mistakes — */
@@ -431,7 +431,7 @@
     subtitle: `Season 2 · Episode 15 · Mutare · ${PART}, part 5 of 6`,
     concept: 'conical-tower-loft', city: 'mutare',
     lines: [
-      { who: 'luma', cam: 'wide', build: 3, open: 0, mood: 'smile', look: 'camera', music: 'hype',
+      { who: 'luma', cam: 'wide', build: 7, open: 0, mood: 'smile', look: 'camera', music: 'hype',
         slide: { kicker: `Season 2 · ${PART}`, title: 'The roof that opens', lines: ['Stage 5: roof and light', 'Storms, hail and lightning'] },
         say: "A roof that opens to the sky, in a country with summer storms and hail. Crazy, or brilliant? Stay to the end and decide. Welcome to From Stand to Keys." },
       { who: 'karl', cam: 'cu',
@@ -451,7 +451,7 @@
         say: "It has. We just put glass there. Same idea: let the hot air go up and let the light come down." },
 
       /* — The Stage — */
-      { who: 'luma', cam: 'house', look: 'house', music: 'groove',
+      { who: 'luma', cam: 'house', look: 'house', music: 'groove', build: 2,
         slide: seg('The stage: the roof', ['Trusses or steel frame, as designed', 'Treated timber against termites', 'Tied down to the ring beam', 'Covering, flashings and gutters']),
         say: "The stage. How does the roof go on?" },
       { who: 'karl', cam: 'house', look: 'house', build: 3, point: true,
@@ -529,7 +529,7 @@
     subtitle: `Season 2 · Episode 16 · Victoria Falls · ${PART}, part 6 of 6`,
     concept: 'zambezi-curve-pavilion', city: 'vicfalls',
     lines: [
-      { who: 'luma', cam: 'wide', build: 4, open: 0, mood: 'smile', look: 'camera', music: 'hype',
+      { who: 'luma', cam: 'wide', build: 7, open: 0, mood: 'smile', look: 'camera', music: 'hype',
         slide: { kicker: `Season 2 · ${PART}`, title: 'Keys day', lines: ['Stage 6: power, water and handover', 'The finale'] },
         say: "Tonight somebody gets the keys. The finale of From Stand to Keys. Stay to the end, because we'll give you the whole journey on one screen." },
       { who: 'karl', cam: 'cu', mood: 'smile',
@@ -549,7 +549,7 @@
         say: "Same thinking. The battery is the new granary. Fill it when the sun is out, and live from it when the power goes." },
 
       /* — The Stage — */
-      { who: 'luma', cam: 'house', look: 'house', music: 'groove',
+      { who: 'luma', cam: 'house', look: 'house', music: 'groove', build: 4,
         slide: seg('The stage: power and water', ['Solar panels, inverter and batteries', 'Borehole or council water, and a tank', 'Septic system or sewer connection', 'Qualified, certified installers']),
         say: "The stage. Power first." },
       { who: 'karl', cam: 'house', look: 'house', build: 5, point: true,
