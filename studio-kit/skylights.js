@@ -195,7 +195,7 @@ function finish(S, { top, centre, lift = 0 }) {
     reset() { this.build = this.buildTarget = 7; this.open = this.openTarget = 0; this.update(0); },
     update(dt) {
       const up = this.buildTarget > this.build;
-      this.build += Math.sign(this.buildTarget - this.build) * Math.min(Math.abs(this.buildTarget - this.build), dt * (up ? 0.3 : 3.5));
+      this.build += Math.sign(this.buildTarget - this.build) * Math.min(Math.abs(this.buildTarget - this.build), dt * (up ? 0.6 : 3.5));
       this.open += (this.openTarget - this.open) * Math.min(1, dt * 0.9);
       const b = this.build;
       for (const o of parts) {

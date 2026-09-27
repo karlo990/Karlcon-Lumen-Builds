@@ -454,6 +454,7 @@ const ease = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * x * (x * (
 function shotPose(name, t, speaker) {
   const vert = FORMAT === 'vertical';
   const hs = Object.values(hosts);
+  if (typeof set.cams?.[name] === 'function' && name !== 'wide' && name !== 'detail') return set.cams[name](t, vert, ease);   // a room's own cameras (Concept Room: tints, profiles)
   switch (name) {
     case 'two': {
       const c = hs.reduce((a, h) => a.add(headOf(h)), V(0, 0, 0)).multiplyScalar(1 / hs.length);
@@ -476,7 +477,7 @@ function shotPose(name, t, speaker) {
         const k = Math.min(1, H.build / 7), a = 0.15 + t * 0.03, r = (vert ? HC.r[0] : HC.r[1]) - k * HC.r[1] * 0.15;
         return { pos: V(c.x + Math.sin(a) * r, HC.y0 + k * HC.yk, c.z + Math.cos(a) * r), tgt: c.clone().add(V(0, -0.4 + k * 0.9, 0)), fov: vert ? 62 : 40 };
       }
-      const a = 0.22 + ease(t / 16) * 0.5, r = vert ? HC.orbit[0] : HC.orbit[1];
+      const a = (HC.a ?? 0.22) + ease(t / 16) * (HC.sweep ?? 0.5), r = vert ? HC.orbit[0] : HC.orbit[1];
       return { pos: V(c.x + Math.sin(a) * r, HC.y + Math.sin(t * 0.2) * 0.15, c.z + Math.cos(a) * r), tgt: c.clone().add(V(0, 0.3, 0)), fov: vert ? 62 : 40 };
     }
     case 'detail': {   // close on the assembly: follows the drill or the parts going in
@@ -746,6 +747,8 @@ const sound = {
   toggle(v = !this.on) { this.on = v; if (v && !this.started) this.startMusic(); this.setLevel(); }
 };
 window.kcSound = sound;   // for checking the mix from the console
+window.kcHosts = hosts;   // and the presenters
+window.kcShot = () => ({ shot: shot.name, cam: camera.position.toArray().map((v) => +v.toFixed(2)) });
 
 /* ---------------- captions (karaoke) ---------------- */
 let capWords = [];

@@ -119,8 +119,14 @@ export function buildConceptRoom(scene, renderer, { quality = 'high', Reflector 
   if (high) { const mirror = new Reflector(new THREE.PlaneGeometry(24, 18), { textureWidth: 1024, textureHeight: 1024, color: 0x777a80, clipBias: 0.003 }); mirror.rotation.x = -Math.PI / 2; mirror.position.y = -0.004; scene.add(mirror); S.mirror = mirror; }
   // walls and ceiling
   const back = backWall(); back.position.set(0, 0, -6.6); scene.add(back);
-  for (const s of [-1, 1]) { const w = box(0.2, 6.5, 14, M.wall, s * 9.5, 3.25, 0.2); scene.add(w); for (let z = -6; z <= 6; z += 1.5) scene.add(box(0.02, 6.5, 0.02, M.seam, s * 9.38, 3.25, z)); }
-  const ceil = box(20, 0.2, 14, M.ceiling, 0, 7.2, 0.2); scene.add(ceil);
+  for (const s of [-1, 1]) { const w = box(0.2, 7.3, 16.4, M.wall, s * 9.5, 3.65, 1.4); scene.add(w); for (let z = -6; z <= 9; z += 1.5) scene.add(box(0.02, 7.3, 0.02, M.seam, s * 9.38, 3.65, z)); }
+  // the front wall, behind the cameras: what a host facing the room's back sees behind them in close-up
+  const front = box(19, 7.3, 0.2, M.wall, 0, 3.65, 9.6); scene.add(front);
+  for (let x = -9; x <= 9; x += 1.5) scene.add(box(0.02, 7.3, 0.02, M.seam, x, 3.65, 9.49));
+  const oakF = new THREE.Group(); for (let i = 0; i < 30; i++) oakF.add(box(0.07, 3.6, 0.05, M.oak, -2.9 + i * 0.2, 1.8, 9.46)); scene.add(oakF);
+  const logoF = sign(3.2, 0.64, 400, (g, W, H) => { g.clearRect(0, 0, W, H); drawMark(g, 8, 8, H - 16, '#D0231A'); g.fillStyle = '#1B1D21'; g.font = `800 ${H * 0.5}px Montserrat, sans-serif`; g.fillText('KARLCON', H + 10, H * 0.7); });
+  logoF.position.set(0, 4.4, 9.48); logoF.rotation.y = Math.PI; scene.add(logoF);
+  const ceil = box(20, 0.2, 16.4, M.ceiling, 0, 7.2, 1.4); scene.add(ceil);
   const lightbox = new THREE.Mesh(new THREE.PlaneGeometry(6.5, 3.4), M.glow); lightbox.rotation.x = Math.PI / 2; lightbox.position.set(0.2, 7.08, -2.3); scene.add(lightbox);
   for (let i = -3; i <= 3; i++) scene.add(box(0.04, 0.05, 3.5, M.steel, 0.2 + i * 1.08, 7.04, -2.3));
   // the platform the mock-up stands on
@@ -161,7 +167,7 @@ export function buildConceptRoom(scene, renderer, { quality = 'high', Reflector 
   S.seats = [{ pos: V(-1.4, 0, 1.15), rotY: 0.3 }, { pos: V(1.4, 0, 1.15), rotY: -0.3 }];
   S.marks = {
     home0: S.seats[0], home1: S.seats[1],
-    screen: { pos: V(-3.1, 0, -1.3), rotY: Math.PI * 0.8, via: V(-3.0, 0, 0.2) },
+    screen: { pos: V(-4.0, 0, 1.6), rotY: -2.14 },
     tints: { pos: V(-4.4, 0, -4.3), rotY: Math.PI, via: V(-3.3, 0, 0.1) },
     profiles: { pos: V(3.9, 0, -2.3), rotY: -Math.PI * 0.72, via: V(3.5, 0, 0.1) }
   };
@@ -170,12 +176,12 @@ export function buildConceptRoom(scene, renderer, { quality = 'high', Reflector 
   S.points = { tints: V(-4.4, 1.3, -5.7), profiles: V(5.2, 1.7, -3.6) };      // look targets     // no desk here: the hosts' hands rest at the waist
 
   // around the walls
-  S.screen = buildScreen(); S.screen.group.position.set(-4.6, 2.3, -3.0); S.screen.group.rotation.y = 0.55; scene.add(S.screen.group);
-  scene.add(cyl(0.05, 0.05, 1.4, mat.black, -4.6, 0.7, -3.02, 12));
+  S.screen = buildScreen(); S.screen.group.position.set(-5.6, 2.4, 0.6); S.screen.group.rotation.y = 1.0; scene.add(S.screen.group);
+  scene.add(cyl(0.05, 0.05, 1.5, mat.black, -5.62, 0.75, 0.59, 12));
   const board = profileBoard(); board.position.set(5.2, 0, -3.6); board.rotation.y = -0.6; scene.add(board);
   const tints = tintWall(); tints.position.set(-4.4, 0, -5.7); scene.add(tints);
   const bench = workbench(); bench.position.set(3.6, 0, -5.4); bench.rotation.y = -0.15; scene.add(bench);
-  S.globe = buildGlobe(); S.globe.group.position.set(-6.2, 0, -0.4); scene.add(S.globe.group);
+  S.globe = buildGlobe(); S.globe.group.position.set(-7.2, 0, -3.4); scene.add(S.globe.group);
   S.crane = { update() {} };
   S.dust = buildDust(); scene.add(S.dust.points);
 
@@ -192,8 +198,11 @@ export function buildConceptRoom(scene, renderer, { quality = 'high', Reflector 
   // cameras tuned to this room: a closer building orbit, a detail camera that follows the assembly
   S.cams = {
     wide: (t, vert, ease) => { const k = ease(t / 9); return { pos: V(-0.7 + k * 1.1, (vert ? 2.5 : 2.6) - k * 0.5, (vert ? 7.6 : 7.8) - k * 0.5), tgt: V(0.2, vert ? 1.15 : 1.15, -1.6), fov: vert ? 62 : 42 }; },
-    house: { r: [5.6, 4.6], orbit: [5.4, 4.3], y0: 1.4, yk: 1.4, y: 2.5, tgtY: 0.1 },
+    house: { r: [4.4, 3.7], orbit: [5.4, 4.6], y0: 2.7, yk: 0.3, y: 2.6, tgtY: 0.1, a: -0.12, sweep: 0.24 },   // between the hosts
     roof: { r: 2.4, y: 1.3 },
+    // the displays: the host beside them, from the room side
+    tints: (t, vert) => ({ pos: V(-2.3 - t * 0.01, 1.75, -2.3), tgt: V(-4.6, vert ? 1.3 : 1.35, -5.3), fov: vert ? 56 : 36 }),
+    profiles: (t, vert) => ({ pos: V(2.3 + t * 0.01, 1.8, -0.6), tgt: V(4.6, vert ? 1.5 : 1.55, -3.2), fov: vert ? 58 : 38 }),
     detail: () => { const b = S.house, f = b.focus || b.group.localToWorld(b.top.clone()); return f; }
   };
 
