@@ -206,6 +206,7 @@ body.idle{cursor:none}
 
 <script src="/concepts-data.js"></script>
 <script src="/studio-kit/episodes.js"></script>
+<script src="/studio-kit/episodes-s2.js"></script>
 <script type="importmap">{"imports":{"three":"/vendor/three/three.module.min.js","three/addons/":"/vendor/three/addons/"}}</script>
 <script type="module">
 import * as THREE from 'three';
@@ -213,6 +214,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Host } from '/studio-kit/hosts.js';
+import { dressHoodie } from '/studio-kit/wardrobe.js';
 import { buildStudio } from '/studio-kit/set.js';
 import { LiveDirector, getKey, setKey, CHANNEL, typeLabel } from '/studio-kit/live.js';
 import { Marathon } from '/studio-kit/marathon.js';
@@ -268,12 +270,15 @@ const setProgress = (p, t) => { $('#barI').style.width = Math.round(p * 100) + '
 let set, hosts = {}, EP = window.KC_EPISODES[0];
 $('#epLine').textContent = EP.subtitle;
 /* ---------------- mode: scripted episode or live writing ---------------- */
-const EPISODES = window.KC_EPISODES;
+// ?season=2 → the Zimbabwean Heritage Studio Series (studio-kit/episodes.js); season 1 otherwise
+const SEASONS = { 1: window.KC_EPISODES, 2: window.KC_EPISODES_S2 || [] };
+const SEASON = SEASONS[+Q.get('season')]?.length ? +Q.get('season') : 1;
+const EPISODES = SEASONS[SEASON];
 const THUMBS = Object.fromEntries((window.KC_SEED || []).map(c => [c.id, c.thumbUrl]).filter(([, u]) => u));
-const pickEp = (n) => EPISODES[Math.min(EPISODES.length, Math.max(1, +n || 1)) - 1];
+const pickEp = (n, s = SEASON) => SEASONS[s][Math.min(SEASONS[s].length, Math.max(1, +n || 1)) - 1];
 EP = pickEp(Q.get('ep'));
-for (const e of EPISODES) $('#epSel').add(new Option(`Episode ${e.no} · ${e.title}`, e.no, false, e === EP));
-$('#epSel').onchange = () => { EP = pickEp($('#epSel').value); $('#epLine').textContent = EP.subtitle; set?.showBuilding(EP.concept); };
+for (const [s, list] of Object.entries(SEASONS)) for (const e of list) $('#epSel').add(new Option(`Season ${s} · Episode ${e.no} · ${e.title}`, `${s}:${e.no}`, false, e === EP));
+$('#epSel').onchange = () => { const [s, n] = $('#epSel').value.split(':'); EP = pickEp(n, s); $('#epLine').textContent = EP.subtitle; set?.showBuilding(EP.concept); };
 if (Q.get('hours')) $('#maraHours').value = Q.get('hours');
 let MODE = ['live', 'marathon'].includes(Q.get('mode')) ? Q.get('mode') : 'episode', director = null;
 const LIVE = () => (MODE === 'live' || MODE === 'marathon') && director;
@@ -281,7 +286,7 @@ function setMode(m) {
   MODE = m; document.querySelectorAll('#mode button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
   $('#keyRow').hidden = false; $('#epRow').hidden = m !== 'episode'; $('#maraRow').hidden = m !== 'marathon';
   $('#epLine').textContent = m === 'live' ? 'Live: Claude writes the show segment by segment, from our own facts.'
-    : m === 'marathon' ? 'The marathon: all six episodes on a loop, with live segments in between.' : EP.subtitle;
+    : m === 'marathon' ? `The marathon: all ${EPISODES.length} episodes of season ${SEASON} on a loop, with live segments in between.` : EP.subtitle;
   if (!$('#keyIn').value) $('#keyIn').value = getKey();
 }
 document.querySelectorAll('#mode button').forEach(b => b.onclick = () => setMode(b.dataset.m));
@@ -307,6 +312,7 @@ async function boot() {
     catch (e) { console.warn('Avatar failed, using fallback', cfg.model, e); gltf = await loader.loadAsync(cfg.fallback); }
     const h = new Host({ id, name: cfg.name, model: gltf.scene, seatY: 0.47, deskY: set.desk.height, deskZ: 0.36, seed: cfg.seat * 3.7 + 1, mouthGain: cfg.mouthGain });
     const seat = set.seats[cfg.seat]; h.root.position.copy(seat.pos); h.root.rotation.y = seat.rotY;
+    if (cfg.outfit === 'hoodie') await dressHoodie(h).catch((e) => console.warn('hoodie failed', e));
     h.cfg = cfg; scene.add(h.root); hosts[id] = h; done++;
     if (cfg.clips) clipLoads.push(loadClips(cfg.clips).then((c) => { if (Object.keys(c).length && h.useClips(c)) console.info('motion capture on for', id, Object.keys(c).join(', ')); }).catch(() => {}));
   }));
@@ -334,7 +340,7 @@ async function boot() {
       const useLive = $('#maraUseLive').checked && +$('#maraLive').value > 0 && !!getKey();
       go.disabled = true; go.textContent = 'Preparing the marathon…';
       director = await new Marathon({ episodes: EPISODES, hours, liveSegments: +$('#maraLive').value || 0, useLive, onEvent: onLiveEvent }).init();
-      EP = { title: `The ${hours}-Hour Studio Marathon`, subtitle: `KARLCON Studios · Six buildings · ${hours} hours live`, lines: director.lines, concept: EPISODES[0].concept };
+      EP = { title: `The ${hours}-Hour Studio Marathon`, subtitle: `KARLCON Studios · ${EPISODES.length} buildings · ${hours} hours live`, lines: director.lines, concept: EPISODES[0].concept };
       $('#liveStat').hidden = false; $('#mara').hidden = false;
       liveStatus(director.live ? `Marathon · live writing on (${director.info.model})` : `Marathon · scripted only${director.liveReason ? ' — ' + director.liveReason : ''}`);
     }
@@ -382,7 +388,7 @@ async function ensureHero(id) {
       heroLoader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).setDRACOLoader(draco);
     }
     const g = await heroLoader.loadAsync(c.modelUrl);
-    set.buildings[id].setHero(g.scene, (c.stageYaw || 0) * Math.PI / 180); heroState[id] = 'ready';
+    set.building(id).setHero(g.scene, (c.stageYaw || 0) * Math.PI / 180); heroState[id] = 'ready';
     if (set.house.id === id && set.house.build >= 7) set.house.heroA = 0;   // fade it in
     console.info('Meshy model on stage for', id);
   } catch (e) { heroState[id] = 'failed'; console.warn('Meshy model failed for', id, e); }
@@ -831,7 +837,7 @@ async function playLine(i) {
   $('#pos').textContent = LIVE() ? `${sn.startsWith('EP') ? sn : 'S' + sn} · ${idx + 1}` : `${idx + 1} / ${lines.length}`;
   const tok = ++lineToken;
   if (line.segStart && line.conceptId) {
-    if (!line.scripted && LIVE() && set.house.id !== line.conceptId && set.buildings[line.conceptId]) sting();
+    if (!line.scripted && LIVE() && set.house.id !== line.conceptId && set.stageIds.includes(line.conceptId)) sting();
     set.showBuilding(line.conceptId);
   }
   if (line.segStart && line.city) set.globe.focus(line.city);

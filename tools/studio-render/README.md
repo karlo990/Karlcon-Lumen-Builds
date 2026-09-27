@@ -15,7 +15,7 @@ It uses the **Microsoft Edge** already on the PC. Close other heavy programs whi
 
 ## Easiest: double-click `KARLCON-Render.bat`
 It installs the recorder on the first run, then asks what to record (test episode, all six, marathon
-1 h / 3 h, or one episode), the shape (9:16 or 16:9), the quality and your studio passcode (typed
+1 h / 3 h, one episode, or season 2: all ten or one), the shape (9:16 or 16:9), the quality and your studio passcode (typed
 hidden, never saved). The video lands in `tools\studio-render\videos\` and the folder opens when
 it is done. Only Node.js has to be installed first (nodejs.org, LTS).
 
@@ -24,7 +24,10 @@ it is done. Only Node.js has to be installed first (nodejs.org, LTS).
 node render.mjs --ep 1 --key YOUR_STUDIO_PASSCODE
 node render.mjs --ep all --key YOUR_STUDIO_PASSCODE --out episodes.mp4
 node render.mjs --mode marathon --dur 3h --key YOUR_STUDIO_PASSCODE --out marathon-3h.mp4
+node render.mjs --season 2 --ep all --key YOUR_STUDIO_PASSCODE --out season2.mp4
 ```
+- `--season 2` records season 2, the Heritage Studio Series: ten episodes (`--ep 1` to `--ep 10`, or
+  `--ep all`). Without it you get season 1's six episodes.
 - `--key` is the studio passcode (STUDIO_KEY). It is needed for the **premium (ElevenLabs) voices**:
   a web page cannot record the browser's own voices, so without it the video has music only.
   Each voice line is paid for once — repeats come from the voice cache.
