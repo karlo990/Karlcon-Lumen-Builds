@@ -19,7 +19,7 @@ const M = {
   alu: new THREE.MeshStandardMaterial({ color: 0xC4C8CD, roughness: 0.28, metalness: 0.9 }),
   ceiling: new THREE.MeshStandardMaterial({ color: 0x9A9DA2, roughness: 0.9, emissive: 0x4A4D52 }),
   glow: new THREE.MeshBasicMaterial({ color: 0xD9DEE3 }),
-  deck: new THREE.MeshStandardMaterial({ color: 0x5E6166, roughness: 0.85 }),
+  deck: new THREE.MeshStandardMaterial({ color: 0x2F3236, roughness: 0.85 }),
   deckSide: new THREE.MeshStandardMaterial({ color: 0xD8D5CF, roughness: 0.9 }),
   steel: new THREE.MeshStandardMaterial({ color: 0x55595F, roughness: 0.4, metalness: 0.8 })
 };
@@ -198,7 +198,7 @@ export function buildConceptRoom(scene, renderer, { quality = 'high', Reflector 
   // cameras tuned to this room: a closer building orbit, a detail camera that follows the assembly
   S.cams = {
     wide: (t, vert, ease) => { const k = ease(t / 9); return { pos: V(-0.7 + k * 1.1, (vert ? 2.5 : 2.6) - k * 0.5, (vert ? 7.6 : 7.8) - k * 0.5), tgt: V(0.2, vert ? 1.15 : 1.15, -1.6), fov: vert ? 62 : 42 }; },
-    house: { r: [4.4, 3.7], orbit: [5.4, 4.6], y0: 2.7, yk: 0.3, y: 2.6, tgtY: 0.1, a: -0.12, sweep: 0.24 },   // between the hosts
+    house: { r: [3.9, 3.4], orbit: [5.4, 4.6], y0: 3.4, yk: 0.1, y: 2.6, tgtY: -0.35, a: -0.12, sweep: 0.24 },   // between the hosts
     roof: { r: 2.4, y: 1.3 },
     // the displays: the host beside them, from the room side
     tints: (t, vert) => ({ pos: V(-2.3 - t * 0.01, 1.75, -2.3), tgt: V(-4.6, vert ? 1.3 : 1.35, -5.3), fov: vert ? 56 : 36 }),
