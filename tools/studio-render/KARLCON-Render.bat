@@ -53,10 +53,12 @@ echo    4  Marathon, 1 hour
 echo    5  One episode (choose 1-6)
 echo    6  Season 2: all sixteen episodes  (Heritage Series + From Stand to Keys)
 echo    7  Season 2: one episode (choose 1-16, 11-16 = From Stand to Keys)
-echo    8  EVERYTHING: season 1 + season 2, all 22 episodes in one video (about 2 hours)
+echo    8  EVERYTHING: seasons 1, 2 and 3, all 30 episodes in one video (about 2.5 hours)
+echo    9  Season 3: all eight episodes    (the Concept Room)
+echo   10  Season 3: one episode (choose 1-8)
 echo.
 set "CHOICE="
-set /p "CHOICE=  Type 1-8 and press Enter: "
+set /p "CHOICE=  Type 1-10 and press Enter: "
 set "WHAT="
 if "%CHOICE%"=="1" (set "WHAT=--ep 1" & set "NAME=test-episode-1")
 if "%CHOICE%"=="2" (set "WHAT=--ep all" & set "NAME=all-episodes")
@@ -74,6 +76,12 @@ if "%CHOICE%"=="7" (
   call set "NAME=season2-episode-%%EPN%%"
 )
 if "%CHOICE%"=="8" (set "WHAT=--season all" & set "NAME=all-seasons")
+if "%CHOICE%"=="9" (set "WHAT=--season 3 --ep all" & set "NAME=season3-all-episodes")
+if "%CHOICE%"=="10" (
+  set /p "EPN=  Which episode (1-8)? "
+  call set "WHAT=--season 3 --ep %%EPN%%"
+  call set "NAME=season3-episode-%%EPN%%"
+)
 if not defined WHAT ( echo  Not a valid choice. & pause & exit /b 1 )
 
 echo.

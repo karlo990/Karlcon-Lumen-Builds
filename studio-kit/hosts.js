@@ -17,7 +17,10 @@
      then retracted — and chosen by what is said (numbers → counting, "but" → contrast…).
    · Fingers bend at three coupled joints in the resting cascade, not with one curl.
    · Face: FACS action units (Ekman & Friesen) — Duchenne smiles (AU6 + AU12), brow flashes on
-     emphasis, blinks with real lid timing, more of them at pauses and gaze shifts. */
+     emphasis, blinks with real lid timing, more of them at pauses and gaze shifts.
+   · Standing hosts (`stand: true`, the season 3 Concept Room) walk, turn and reach with full-body
+     motion capture (Mixamo): the clip moves the body and the host is carried by the clip's own root
+     motion, so the feet don't slide; gaze, face and lip-sync stay procedural on top. */
 import * as THREE from 'three';
 import { LipsyncEn } from './lipsync-en.mjs';
 
@@ -177,9 +180,10 @@ export class Host {
    * @param {number} o.deskY     top of the desk (m)
    * @param {number} o.deskZ     distance from hips to where the wrists rest (m, forward)
    * @param {number} o.expressive  gesture amplitude and rate (1 = default)
+   * @param {boolean} o.stand    standing presenter (no chair or desk): feet on the floor, hands at the waist
    */
   constructor(o) {
-    Object.assign(this, { mouthGain: o.mouthGain ?? 0.85, id: o.id, name: o.name, seatY: o.seatY ?? 0.47, deskY: o.deskY ?? 0.75, deskZ: o.deskZ ?? 0.42, seed: o.seed ?? Math.random() * 10, expressive: o.expressive ?? 1 });
+    Object.assign(this, { mouthGain: o.mouthGain ?? 0.85, id: o.id, name: o.name, seatY: o.seatY ?? 0.47, deskY: o.deskY ?? 0.75, deskZ: o.deskZ ?? 0.42, seed: o.seed ?? Math.random() * 10, expressive: o.expressive ?? 1, standing: !!o.stand });
     this.root = new THREE.Group(); this.root.name = 'host-' + o.id;
     this.model = o.model; this.root.add(this.model);
     this.bones = {}; this.morphs = {};
@@ -195,6 +199,8 @@ export class Host {
     const missing = need.filter(n => !this.bones[n]);
     if (missing.length) throw new Error(`Avatar "${o.id}" is missing bones: ${missing.join(', ')}`);
     this._measure();
+    if (this.standing) { this.deskY = this.hipRestY + 0.03; this.deskZ = 0.2; }   // standing: the hands' home is in front of the navel
+    this.body = {}; this.acts = []; this.act = null; this.bodyW = 0; this._look = null;
     this.state = {
       t: 0, speaking: false, lookAt: new V3(0, 1.2, 3),
       gaze: { eye: new MinJerk(new V3()), head: new MinJerk(new V3()), init: false, headAt: -1, headT: 0.4, dist: 2, off: new V3(), offCur: new V3(), nextOff: 0, avert: null, goalY: 0, farSince: -1, farDwell: 2.2, backUntil: 0 },
@@ -236,13 +242,19 @@ export class Host {
     this.hipWidth = p('LeftUpLeg').distanceTo(p('RightUpLeg'));
     this.shoulderWidth = p('LeftArm').distanceTo(p('RightArm'));
     this.eyeY = b.LeftEye ? p('LeftEye').y : p('Head').y + 0.08;
-    // sit: drop the whole model so the pelvis lands on the seat
-    this.model.position.y = (this.seatY + 0.085) - this.hipRestY;
+    // sit: drop the whole model so the pelvis lands on the seat; stand: feet on the floor, knees soft
+    this.baseY = this.standing ? -0.012 : (this.seatY + 0.085) - this.hipRestY;
+    this.model.position.y = this.baseY;
   }
 
   /* resting wrist target on the desk, root space */
   handRest(side) {
     const sg = side === 'Left' ? 1 : -1;
+    if (this.standing) return {                                    // hands loosely together in front, palms in
+      pos: new V3(sg * (this.shoulderWidth * 0.2), this.deskY - 0.04, this.deskZ),
+      nrm: new V3(-sg * 0.85, -0.45, 0.12).normalize(),
+      fwd: new V3(-sg * 0.45, -0.45, 1).normalize()
+    };
     return {
       pos: new V3(sg * (this.shoulderWidth * 0.62), this.deskY + 0.045, this.deskZ),
       nrm: new V3(-sg * 0.31, -0.95, 0).normalize(),           // palm down, thumb side a little higher (forearm ~70° pronated)
@@ -350,11 +362,114 @@ export class Host {
     return new THREE.AnimationClip(clip.name + '-upper', clip.duration, tracks);
   }
 
+  /* ---------- full-body motion capture: walk, turn, reach (standing hosts) ----------
+     Clips are Mixamo FBX on the same skeleton as the avatars, so bone rotations apply as they are.
+     The clip's hip travel is the host's root motion: the whole host moves exactly as far as the feet
+     step, and turns as far as a turning clip turns. Bone rotations blend with the procedural pose. */
+  static bodyClip(clip, bones, turns = false) {
+    const tracks = []; let hp = null;
+    for (const tr of clip.tracks) {
+      const m = /^(?:mixamorig:?)?([A-Za-z0-9]+)\.(quaternion|position)$/.exec(tr.name.split('|').pop());
+      if (!m || !bones[m[1]]) continue;
+      if (m[2] === 'quaternion') tracks.push({ bone: bones[m[1]], it: tr.createInterpolant(), hips: m[1] === 'Hips' });
+      else if (m[1] === 'Hips') hp = tr.createInterpolant();
+    }
+    const c = { dur: clip.duration, tracks, hp, turns };
+    c.pos = (t) => hp ? new V3().fromArray(hp.evaluate(clamp(t, 0, c.dur))) : new V3();
+    const hq = tracks.find((x) => x.hips);
+    c.yaw = (t) => { if (!hq) return 0; const f = Z.clone().applyQuaternion(new QT().fromArray(hq.it.evaluate(clamp(t, 0, c.dur)))); return Math.atan2(f.x, f.z); };
+    c.p0 = c.pos(0); c.yaw0 = c.yaw(0);
+    return c;
+  }
+  /** clips: { walk, walkF (a woman's walk), turnL (walking left turn), reach } — AnimationClips */
+  setBodyClips(map) { for (const [k, c] of Object.entries(map)) if (c) this.body[k] = Host.bodyClip(c, this.bones, k === 'turnL'); this._kClip = null; }
+  get moving() { return !!this.act || this.acts.length > 0; }
+  /** stand here now, facing yaw (radians, world) */
+  place(pos, yaw) { this.acts = []; this.act = null; this.bodyW = 0; this.root.position.copy(pos); this.root.rotation.y = yaw; }
+  /** walk to pos, then turn to face `face` (yaw), then optionally reach (`then: 'reach'`) */
+  walkTo(pos, { face = null, clip = 'walk', then = null } = {}) { this.acts.push({ type: 'go', to: new V3(pos.x, 0, pos.z), face, clip, then }); }
+  /* a 'go' becomes its steps when it starts, from wherever the host is by then */
+  _plan(g) {
+    const steps = [], from = this.root.position.clone(); from.y = 0;
+    if (g.to.distanceTo(from) > 0.3 && this.body[g.clip]) {
+      const dir = Math.atan2(g.to.x - from.x, g.to.z - from.z), turn = wrap(dir - this.root.rotation.y);
+      if (turn > 0.6 && turn < 2.2 && this.body.turnL) steps.push({ type: 'play', clip: 'turnL', chain: true });   // a walking turn to the left
+      else if (Math.abs(turn) > 0.5) steps.push({ type: 'turn', yaw: dir });
+      steps.push({ type: 'walk', clip: g.clip, to: g.to });
+    }
+    if (g.face != null) steps.push({ type: 'turn', yaw: g.face });
+    if (g.then && this.body[g.then]) steps.push({ type: 'play', clip: g.then });
+    this.acts.unshift(...steps);
+  }
+  /** play a clip in place (e.g. reaching to close a roof light's sash) */
+  perform(name, from, to) { if (this.body[name]) this.acts.push({ type: 'play', clip: name, from, to }); }
+  _k(c) { return this._kClip ??= this.hipRestY / Math.max(1e-3, c.p0.y); }      // clip units → metres
+  _bodyAdvance(dt) {
+    const R = this.root;
+    while (this.acts[0]?.type === 'go' && !this.act) this._plan(this.acts.shift());
+    if (!this.act && this.acts.length) {
+      const a = this.act = this.acts.shift(), c = this.body[a.clip];
+      if (a.type === 'play') { a.from ??= c.dur > 8 ? 1.4 : 0; a.to ??= c.dur > 8 ? 5.8 : c.dur; }
+      if (c) { a.t = a.type === 'play' ? a.from : 0; a.prev = c.pos(a.t); a.prevYaw = c.yaw(a.t); a.yaw0 = a.prevYaw; }
+      if (a.type === 'turn') { a.from = R.rotation.y; a.u = 0; a.T = 0.35 + Math.abs(wrap(a.yaw - R.rotation.y)) * 0.4; }
+    }
+    const a = this.act; let want = 0; this._look = null;
+    if (a?.type === 'turn') {                                      // a few small steps round: the body turns, the head leads
+      a.u = Math.min(1, a.u + dt / a.T); const e = a.u * a.u * a.u * (a.u * (6 * a.u - 15) + 10);
+      R.rotation.y = a.from + wrap(a.yaw - a.from) * e;
+      this._look = R.position.clone().add(new V3(Math.sin(a.yaw) * 3, this.eyeY, Math.cos(a.yaw) * 3));
+      if (a.u >= 1) this.act = null;
+    } else if (a) {
+      const c = this.body[a.clip], k = this._k(c), loop = a.type === 'walk';
+      const end = loop ? c.dur : a.to; let t = a.t + dt, d = new V3(), dy = 0, done = false;
+      if (loop && t > end) { d.add(c.pos(end).sub(a.prev)); t -= c.dur; a.prev = c.pos(0); a.prevYaw = c.yaw(0); }
+      if (!loop && t >= end) { t = end; done = true; }
+      const p = c.pos(t); d.add(p.clone().sub(a.prev)); a.prev = p; a.t = t;
+      if (c.turns) { const y = c.yaw(t); dy = wrap(y - a.prevYaw); a.prevYaw = y; }
+      const fade = loop ? 1 : clamp(Math.min((t - a.from) / (a.chain ? 0.25 : 0.45), a.chain ? 1 : (end - t) / 0.6), 0, 1);
+      want = fade;
+      // root motion: the clip's hip travel, turned into the host's facing
+      const yaw = R.rotation.y, step = new V3(d.x, 0, d.z).multiplyScalar(k * Math.max(this.bodyW, 0.3));
+      step.applyAxisAngle(Y, yaw); if (!a.stopping) R.position.add(step); R.rotation.y = yaw + dy;
+      a.dy = (a.dy || 0) + dy;
+      if (loop) {
+        const to = a.to.clone().sub(R.position); to.y = 0; const left = to.length();
+        const aimYaw = Math.atan2(to.x, to.z); R.rotation.y += clamp(wrap(aimYaw - R.rotation.y), -1.6 * dt, 1.6 * dt);   // steer
+        this._look = R.position.clone().add(new V3(Math.sin(R.rotation.y) * 3, this.eyeY - 0.15, Math.cos(R.rotation.y) * 3));
+        if (left < 0.22 || to.dot(new V3(Math.sin(R.rotation.y), 0, Math.cos(R.rotation.y))) < 0) { a.stopping = true; }
+        if (a.stopping) { want = 0; if (left > 0.01) R.position.addScaledVector(to.normalize(), Math.min(left, dt * 0.5)); if (this.bodyW < 0.03) done = true; }
+      }
+      this._hipDy = (p.y - c.p0.y) * k;
+      if (done) this.act = null;
+    }
+    // blend weight: 0.3 s in, 0.35 s out
+    this.bodyW += clamp(want - this.bodyW, -dt / 0.35, dt / 0.3);
+    if (!this.act && !this.acts.length) this.bodyW = Math.max(0, this.bodyW - dt / 0.35);
+    this.model.position.y = this.baseY + (this._hipDy || 0) * this.bodyW;
+    if (this.groundAt) R.position.y += (this.groundAt(R.position.x, R.position.z) - R.position.y) * Math.min(1, dt * 10);   // step up onto a platform
+    this._cur = a && a.type !== 'turn' ? a : this._cur;
+  }
+  _bodyBlend() {
+    const w = this.bodyW, a = this._cur; if (w < 1e-3 || !a) return;
+    const c = this.body[a.clip]; if (!c) return;
+    const q = new QT();
+    for (const x of c.tracks) {
+      q.fromArray(x.it.evaluate(clamp(a.t, 0, c.dur)));
+      if (x.hips && c.turns) {                     // the turn the clip makes is carried by the root: take it out of the hips
+        const par = x.bone.parent, up = Y.clone().applyQuaternion(par.getWorldQuaternion(new QT()).invert());
+        q.premultiply(new QT().setFromAxisAngle(up, -wrap(c.yaw(a.t) - (a.yaw0 ?? c.yaw0))));
+      }
+      x.bone.quaternion.slerp(q, w);
+    }
+    this.root.updateMatrixWorld(true);
+  }
+
   /* ---------- per-frame ---------- */
   update(dt, now) {
     const S = this.state, b = this.bones; S.t += dt; const t = S.t;
     // reset to bind pose
     for (const [k, q] of Object.entries(this.rest)) b[k].quaternion.copy(q);
+    this._bodyAdvance(dt);
     if (this.mixer) {
       const talkingNow = S.speaking && !!this.plan, A = this.clipActions;
       if (A.talk) { A.talk.setEffectiveWeight(THREE.MathUtils.lerp(A.talk.getEffectiveWeight(), talkingNow ? this.clipWeight : 0, Math.min(1, dt * 2))); }
@@ -410,10 +525,11 @@ export class Host {
     { const cf = this._fwdOf('Spine2').applyQuaternion(rq.clone().invert()), cp = yawPitch(cf).p, fix = soft(cp, -16 * DEG, 4 * DEG) - cp;
       if (Math.abs(fix) > 1e-4) { const cr = Y.clone().cross(cf.applyQuaternion(rq)).normalize(); rotateWorld(b.Spine, _qc.setFromAxisAngle(cr, -fix * 0.5)); rotateWorld(b.Spine1, _qc.setFromAxisAngle(cr, -fix * 0.5)); } }
 
-    /* legs: feet planted in front of the chair */
+    /* legs: feet planted in front of the chair, or under the hips when standing */
     for (const s of ['Left', 'Right']) {
       const sg = s === 'Left' ? 1 : -1;
-      const foot = P(new V3(sg * (this.hipWidth * 0.62 + 0.03), this.ankleY, 0.43 + (sg > 0 ? 0.02 : -0.01)));
+      const foot = this.standing ? P(new V3(sg * (this.hipWidth * 0.55 + 0.02), this.ankleY, sg > 0 ? 0.03 : -0.01))
+        : P(new V3(sg * (this.hipWidth * 0.62 + 0.03), this.ankleY, 0.43 + (sg > 0 ? 0.02 : -0.01)));
       this._ik(s + 'UpLeg', s + 'Leg', s + 'Foot', s + 'UpLeg', s + 'Leg', foot, R(new V3(sg * 0.18, 0.45, 1).normalize()));
       if (b[s + 'ToeBase']) aim(b[s + 'Foot'], b[s + 'ToeBase'], R(new V3(sg * 0.12, -0.42, 1).normalize()));
     }
@@ -432,6 +548,7 @@ export class Host {
       this._fingers(s, this._fingerPose(s, dt));
     }
     if (S.gesture?.kind === 'drink') this._carryBottle();
+    this._bodyBlend();
 
     /* head, neck and eyes */
     S.nodV += (-S.nod * 60 - S.nodV * 9) * dt; S.nod += S.nodV * dt;
@@ -590,7 +707,7 @@ export class Host {
   _gazeGoal(t) {
     const S = this.state, G = S.gaze, b = this.bones;
     const eyeW = this._eyeW || (b.LeftEye && b.RightEye ? b.LeftEye.getWorldPosition(new V3()).add(b.RightEye.getWorldPosition(new V3())).multiplyScalar(0.5) : b.Head.getWorldPosition(new V3()).add(new V3(0, 0.08, 0)));
-    const d = this.root.worldToLocal(S.lookAt.clone()).sub(this.root.worldToLocal(eyeW.clone()));
+    const d = this.root.worldToLocal((this._look || S.lookAt).clone()).sub(this.root.worldToLocal(eyeW.clone()));
     let { y, p } = yawPitch(d);
     if (G.avert && t < G.avert.until) { y += G.avert.y; p += G.avert.p; }
     // a target behind the shoulder: glance at it, then back to the front for a few seconds —

@@ -30,7 +30,8 @@ node render.mjs --season all --key YOUR_STUDIO_PASSCODE --out all-seasons.mp4
 - `--season 2` records season 2: the Heritage Studio Series (`--ep 1` to `--ep 10`) and From Stand to Keys,
   six long episodes that build one house stage by stage (`--ep 11` to `--ep 16`), or `--ep all` for all
   sixteen. Without it you get season 1's six episodes.
-- `--season all` records every episode of both seasons in one video (season 1's six, then season 2's sixteen).
+- `--season 3` records season 3, the Concept Room: eight episodes (`--ep 1` to `--ep 8`, or `--ep all`).
+- `--season all` records every episode of every season in one video (season 1's six, season 2's sixteen, season 3's eight).
 - Music: the songs in models/audio/playlist.json, loudness-matched. The playlist steps between calm, groove
   and hype songs, leans on what the show is doing (calm stories, hype quick-fire), and changes song in the
   pause after a line. To add a song: normalise it to -18 LUFS, drop it in models/audio, add a line with its

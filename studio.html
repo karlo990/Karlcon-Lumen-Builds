@@ -208,6 +208,7 @@ body.idle{cursor:none}
 <script src="/studio-kit/episodes.js"></script>
 <script src="/studio-kit/episodes-s2.js"></script>
 <script src="/studio-kit/episodes-s2-build.js"></script>
+<script src="/studio-kit/episodes-s3.js"></script>
 <script type="importmap">{"imports":{"three":"/vendor/three/three.module.min.js","three/addons/":"/vendor/three/addons/"}}</script>
 <script type="module">
 import * as THREE from 'three';
@@ -215,8 +216,9 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Host } from '/studio-kit/hosts.js';
-import { dressHoodie } from '/studio-kit/wardrobe.js';
+import { dressHoodie, dressWorksuit } from '/studio-kit/wardrobe.js';
 import { buildStudio } from '/studio-kit/set.js';
+import { buildConceptRoom } from '/studio-kit/concept-room.js';
 import { LiveDirector, getKey, setKey, CHANNEL, typeLabel } from '/studio-kit/live.js';
 import { Marathon } from '/studio-kit/marathon.js';
 import { createRecorder, toBase64 } from '/studio-kit/rendermix.js';
@@ -272,15 +274,19 @@ const setProgress = (p, t) => { $('#barI').style.width = Math.round(p * 100) + '
 let set, hosts = {}, EP = window.KC_EPISODES[0];
 $('#epLine').textContent = EP.subtitle;
 /* ---------------- mode: scripted episode or live writing ---------------- */
-// ?season=2 → the Zimbabwean Heritage Studio Series (studio-kit/episodes.js); season 1 otherwise
-const SEASONS = { 1: window.KC_EPISODES, 2: window.KC_EPISODES_S2 || [] };
+// ?season=2 → the Zimbabwean Heritage Studio Series (episodes-s2.js); ?season=3 → the Concept Room (episodes-s3.js)
+const SEASONS = { 1: window.KC_EPISODES, 2: window.KC_EPISODES_S2 || [], 3: window.KC_EPISODES_S3 || [] };
 const SEASON = SEASONS[+Q.get('season')]?.length ? +Q.get('season') : 1;
 const EPISODES = SEASONS[SEASON];
 const THUMBS = Object.fromEntries((window.KC_SEED || []).map(c => [c.id, c.thumbUrl]).filter(([, u]) => u));
 const pickEp = (n, s = SEASON) => SEASONS[s][Math.min(SEASONS[s].length, Math.max(1, +n || 1)) - 1];
 EP = pickEp(Q.get('ep'));
 for (const [s, list] of Object.entries(SEASONS)) for (const e of list) $('#epSel').add(new Option(`Season ${s} · Episode ${e.no} · ${e.title}`, `${s}:${e.no}`, false, e === EP));
-$('#epSel').onchange = () => { const [s, n] = $('#epSel').value.split(':'); EP = pickEp(n, s); $('#epLine').textContent = EP.subtitle; set?.showBuilding(EP.concept); };
+$('#epSel').onchange = () => {
+  const [s, n] = $('#epSel').value.split(':'); EP = pickEp(n, s); $('#epLine').textContent = EP.subtitle;
+  if (set && (EP.room || 'studio') !== (set.room || 'studio')) { const u = new URL(location.href); u.searchParams.set('season', s); u.searchParams.set('ep', n); location.href = u; return; }   // another room: rebuild the set
+  set?.showBuilding(EP.concept);
+};
 if (Q.get('hours')) $('#maraHours').value = Q.get('hours');
 let MODE = ['live', 'marathon'].includes(Q.get('mode')) ? Q.get('mode') : 'episode', director = null;
 const LIVE = () => (MODE === 'live' || MODE === 'marathon') && director;
@@ -301,7 +307,7 @@ async function boot() {
     ({ Reflector } = await import('three/addons/objects/Reflector.js'));
     const { RectAreaLightUniformsLib } = await import('three/addons/lights/RectAreaLightUniformsLib.js'); RectAreaLightUniformsLib.init();
   }
-  set = buildStudio(scene, renderer, { quality: QUALITY, Reflector }); set.showBuilding(EP.concept);
+  set = (EP.room === 'concept' ? buildConceptRoom : buildStudio)(scene, renderer, { quality: QUALITY, Reflector }); set.showBuilding(EP.concept);
   await setupPost();
   const show0 = set.showBuilding; set.showBuilding = (id) => { const ok = show0(id); if (ok) ensureHero(id); return ok; };
   loadLibrary();
@@ -312,9 +318,13 @@ async function boot() {
     let gltf;
     try { gltf = await loader.loadAsync(cfg.model, (e) => e.total && setProgress(0.15 + 0.8 * (done + e.loaded / e.total) / entries.length, 'Bringing in the presenters…')); }
     catch (e) { console.warn('Avatar failed, using fallback', cfg.model, e); gltf = await loader.loadAsync(cfg.fallback); }
-    const h = new Host({ id, name: cfg.name, model: gltf.scene, seatY: 0.47, deskY: set.desk.height, deskZ: 0.36, seed: cfg.seat * 3.7 + 1, mouthGain: cfg.mouthGain });
-    const seat = set.seats[cfg.seat]; h.root.position.copy(seat.pos); h.root.rotation.y = seat.rotY;
-    if (cfg.outfit === 'hoodie') await dressHoodie(h).catch((e) => console.warn('hoodie failed', e));
+    const standing = set.room === 'concept';                      // the Concept Room: no desk, the hosts stand and walk
+    const h = new Host({ id, name: cfg.name, model: gltf.scene, seatY: 0.47, deskY: set.desk.height, deskZ: 0.36, seed: cfg.seat * 3.7 + 1, mouthGain: cfg.mouthGain, stand: standing });
+    const seat = set.seats[cfg.seat]; h.root.position.copy(seat.pos); h.root.rotation.y = seat.rotY; h.groundAt = set.groundAt;
+    const outfit = standing ? (cfg.outfitConcept || cfg.outfit) : cfg.outfit;
+    if (outfit === 'hoodie') await dressHoodie(h).catch((e) => console.warn('hoodie failed', e));
+    if (outfit === 'worksuit') await dressWorksuit(h).catch((e) => console.warn('worksuit failed', e));
+    if (standing && cfg.bodyClips) clipLoads.push(loadClips(cfg.bodyClips).then((c) => { h.setBodyClips(c); console.info('walking clips for', id, Object.keys(c).join(', ')); }).catch(() => {}));
     h.cfg = cfg; scene.add(h.root); hosts[id] = h; done++;
     if (cfg.clips) clipLoads.push(loadClips(cfg.clips).then((c) => { if (Object.keys(c).length && h.useClips(c)) console.info('motion capture on for', id, Object.keys(c).join(', ')); }).catch(() => {}));
   }));
@@ -421,7 +431,7 @@ function targetFor(kind, who) {
     case 'globe': return set.globe.earth.getWorldPosition(new THREE.Vector3());
     case 'screen': return set.screen.group.getWorldPosition(new THREE.Vector3());
     case 'other': return other ? headOf(other) : camera.position.clone();
-    default: return camera.position.clone();
+    default: return set.points?.[kind]?.clone() || camera.position.clone();
   }
 }
 
@@ -435,7 +445,8 @@ const SHOTS = {
   house:  { key: '4', label: 'Building' },
   roof:   { key: '5', label: 'Roof light' },
   globe:  { key: '6', label: 'Atlas' },
-  screen: { key: '7', label: 'Screen' }
+  screen: { key: '7', label: 'Screen' },
+  detail: { key: '8', label: 'Detail' }
 };
 /* Studio camera moves: a pedestal or jib eases in and out of every move (minimum-jerk profile)
    instead of drifting linearly; close-ups sit further back on a longer lens, like broadcast cameras. */
@@ -458,19 +469,25 @@ function shotPose(name, t, speaker) {
       return { pos: hp.clone().addScaledVector(fwd, dist).add(side).add(V(0, 0.01, 0)), tgt: hp.clone().add(V(0, -0.1, 0)), fov: vert ? 33 : 19 };
     }
     case 'house': {
-      const c = set.house.group.localToWorld(set.house.centre.clone()).add(V(0, -0.9, 0));
+      const HC = set.cams?.house || { r: [8.4, 6.8], orbit: [7.6, 6.0], y0: 1.0, yk: 3.6, y: 3.1, tgtY: -0.9 };
+      const c = set.house.group.localToWorld(set.house.centre.clone()).add(V(0, HC.tgtY, 0));
       const H = set.house, building = H.build < 6.95 || H.buildTarget < 7;
       if (building) {   // crane shot: rises with the building as each stage lands
-        const k = Math.min(1, H.build / 7), a = 0.15 + t * 0.03, r = (vert ? 8.4 : 6.8) - k * 1.0;
-        return { pos: V(c.x + Math.sin(a) * r, 1.0 + k * 3.6, c.z + Math.cos(a) * r), tgt: c.clone().add(V(0, -0.4 + k * 0.9, 0)), fov: vert ? 62 : 40 };
+        const k = Math.min(1, H.build / 7), a = 0.15 + t * 0.03, r = (vert ? HC.r[0] : HC.r[1]) - k * HC.r[1] * 0.15;
+        return { pos: V(c.x + Math.sin(a) * r, HC.y0 + k * HC.yk, c.z + Math.cos(a) * r), tgt: c.clone().add(V(0, -0.4 + k * 0.9, 0)), fov: vert ? 62 : 40 };
       }
-      const a = 0.22 + ease(t / 16) * 0.5, r = vert ? 7.6 : 6.0;
-      return { pos: V(c.x + Math.sin(a) * r, 3.1 + Math.sin(t * 0.2) * 0.15, c.z + Math.cos(a) * r), tgt: c.clone().add(V(0, 0.3, 0)), fov: vert ? 62 : 40 };
+      const a = 0.22 + ease(t / 16) * 0.5, r = vert ? HC.orbit[0] : HC.orbit[1];
+      return { pos: V(c.x + Math.sin(a) * r, HC.y + Math.sin(t * 0.2) * 0.15, c.z + Math.cos(a) * r), tgt: c.clone().add(V(0, 0.3, 0)), fov: vert ? 62 : 40 };
+    }
+    case 'detail': {   // close on the assembly: follows the drill or the parts going in
+      const f = set.cams?.detail?.() || set.house.group.localToWorld(set.house.top.clone());
+      const a = 0.5 + t * 0.04, r = vert ? 1.5 : 1.2;
+      return { pos: V(f.x + Math.sin(a) * r, f.y + 0.75, f.z + Math.cos(a) * r), tgt: f, fov: vert ? 50 : 34 };
     }
     case 'roof': {
-      const top = set.house.group.localToWorld(set.house.top.clone());
+      const top = set.house.group.localToWorld(set.house.top.clone()), RC = set.cams?.roof || { r: 3.6, y: 2.3 };
       const a = 0.7 + t * 0.05;
-      return { pos: V(top.x + Math.sin(a) * 3.6, top.y + 2.3, top.z + Math.cos(a) * 3.6), tgt: top.clone().add(V(0, -0.4, 0)), fov: vert ? 60 : 36 };
+      return { pos: V(top.x + Math.sin(a) * RC.r, top.y + RC.y, top.z + Math.cos(a) * RC.r), tgt: top.clone().add(V(0, -0.4, 0)), fov: vert ? 60 : 36 };
     }
     case 'globe': {
       const g = set.globe.earth.getWorldPosition(new THREE.Vector3());
@@ -482,6 +499,7 @@ function shotPose(name, t, speaker) {
       return { pos: p.clone().addScaledVector(n, vert ? 5.6 : 4.3 - t * 0.02).add(V(0, -0.25, 0)), tgt: p.clone().add(V(0, -0.2, 0)), fov: vert ? 57 : 36 };   // vertical: wide enough for the whole 3.2 m screen
     }
     default: { // wide, as sketched: desk front, building behind, light stands either side
+      if (set.cams?.wide) return set.cams.wide(t, vert, ease);
       // a slow jib: starts high, settles to eye level with the desk while tracking sideways
       const k = ease(t / 9);
       return { pos: V(-0.6 + k * 1.0, (vert ? 3.0 : 3.2) - k * 0.9, (vert ? 9.0 : 9.6) - k * 0.5), tgt: V(0.3, vert ? 1.9 : 1.8, -1.6), fov: vert ? 62 : 40 };
@@ -773,6 +791,7 @@ function sleep(ms, tok) { return new Promise(r => setTimeout(() => r(tok === lin
 async function startShow() {
   if (RENDER) { recorder = createRecorder({ MIX, dB, loadTracks: () => sound.loadTracks(), musicOn: sound.on, level: sound.level }); __render.t0 = clock(); __render.onAir = true; }
   setTicker(DEFAULT_TICKER); setTopic({ kicker: EP.subtitle.split('·')[0], title: EP.title });
+  if (set.marks) for (const h of Object.values(hosts)) { const m = set.marks['home' + h.cfg.seat]; h.place(m.pos, m.rotY); }   // Concept Room: back on their marks
   sound.setMood(EP.music || 'groove');
   cut('wide'); playing = true; syncPlay();
   sting(); setTimeout(() => showCard('KARLCON Studios', EP.title, EP.subtitle), 450);
@@ -787,6 +806,8 @@ function applyCues(line, speaker) {
   const H = set.house;
   if (line.build != null) H.setBuild(line.build);
   if (line.open != null) H.setOpen(line.open);
+  if (line.tint) H.setTint?.(line.tint);                 // season 3: glass tint or 'Polycarbonate'
+  if (line.go) goTo(hosts[line.goWho] || speaker, line.go, line.touch);
   if (line.slide) {
     const img = line.slide.image || THUMBS[line.conceptId || EP.concept];
     set.screen.show(img ? { ...line.slide, image: img } : line.slide); setTopic(line.slide);
@@ -797,6 +818,15 @@ function applyCues(line, speaker) {
   if (/\?\s*$/.test(line.say)) speaker.leanIn(0.07);
   maybeDrink(line, speaker);
   if (autoCam) cut(line.cam || (speaker !== lastSpeaker ? 'cu' : 'two'));
+}
+/* the Concept Room: walk a host to a mark ('home', 'model', 'screen', 'tints', 'profiles'); `touch` reaches for the mock-up */
+function goTo(h, where, touch) {
+  if (!set.marks || !h?.walkTo) return;
+  const m = where === 'home' ? set.marks['home' + h.cfg.seat] : where === 'model' ? set.touchMark() : set.marks[where]; if (!m) return;
+  const clip = h.body.walkF ? 'walkF' : 'walk', far = where !== 'home' && m.via && h.root.position.distanceTo(m.via) > 0.5;
+  if (far) h.walkTo(m.via, { clip });                                           // round the platform, not across it
+  if (where === 'home') { const back = Object.values(set.marks).find((k) => k.via && h.root.position.distanceTo(k.pos) < 0.6); if (back) h.walkTo(back.via, { clip }); }
+  h.walkTo(m.pos, { face: m.rotY, clip, then: touch ? 'reach' : null });
 }
 /* now and then, the listener takes a sip of water during a long line */
 const lastDrink = {};

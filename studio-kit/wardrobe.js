@@ -3,7 +3,10 @@
    the shirt texture is re-dyed black, keeping its folds and shading, the gold Elite Retreats logo goes
    small on the left chest, a kangaroo pocket is printed on the front, and a hood and drawstrings are
    added round the neck, fixed to the chest bone so they move with the body.
-   Used from KC_HOSTS: `outfit: 'hoodie'`. */
+   Used from KC_HOSTS: `outfit: 'hoodie'`.
+   And the KARLCON Elite Retreats worksuit (season 3, the Concept Room): `outfit: 'worksuit'` —
+   black work top and trousers from the same cloth, the gold logo on the chest, silver reflective tape
+   edged in gold round the forearms and shins, black boots. */
 import * as THREE from 'three';
 
 const loadImage = (url) => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = url; });
@@ -19,6 +22,76 @@ function baseColour(p) {
   return ch.map((a) => a.sort((x, y) => x - y)[a.length >> 1]);
 }
 
+function findMesh(host, re) { let m = null; host.model.traverse((n) => { if (n.isMesh && re.test(n.name) && !m) m = n; }); return m; }
+
+/** re-dye a garment's texture to `rgb`, keeping the cloth's own light and shade; `draw(g, W, H)` adds prints */
+async function redye(mesh, rgb, { flatten = null, draw = null, roughness = 0.92 } = {}) {
+  if (!mesh?.material?.map?.image) return false;
+  const src = mesh.material.map, img = src.image, W = img.width, H = img.height;
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d', { willReadFrequently: true });
+  g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, W, H), p = d.data;
+  let sum = 0, n = 0;
+  for (let i = 0; i < p.length; i += 4) { const l = 0.3 * p[i] + 0.59 * p[i + 1] + 0.11 * p[i + 2]; if (l > 20) { sum += l; n++; } }
+  const mean = sum / Math.max(1, n), [br, bg, bb] = baseColour(p);
+  for (let i = 0; i < p.length; i += 4) {
+    const dist = Math.abs(p[i] - br) + Math.abs(p[i + 1] - bg) + Math.abs(p[i + 2] - bb), cloth = Math.max(0, 1 - dist / 70);
+    const l = 0.3 * p[i] + 0.59 * p[i + 1] + 0.11 * p[i + 2], k = Math.min(1.6, Math.max(0.35, l / mean)) * cloth + (1 - cloth);
+    p[i] = rgb[0] * k; p[i + 1] = rgb[1] * k; p[i + 2] = rgb[2] * k;
+  }
+  g.putImageData(d, 0, 0);
+  if (draw) await draw(g, W, H);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.flipY = src.flipY; tex.wrapS = src.wrapS; tex.wrapT = src.wrapT; tex.anisotropy = 8;
+  const m = mesh.material.clone(); m.map = tex; m.roughness = roughness; m.metalness = 0;
+  const nm = m.normalMap?.image;
+  if (nm && flatten) {
+    const nc = document.createElement('canvas'); nc.width = nm.width; nc.height = nm.height; const ng = nc.getContext('2d'); ng.drawImage(nm, 0, 0);
+    const [a0, b0, a1, b1] = flatten;
+    ng.filter = `blur(${Math.round(nc.width / 200)}px)`; ng.fillStyle = 'rgb(128,128,255)'; ng.fillRect(a0 * nc.width, b0 * nc.height, (a1 - a0) * nc.width, (b1 - b0) * nc.height); ng.filter = 'none';
+    const nt = new THREE.CanvasTexture(nc); nt.flipY = m.normalMap.flipY; nt.wrapS = m.normalMap.wrapS; nt.wrapT = m.normalMap.wrapT; nt.colorSpace = THREE.NoColorSpace; m.normalMap = nt;
+  }
+  m.needsUpdate = true; mesh.material = m;
+  return true;
+}
+const drawLogo = async (g, W, H, logo, layout) => {
+  try { const lg = await loadImage(logo), lw = layout.logoW * W, lh = lw * lg.height / lg.width; g.drawImage(lg, layout.chest[0] * W - lw / 2, layout.chest[1] * H - lh / 2, lw, lh); }
+  catch (e) { /* no logo file: plain */ }
+};
+
+/** KARLCON Elite Retreats worksuit */
+export async function dressWorksuit(host, { logo = '/img/brand/elite-retreats-logo.png', layout = LAYOUT } = {}) {
+  const black = [30, 31, 35];
+  const top = findMesh(host, /outfit_top|top|shirt/i), bottom = findMesh(host, /outfit_bottom|bottom|pants|trousers|jeans/i), shoes = findMesh(host, /outfit_shoes|shoes|boots/i);
+  await redye(top, black, { flatten: layout.oldPrint, roughness: 0.88, draw: async (g, W, H) => {
+    // a placket down the front and a chest pocket under the logo, stitched in gold thread
+    const [cx, cy] = layout.chest; g.strokeStyle = 'rgba(201,169,97,0.55)'; g.lineWidth = Math.max(2, W / 500); g.setLineDash([W / 260, W / 360]);
+    g.strokeRect((cx - 0.06) * W, (cy + 0.035) * H, 0.12 * W, 0.09 * H);
+    g.beginPath(); g.moveTo(0.605 * W, 0.53 * H); g.lineTo(0.605 * W, 0.93 * H); g.stroke(); g.setLineDash([]);
+    await drawLogo(g, W, H, logo, layout);
+  } });
+  await redye(bottom, black, { roughness: 0.9 });
+  await redye(shoes, [22, 20, 19], { roughness: 0.7 });
+  addBands(host);
+  return !!top;
+}
+
+/* silver reflective tape with gold edges, round the forearms and the shins */
+function addBands(host) {
+  const b = host.bones; host.root.updateMatrixWorld(true);
+  const tape = new THREE.MeshStandardMaterial({ color: 0xC9CDD2, roughness: 0.25, metalness: 0.55, emissive: 0x2a2c30 });
+  const gold = new THREE.MeshStandardMaterial({ color: 0xC9A961, roughness: 0.35, metalness: 0.8 });
+  const band = (from, to, at, r, w) => {
+    if (!b[from] || !b[to]) return;
+    const A = b[from].getWorldPosition(new THREE.Vector3()), B = b[to].getWorldPosition(new THREE.Vector3());
+    const G = new THREE.Group(); G.position.copy(A).lerp(B, at); G.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), B.clone().sub(A).normalize());
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 28, 1, true), tape); G.add(t);
+    for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.TorusGeometry(r + 0.001, 0.0035, 6, 28), gold); e.rotation.x = Math.PI / 2; e.position.y = s * (w / 2 + 0.003); G.add(e); }
+    G.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+    G.updateMatrixWorld(true); b[from].attach(G);
+  };
+  for (const s of ['Left', 'Right']) { band(s + 'ForeArm', s + 'Hand', 0.62, 0.041, 0.035); band(s + 'Leg', s + 'Foot', 0.55, 0.062, 0.045); }
+}
 export async function dressHoodie(host, { logo = '/img/brand/elite-retreats-logo.png', layout = LAYOUT } = {}) {
   let top = null;
   host.model.traverse((n) => { if (n.isMesh && /outfit_top|top|shirt|hoodie/i.test(n.name) && !top) top = n; });

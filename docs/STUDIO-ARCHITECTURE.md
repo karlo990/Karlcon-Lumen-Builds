@@ -282,6 +282,32 @@ Audio2Face, P3 mocopi + motion matching) is what makes it individual.
 
 ---
 
+## 10. Season 3: standing hosts and full-body motion capture (the Concept Room)
+
+Season 3 moves the show out of the desk set into the Concept Room (`studio-kit/concept-room.js`), where the
+hosts stand, walk to the full-size roof-light mock-up and reach for it. What changed in `studio-kit/hosts.js`:
+
+- **Standing mode** (`stand: true`): the feet are planted under the hips with soft knees, and the hands' home
+  is in front of the navel instead of on a desk. Gestures, gaze, face and lip-sync are unchanged.
+- **Full-body clips on the same skeleton.** The Mixamo clips (`models/anim/walking.fbx`,
+  `female-stop-start-walking.fbx`, `walking-left-turn.fbx`, `closing-lid.fbx`) use the avatars' own bone
+  names and rest pose, so each bone's rotation applies as it is. No retargeting was needed; checked on both
+  avatars.
+- **Root motion from the clip.** A walking host is moved exactly as far as the clip's hips travel, turned into
+  the host's facing, so the feet don't slide. A turning clip's yaw is carried by the root and taken out of the
+  hips. The walk steers toward its target and stops within about 20 cm, then the host turns to face the
+  mark's direction.
+- **Blending.** The clip pose is slerped over the procedural pose (0.3 s in, 0.35 s out). The gaze then runs
+  on top, so a walking host still looks where the show needs them to.
+- **The reach** is the 1.4–5.8 s section of "Closing a Lid", reaching up and pulling down, played in place at
+  the mock-up's edge.
+- **Walks are planned when they start** (`walkTo` queues a `go`), from wherever the host is by then. The room
+  gives each mark a waypoint, so paths go round the platform, not across it. Hosts step up onto the
+  platform (`groundAt`).
+
+Cues: `go: 'model' | 'screen' | 'tints' | 'profiles' | 'home'`, `touch: true`, `tint: '<sample>'`. Camera:
+`detail`, which follows the assembly (the drill, or the parts in flight).
+
 ## Sources
 
 - Holden, Kanoun, Perepichka, Popa, "Learned Motion Matching", ACM TOG / SIGGRAPH 2020: <https://dl.acm.org/doi/10.1145/3386569.3392440> · <https://theorangeduck.com/media/uploads/other_stuff/Learned_Motion_Matching.pdf>
