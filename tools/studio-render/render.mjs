@@ -7,6 +7,8 @@
      node render.mjs --ep 1                          one scripted episode, 9:16, High quality
      node render.mjs --ep all --out episodes.mp4     all six episodes back to back
      node render.mjs --season 2 --ep all             season 2, all sixteen episodes (Heritage Series 1–10, From Stand to Keys 11–16)
+     node render.mjs --season 3 --ep all             season 3, the Concept Room: eight episodes
+     node render.mjs --season all                    every episode of every season in one video (seasons 1, 2, 3)
      node render.mjs --mode marathon --dur 3h        three hours of the marathon, with Claude's live segments
    Options: --key <studio passcode>  (or set STUDIO_KEY)   --format vertical|landscape   --size 720|1080
             --quality high|standard  --fps 30  --dur 90m|3h|5400 (maximum length)   --music 0  --musicvol 1.6
@@ -44,12 +46,15 @@ const [W, H] = format === 'vertical' ? [short, Math.round(short * 16 / 9)] : [Ma
 const fps = Math.max(10, Math.min(60, +opt.fps || 30));
 const quality = opt.quality === 'standard' ? 'standard' : 'high';
 const mode = ['marathon', 'live'].includes(opt.mode) ? opt.mode : 'episode';
-const season = +opt.season === 2 ? 2 : 1, epCount = season === 2 ? 16 : 6;   // season 2: the Heritage Series (1–10) and From Stand to Keys (11–16)
-const eps = mode !== 'episode' ? [null] : opt.ep === 'all' ? Array.from({ length: epCount }, (_, i) => i + 1) : [Math.max(1, Math.min(epCount, +opt.ep || 1))];
+const EP_COUNT = { 1: 6, 2: 16, 3: 8 };                   // season 2: the Heritage Series (1–10) and From Stand to Keys (11–16); season 3: the Concept Room
+const allSeasons = opt.season === 'all', season = EP_COUNT[+opt.season] ? +opt.season : 1, epCount = EP_COUNT[season];
+const range = (s) => Array.from({ length: EP_COUNT[s] }, (_, i) => `${s}-${i + 1}`);   // episodes as "season-number"
+const eps = mode !== 'episode' ? [null] : allSeasons ? [...range(1), ...range(2), ...range(3)]
+  : opt.ep === 'all' ? range(season) : [`${season}-${Math.max(1, Math.min(epCount, +opt.ep || 1))}`];
 const maxDur = seconds(opt.dur) || (mode === 'episode' ? 4 * 3600 : 3600);
 const key = String(opt.key && opt.key !== true ? opt.key : process.env.STUDIO_KEY || '');
 const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
-const out = path.resolve(String(opt.out || `karlcon-${season === 2 ? 's2-' : ''}${mode === 'episode' ? 'ep' + (opt.ep === 'all' ? 'all' : eps[0]) : mode}-${format}-${stamp}.mp4`));
+const out = path.resolve(String(opt.out || `karlcon-${allSeasons ? 'all-seasons' : (season > 1 ? `s${season}-` : '') + (mode === 'episode' ? 'ep' + (opt.ep === 'all' ? 'all' : eps[0].split('-')[1]) : mode)}-${format}-${stamp}.mp4`));
 const bitrate = short === 1080 ? 5000 : 3000;              // Instagram / Facebook Live friendly (stream copies it as is)
 const log = (...a) => console.log(new Date().toLocaleTimeString(), ...a);
 
@@ -57,10 +62,13 @@ function studioUrl(ep) {
   const u = new URL(base);
   u.searchParams.set('render', ''); u.searchParams.set('obs', '');
   u.searchParams.set('format', format); u.searchParams.set('q', quality);
-  if (mode === 'episode') u.searchParams.set('ep', ep); else u.searchParams.set('mode', mode);
-  if (season === 2) u.searchParams.set('season', '2');
+  if (mode === 'episode') {
+    const [s, n] = ep.split('-');
+    u.searchParams.set('ep', n); if (s !== '1') u.searchParams.set('season', s);
+  } else { u.searchParams.set('mode', mode); if (season > 1) u.searchParams.set('season', String(season)); }
   if (mode === 'marathon') u.searchParams.set('hours', String(Math.max(1, Math.ceil(maxDur / 3600))));
   if (opt.music === '0') u.searchParams.set('music', '0');
+  if (opt.test) u.searchParams.set('test', String(opt.test));   // --test motion: the motion test sequence (studio-kit/episodes-test.js)
   if (opt.musicvol) u.searchParams.set('musicvol', String(opt.musicvol));
   let s = u.toString().replace(/=(?=&|$)/g, '');
   if (key) s += '#key=' + encodeURIComponent(key);             // the fragment never reaches the server

@@ -454,3 +454,6 @@ export function buildStudio(scene, renderer, { quality = 'high', Reflector = nul
   S.aim = aim;
   return S;
 }
+
+/* shared with the season 3 Concept Room (studio-kit/concept-room.js) */
+export { buildScreen, buildGlobe, buildDust, drawMark, canvasTex, box, cyl, mat, buildLightStand, buildCameraRig };
