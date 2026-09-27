@@ -2,6 +2,7 @@
    Ten episodes, one concept each, in the order of the series sheet. Same cue format and house
    rules as Season 1 (see episodes.js): engineering numbers only from the LB-1 engineering file,
    every new mechanism called a concept until it is designed, tested and built.
+   Episodes 11–16, From Stand to Keys, are in episodes-s2-build.js.
    Play with /studio?season=2 (and &ep=N), or `node render.mjs --season 2 --ep all`. */
 (() => {
   const BUILD = (name, steps) => ({ kicker: 'Build sequence', title: `How the ${name} goes up`, lines: steps });
@@ -545,10 +546,10 @@
       { who: 'karl', cam: 'cu', mood: 'smile',
         say: "The one somebody asks me to build first. Message us on Instagram." },
       { who: 'luma', cam: 'wide', open: 1, mood: 'smile',
-        slide: { kicker: 'Season 2', title: 'The Heritage Studio Series', lines: ['Ten buildings rooted in Zimbabwe', 'Tell us which one to build first', 'Follow @karlcon_lumen_builds_zw'] },
-        say: "That's season two, the Heritage Studio Series. Ten buildings rooted in Zimbabwe. Thank you for watching. I'm Luma." },
+        slide: { kicker: 'Next · Episode 11', title: 'From Stand to Keys', lines: ['Six episodes, one house', 'From an empty stand to the keys', 'Follow @karlcon_lumen_builds_zw'] },
+        say: "That's the Heritage Studio Series, ten buildings rooted in Zimbabwe. But season two isn't finished. Next time we start From Stand to Keys, one house built from an empty stand to the day you get the keys. I'm Luma." },
       { who: 'karl', cam: 'wide', mood: 'smile',
-        say: "And I'm Karl. Go and follow the build." }
+        say: "And I'm Karl. If you're planning to build, don't miss it." }
     ]
   }];
 })();

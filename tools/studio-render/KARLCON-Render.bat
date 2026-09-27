@@ -51,8 +51,8 @@ echo    2  All six episodes                (about 25 minutes)
 echo    3  Marathon, 3 hours               (episodes + Claude's new segments)
 echo    4  Marathon, 1 hour
 echo    5  One episode (choose 1-6)
-echo    6  Season 2: all ten episodes      (the Heritage Studio Series)
-echo    7  Season 2: one episode (choose 1-10)
+echo    6  Season 2: all sixteen episodes  (Heritage Series + From Stand to Keys)
+echo    7  Season 2: one episode (choose 1-16, 11-16 = From Stand to Keys)
 echo.
 set "CHOICE="
 set /p "CHOICE=  Type 1-7 and press Enter: "
@@ -68,7 +68,7 @@ if "%CHOICE%"=="5" (
 )
 if "%CHOICE%"=="6" (set "WHAT=--season 2 --ep all" & set "NAME=season2-all-episodes")
 if "%CHOICE%"=="7" (
-  set /p "EPN=  Which episode (1-10)? "
+  set /p "EPN=  Which episode (1-16)? "
   call set "WHAT=--season 2 --ep %%EPN%%"
   call set "NAME=season2-episode-%%EPN%%"
 )

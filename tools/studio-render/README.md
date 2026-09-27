@@ -15,7 +15,7 @@ It uses the **Microsoft Edge** already on the PC. Close other heavy programs whi
 
 ## Easiest: double-click `KARLCON-Render.bat`
 It installs the recorder on the first run, then asks what to record (test episode, all six, marathon
-1 h / 3 h, one episode, or season 2: all ten or one), the shape (9:16 or 16:9), the quality and your studio passcode (typed
+1 h / 3 h, one episode, or season 2: all sixteen or one), the shape (9:16 or 16:9), the quality and your studio passcode (typed
 hidden, never saved). The video lands in `tools\studio-render\videos\` and the folder opens when
 it is done. Only Node.js has to be installed first (nodejs.org, LTS).
 
@@ -26,8 +26,13 @@ node render.mjs --ep all --key YOUR_STUDIO_PASSCODE --out episodes.mp4
 node render.mjs --mode marathon --dur 3h --key YOUR_STUDIO_PASSCODE --out marathon-3h.mp4
 node render.mjs --season 2 --ep all --key YOUR_STUDIO_PASSCODE --out season2.mp4
 ```
-- `--season 2` records season 2, the Heritage Studio Series: ten episodes (`--ep 1` to `--ep 10`, or
-  `--ep all`). Without it you get season 1's six episodes.
+- `--season 2` records season 2: the Heritage Studio Series (`--ep 1` to `--ep 10`) and From Stand to Keys,
+  six long episodes that build one house stage by stage (`--ep 11` to `--ep 16`), or `--ep all` for all
+  sixteen. Without it you get season 1's six episodes.
+- Music: the songs in models/audio/playlist.json, loudness-matched. The playlist steps between calm, groove
+  and hype songs, leans on what the show is doing (calm stories, hype quick-fire), and changes song in the
+  pause after a line. To add a song: normalise it to -18 LUFS, drop it in models/audio, add a line with its
+  `energy` (1–3).
 - `--key` is the studio passcode (STUDIO_KEY). It is needed for the **premium (ElevenLabs) voices**:
   a web page cannot record the browser's own voices, so without it the video has music only.
   Each voice line is paid for once — repeats come from the voice cache.
