@@ -28,7 +28,8 @@ window.KC_HOSTS = {
     // optional motion capture (see STUDIO-SETUP.md): used automatically when these files exist
     clips: { idle: '/models/anim/sitting-idle.fbx', talk: '/models/anim/sitting-talking.fbx' },
     // standing (season 3, the Concept Room): Mixamo walks and a reach, full body
-    bodyClips: { walk: '/models/anim/walking.fbx', walkF: '/models/anim/female-stop-start-walking.fbx', turnL: '/models/anim/walking-left-turn.fbx', reach: '/models/anim/closing-lid.fbx' }
+    bodyClips: { walk: '/models/anim/walking.fbx', walkF: '/models/anim/female-stop-start-walking.fbx', turnL: '/models/anim/walking-left-turn.fbx', reach: '/models/anim/closing-lid.fbx' },
+    walkRate: 0.95               // her own walk, a touch slower than the capture
   },
   karl: {
     name: 'Karl', role: 'Engineer · KARLCON Lumen Builds', seat: 1,
@@ -38,7 +39,8 @@ window.KC_HOSTS = {
     outfit: 'hoodie',            // the black KARLCON Elite Retreats hoodie (studio-kit/wardrobe.js)
     outfitConcept: 'worksuit',   // in the Concept Room: the KARLCON Elite Retreats worksuit
     clips: { idle: '/models/anim/sitting-idle.fbx', talk: '/models/anim/sitting-talking.fbx' },
-    bodyClips: { walk: '/models/anim/walking.fbx', turnL: '/models/anim/walking-left-turn.fbx', reach: '/models/anim/closing-lid.fbx' }
+    bodyClips: { walk: '/models/anim/walking.fbx', turnL: '/models/anim/walking-left-turn.fbx', reach: '/models/anim/closing-lid.fbx' },
+    walkRate: 0.78               // a presenter's pace (the capture walks at about 1.8 m/s)
   }
 };
 

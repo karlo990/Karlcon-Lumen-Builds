@@ -68,6 +68,7 @@ function studioUrl(ep) {
   } else { u.searchParams.set('mode', mode); if (season > 1) u.searchParams.set('season', String(season)); }
   if (mode === 'marathon') u.searchParams.set('hours', String(Math.max(1, Math.ceil(maxDur / 3600))));
   if (opt.music === '0') u.searchParams.set('music', '0');
+  if (opt.test) u.searchParams.set('test', String(opt.test));   // --test motion: the motion test sequence (studio-kit/episodes-test.js)
   if (opt.musicvol) u.searchParams.set('musicvol', String(opt.musicvol));
   let s = u.toString().replace(/=(?=&|$)/g, '');
   if (key) s += '#key=' + encodeURIComponent(key);             // the fragment never reaches the server

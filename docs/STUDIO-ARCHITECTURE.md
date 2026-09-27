@@ -308,6 +308,48 @@ hosts stand, walk to the full-size roof-light mock-up and reach for it. What cha
 Cues: `go: 'model' | 'screen' | 'tints' | 'profiles' | 'home'`, `touch: true`, `tint: '<sample>'`. Camera:
 `detail`, which follows the assembly (the drill, or the parts in flight).
 
+### 10.1 Movement realism: transitions, turns, steps, stops (`studio-kit/motion.js`, `hosts.js`)
+
+The hosts move as one connected body rather than switching between poses:
+
+- **Inertialization** (Bollo, GDC 2018). Every change of motion (stand → walk, walk → stand,
+  stand → reach, a turning clip into a walk) starts from the pose actually shown and each joint's own
+  speed. The difference decays on a fifth-order curve with no jump in position, velocity or
+  acceleration. Each part has its own time, which gives follow-through: head 0.3 s, trunk ≈0.4 s, arms
+  ≈0.5 s. Any snap it wasn't told about (a joint moving further than its speed predicts) is caught the
+  same way.
+- **Staged turns.** The eyes and head find the destination first. The chest turns ahead of the hips (a
+  twist across Spine, Spine1 and Spine2), and the root follows on a minimum-jerk curve whose duration
+  comes from the size of the turn. At the end the head makes a small correction.
+- **Stepping feet.** Standing feet stay planted in the world. When the body has moved or turned away from
+  a foot (6 cm, 19°), that foot steps: one foot at a time, the leading foot first. The heel lifts before
+  the foot swings and it sets down after, while the weight moves over the other leg.
+- **Foot locking** during clips. A foot the clip has on the ground and still is pinned where it touched
+  down, and the leg is solved to it (knees forward). At a walk's start that is exactly where the foot
+  already stood.
+- **Starts and stops.** A walk sets off from mid-stance, with the root placed so the supporting foot is
+  where it already stood. It accelerates from half pace, steers about the foot carrying the weight, and
+  slows before the mark. It stops on a double-support moment, then shuffles onto the mark carrying its
+  speed. The trunk settles on a damped spring (slight overshoot) and the head nods once.
+- **Reach.** The target is looked at while approaching, then comes a weight shift and slight lean, then
+  the motion-capture reach, then settling.
+- **Standing.** The weight moves from one leg to the other every 7–15 s (hips over the loaded leg, pelvis
+  dropping on the free side, chest countering), with tiny uneven shoulder adjustments. At a display,
+  the eyes go between the object (2–4 s) and the person addressed (1–2.5 s).
+
+Measured with `tools/motion-check` on the test sequence (before → after):
+
+| | Luma | Karl |
+|---|---|---|
+| foot slide while planted | 5.1 m → 0.3 m | 0.86 m → 0.18 m |
+| joint pops (a snap > 600°/s in one frame) | 4 → 3 | 4 → 0 |
+| worst joint acceleration | 132,000 → 22,000 °/s² | 131,000 → 16,000 °/s² |
+| turn: chest lags head / hips lag chest | 0.01 / 0.02 s → 0.44 / 0.41 s | 0.06 / 0 s → 0.86 / 0.23 s |
+| hips peak acceleration | 52 → 16 m/s² | 47 → 19 m/s² |
+| idle hips sway (standing) | 0 mm (frozen) → 1.9 mm | 0 mm → 1.8 mm |
+
+`tools/rig-check` (seated, season 1) still passes: every frame is inside the normal human range.
+
 ## Sources
 
 - Holden, Kanoun, Perepichka, Popa, "Learned Motion Matching", ACM TOG / SIGGRAPH 2020: <https://dl.acm.org/doi/10.1145/3386569.3392440> · <https://theorangeduck.com/media/uploads/other_stuff/Learned_Motion_Matching.pdf>
