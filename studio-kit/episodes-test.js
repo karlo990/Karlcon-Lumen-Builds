@@ -28,7 +28,7 @@ window.KC_TEST_MOTION = {
       say: 'Seven, continued. Breathing, a small weight shift, the hands settling, the eyes moving between you and her.' },
     { who: 'karl', cam: 'cu',
       say: 'Eight. A close-up, facing the camera.' },
-    { who: 'luma', cam: 'profiles', look: 'profiles',
-      say: 'Eight, continued. And a profile, looking across the room at the board.' }
+    { who: 'luma', cam: 'profiles', go: 'profiles',
+      say: 'Eight, continued. And a profile: I walk across the room to the board, turn to it and present it.' }
   ]
 };

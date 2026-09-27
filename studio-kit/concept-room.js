@@ -200,6 +200,12 @@ export function buildConceptRoom(scene, renderer, { quality = 'high', Reflector 
     wide: (t, vert, ease) => { const k = ease(t / 9); return { pos: V(-0.7 + k * 1.1, (vert ? 2.5 : 2.6) - k * 0.5, (vert ? 7.6 : 7.8) - k * 0.5), tgt: V(0.2, vert ? 1.15 : 1.15, -1.6), fov: vert ? 62 : 42 }; },
     house: { r: [3.9, 3.4], orbit: [5.4, 4.6], y0: 3.4, yk: 0.1, y: 2.6, tgtY: -0.35, a: -0.12, sweep: 0.24 },   // between the hosts
     roof: { r: 2.4, y: 1.3 },
+    // both hosts: they stand further apart than at a desk, so the camera stands further back
+    two: (t, vert, ease, hs) => {
+      const hp = hs.map((h) => h.bones.Head.getWorldPosition(new THREE.Vector3())), c = hp.reduce((a, p) => a.add(p), V(0, 0, 0)).multiplyScalar(1 / hp.length);
+      const span = hp.length > 1 ? hp[0].distanceTo(hp[1]) : 1, d = (vert ? 2.3 : 1.25) * span + 1.2 - ease(t / 12) * 0.3, arc = (ease(t / 14) - 0.5) * 0.3;
+      return { pos: V(c.x + arc, c.y + 0.15, c.z + d), tgt: V(c.x + arc * 0.3, c.y - (vert ? 0.55 : 0.25), c.z), fov: vert ? 56 : 32 };
+    },
     // the displays: the host beside them, from the room side
     tints: (t, vert) => ({ pos: V(-2.3 - t * 0.01, 1.75, -2.3), tgt: V(-4.6, vert ? 1.3 : 1.35, -5.3), fov: vert ? 56 : 36 }),
     profiles: (t, vert) => ({ pos: V(2.3 + t * 0.01, 1.8, -0.6), tgt: V(4.6, vert ? 1.5 : 1.55, -3.2), fov: vert ? 58 : 38 }),

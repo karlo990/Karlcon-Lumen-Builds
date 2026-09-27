@@ -412,18 +412,19 @@ export class Host {
   /** stand here now, facing yaw (radians, world) */
   place(pos, yaw) { this.acts = []; this.act = null; this.bodyW = 0; this.root.position.copy(pos); this.root.rotation.y = yaw; this.feet = null; this.inert?.reset(); }
   /** walk to pos, then turn to face `face` (yaw); `lookAt` (a point) is noticed on the way in; `then: 'reach'` */
-  walkTo(pos, { face = null, clip = 'walk', then = null, lookAt = null } = {}) { this.acts.push({ type: 'go', to: new V3(pos.x, 0, pos.z), face, clip, then, lookAt }); }
+  walkTo(pos, { face = null, clip = 'walk', then = null, lookAt = null, via = [] } = {}) { this.acts.push({ type: 'go', to: new V3(pos.x, 0, pos.z), face, clip, then, lookAt, via: via.map((v) => new V3(v.x, 0, v.z)) }); }
   /** present something: the eyes go between it and whoever they are talking to (null: stop) */
   presentAt(point) { this.present = point ? { at: point.clone(), onObj: true, next: this.state.t + 1.5 } : null; }
   /* a 'go' becomes its steps when it starts, from wherever the host is by then */
   _plan(g) {
     const steps = [], from = this.root.position.clone(); from.y = 0;
+    const via = (g.via || []).filter((v) => v.distanceTo(from) > 0.6), first = via[0] || g.to;   // waypoints are walked through, not stopped at
     if (g.to.distanceTo(from) > 0.3 && this.body[g.clip]) {
-      const dir = Math.atan2(g.to.x - from.x, g.to.z - from.z), turn = wrap(dir - this.root.rotation.y);
+      const dir = Math.atan2(first.x - from.x, first.z - from.z), turn = wrap(dir - this.root.rotation.y);
       steps.push({ type: 'glance', yaw: dir, T: 0.28 + Math.random() * 0.14 });                 // the eyes and head find it first
       if (turn > 0.6 && turn < 2.2 && this.body.turnL) steps.push({ type: 'play', clip: 'turnL', chain: true });   // a walking turn to the left
       else if (Math.abs(turn) > 0.3) steps.push({ type: 'turn', yaw: dir });
-      steps.push({ type: 'walk', clip: g.clip, to: g.to, lookAt: g.lookAt });
+      steps.push({ type: 'walk', clip: g.clip, to: g.to, path: [...via, g.to], lookAt: g.lookAt });
     }
     if (g.face != null) steps.push({ type: 'turn', yaw: g.face });
     if (g.then && this.body[g.then]) { steps.push({ type: 'prep', T: 0.45, lookAt: g.lookAt }); steps.push({ type: 'play', clip: g.then, lookAt: g.lookAt }); }
@@ -497,10 +498,15 @@ export class Host {
     const k = this._k(c), loop = a.type === 'walk';
     let rate = a.rate || 1, left = 0, to = null;
     if (loop) {
-      to = a.to.clone().sub(R.position); to.y = 0; left = to.length();
+      // through the waypoints: head for the next one, and move on to the one after before reaching it
+      while (a.path?.length > 1 && a.path[0].clone().sub(R.position).setY(0).length() < 0.7) a.path.shift();
+      const aim = a.path?.[0] || a.to;
+      to = a.to.clone().sub(R.position); to.y = 0;
+      left = to.length() + (a.path?.length > 1 ? 1e3 : 0);                   // not slowing down before a waypoint
+      const toAim = aim.clone().sub(R.position).setY(0);
       // speed: from rest up to walking pace, and down again before the mark
       rate = a.base * (0.5 + 0.5 * curves.easeInOut(clamp(a.age / 0.9, 0, 1))) * (0.62 + 0.38 * curves.easeInOut(clamp((left - 0.35) / 1.1, 0, 1)));
-      const aimYaw = Math.atan2(to.x, to.z), err = wrap(aimYaw - R.rotation.y);
+      const aimYaw = Math.atan2(toAim.x, toAim.z), err = wrap(aimYaw - R.rotation.y);
       a.steer = (a.steer || 0) + (clamp(err * 2.2, -1.4, 1.4) - (a.steer || 0)) * Math.min(1, dt * 4);   // steering eases in and out
       // turning while walking pivots on the foot that is on the ground, so it doesn't slide
       // (the pivot moves between the feet with the weight: the lower foot carries it)
@@ -508,7 +514,7 @@ export class Host {
       if (pivot) { const off = R.position.clone().sub(pivot); off.y = 0; off.applyAxisAngle(Y, dth); R.position.set(pivot.x + off.x, R.position.y, pivot.z + off.z); }
       R.rotation.y += dth;
       this._look = a.lookAt && left < 2.2 ? a.lookAt : this._lookYaw(R.rotation.y, 0.12);          // notice the target before stopping
-      if (left < 0.42 || to.dot(new V3(Math.sin(R.rotation.y), 0, Math.cos(R.rotation.y))) < 0) a.stopping = true;
+      if (left < 0.42 || (!(a.path?.length > 1) && to.dot(new V3(Math.sin(R.rotation.y), 0, Math.cos(R.rotation.y))) < 0)) a.stopping = true;   // (overshoot: only on the last leg)
     } else if (a.lookAt) this._look = a.lookAt;
     const t0 = a.t; let t = a.t + dt * rate, d = new V3(), dy = 0, done = false, wrapped = false;
     const end = loop ? c.dur : a.to;

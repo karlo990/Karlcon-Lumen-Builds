@@ -29,7 +29,7 @@ window.KC_HOSTS = {
     clips: { idle: '/models/anim/sitting-idle.fbx', talk: '/models/anim/sitting-talking.fbx' },
     // standing (season 3, the Concept Room): Mixamo walks and a reach, full body
     bodyClips: { walk: '/models/anim/walking.fbx', walkF: '/models/anim/female-stop-start-walking.fbx', turnL: '/models/anim/walking-left-turn.fbx', reach: '/models/anim/closing-lid.fbx' },
-    walkRate: 0.95               // her own walk, a touch slower than the capture
+    walkRate: 1.15               // her own walk (with its natural stop and start), at a presenter's pace
   },
   karl: {
     name: 'Karl', role: 'Engineer · KARLCON Lumen Builds', seat: 1,

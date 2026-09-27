@@ -455,7 +455,7 @@ const ease = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * x * (x * (
 function shotPose(name, t, speaker) {
   const vert = FORMAT === 'vertical';
   const hs = Object.values(hosts);
-  if (typeof set.cams?.[name] === 'function' && name !== 'wide' && name !== 'detail') return set.cams[name](t, vert, ease);   // a room's own cameras (Concept Room: tints, profiles)
+  if (typeof set.cams?.[name] === 'function' && name !== 'wide' && name !== 'detail') return set.cams[name](t, vert, ease, hs);   // a room's own cameras (Concept Room: tints, profiles)
   switch (name) {
     case 'two': {
       const c = hs.reduce((a, h) => a.add(headOf(h)), V(0, 0, 0)).multiplyScalar(1 / hs.length);
@@ -827,12 +827,13 @@ function applyCues(line, speaker) {
 function goTo(h, where, touch) {
   if (!set.marks || !h?.walkTo) return;
   const m = where === 'home' ? set.marks['home' + h.cfg.seat] : where === 'model' ? set.touchMark() : set.marks[where]; if (!m) return;
-  const clip = h.body.walkF ? 'walkF' : 'walk', far = where !== 'home' && m.via && h.root.position.distanceTo(m.via) > 0.5;
-  if (far) h.walkTo(m.via, { clip });                                           // round the platform, not across it
-  if (where === 'home') { const back = Object.values(set.marks).find((k) => k.via && h.root.position.distanceTo(k.pos) < 0.6); if (back) h.walkTo(back.via, { clip }); }
+  // round the platform, not across it: through the waypoint on the way to a display, and on the way back from one
+  const clip = h.body.walkF ? 'walkF' : 'walk', via = [];
+  if (where !== 'home' && m.via) via.push(m.via);
+  { const from = Object.values(set.marks).find((k) => k !== m && k.via && h.root.position.distanceTo(k.pos) < 0.6); if (from) via.unshift(from.via); }
   // what they will present there: the eyes find it on the way in, and go between it and the camera once there
   const shows = where === 'model' ? targetFor('house') : where === 'screen' ? set.screen.group.getWorldPosition(new THREE.Vector3()) : set.points?.[where] || null;
-  h.walkTo(m.pos, { face: m.rotY, clip, then: touch ? 'reach' : null, lookAt: where === 'model' ? targetFor('roof') : shows });
+  h.walkTo(m.pos, { face: m.rotY, clip, via, then: touch ? 'reach' : null, lookAt: where === 'model' ? targetFor('roof') : shows });
   h.presentAt(shows);
 }
 /* now and then, the listener takes a sip of water during a long line */
