@@ -320,11 +320,12 @@ async function boot() {
     try { gltf = await loader.loadAsync(cfg.model, (e) => e.total && setProgress(0.15 + 0.8 * (done + e.loaded / e.total) / entries.length, 'Bringing in the presenters…')); }
     catch (e) { console.warn('Avatar failed, using fallback', cfg.model, e); gltf = await loader.loadAsync(cfg.fallback); }
     const standing = set.room === 'concept';                      // the Concept Room: no desk, the hosts stand and walk
-    const h = new Host({ id, name: cfg.name, model: gltf.scene, seatY: 0.47, deskY: set.desk.height, deskZ: 0.36, seed: cfg.seat * 3.7 + 1, mouthGain: cfg.mouthGain, stand: standing, walkRate: cfg.walkRate });
+    const h = new Host({ id, name: cfg.name, model: gltf.scene, seatY: 0.47, deskY: set.desk.height, deskZ: 0.36, seed: cfg.seat * 3.7 + 1, mouthGain: cfg.mouthGain, stand: standing, walkRate: cfg.walkRate, foldHabit: standing ? cfg.foldHabit : 0 });
     const seat = set.seats[cfg.seat]; h.root.position.copy(seat.pos); h.root.rotation.y = seat.rotY; h.groundAt = set.groundAt;
     const outfit = standing ? (cfg.outfitConcept || cfg.outfit) : cfg.outfit;
     if (outfit === 'hoodie') await dressHoodie(h).catch((e) => console.warn('hoodie failed', e));
     if (outfit === 'worksuit') await dressWorksuit(h).catch((e) => console.warn('worksuit failed', e));
+    if (standing && cfg.propsConcept) h.setProps(cfg.propsConcept);   // Luma's tablet, Karl's hard hat
     if (standing && cfg.bodyClips) clipLoads.push(loadClips(cfg.bodyClips).then((c) => { h.setBodyClips(c); console.info('walking clips for', id, Object.keys(c).join(', ')); }).catch(() => {}));
     h.cfg = cfg; scene.add(h.root); hosts[id] = h; done++;
     if (cfg.clips) clipLoads.push(loadClips(cfg.clips).then((c) => { if (Object.keys(c).length && h.useClips(c)) console.info('motion capture on for', id, Object.keys(c).join(', ')); }).catch(() => {}));
@@ -676,12 +677,14 @@ const sound = {
   },
   async loadTracks() {
     if (Q.get('musicsrc')) return [{ src: Q.get('musicsrc') }];
-    try {
-      const r = await fetch(MIX.dir + 'playlist.json', { cache: 'no-cache' }); const j = await r.json();
+    // the Concept Room (season 3) has its own background songs; any other room, or if that list is missing: the main one
+    const lists = (set?.room || EP?.room) === 'concept' ? ['playlist-s3.json', 'playlist.json'] : ['playlist.json'];
+    for (const list of lists) try {
+      const r = await fetch(MIX.dir + list, { cache: 'no-cache' }); if (!r.ok) continue; const j = await r.json();
       const t = (Array.isArray(j) ? j : []).map((x) => (typeof x === 'string' ? { src: x } : x)).filter((x) => x?.src)
         .map((x) => ({ ...x, src: /^(\/|https?:)/.test(x.src) ? x.src : MIX.dir + x.src }));
       if (t.length) return t;
-    } catch (e) { console.warn('playlist.json', e.message); }
+    } catch (e) { console.warn(list, e.message); }
     return [{ src: MIX.dir + MIX.fallback }];
   },
   /** every song once per round, never twice in a row, stepping the energy and leaning to the show's mood */

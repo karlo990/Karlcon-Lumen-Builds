@@ -28,26 +28,28 @@ function metrics(trace) {
     const dt = F[1].t - F[0].t, m = {};
     // feet: a foot is planted when it has been within 1 cm of its lowest height for 3+ frames (heel strike,
     // the foot still coming down and forward, is not a slide); how far does it move while planted?
+    const slides = [];
     for (const [k, name] of [['lf', 'left'], ['rf', 'right']]) {
       const lo = Math.min(...F.map((f) => f[k][1])); let slide = 0, maxv = 0, run = 0;
       for (let i = 1; i < F.length; i++) {
         const a = F[i - 1][k], b = F[i][k], down = a[1] < lo + 0.01 && b[1] < lo + 0.01;
         run = down ? run + 1 : 0;
-        if (run >= 3) { const d = Math.hypot(b[0] - a[0], b[2] - a[2]); slide += d; maxv = Math.max(maxv, d / dt); }
+        if (run >= 3) { const d = Math.hypot(b[0] - a[0], b[2] - a[2]); slide += d; maxv = Math.max(maxv, d / dt); if (d > 0.01) slides.push(`${name}@${F[i].t.toFixed(1)}:${(d * 100).toFixed(0)}cm`); }
       }
       m[`foot slide ${name} (m)`] = slide; m[`foot slide ${name} max (m/s)`] = maxv;
     }
     // pops: a joint's angular speed changing by more than 600°/s between two frames (a visible snap at 30 fps)
     const bones = Object.keys(F[0].q); let pops = 0, worst = 0, worstBone = '';
-    const accAll = [];
+    const accAll = [], popAt = [];
     for (const k of bones) {
       let prevW = null;
       for (let i = 1; i < F.length; i++) {
         const w = qAngle(F[i - 1].q[k], F[i].q[k]) / dt;
-        if (prevW != null) { const acc = Math.abs(w - prevW) / dt; accAll.push(acc); if (Math.abs(w - prevW) > 600) pops++; if (acc > worst) { worst = acc; worstBone = `${k} @${F[i].t.toFixed(1)}s`; } }
+        if (prevW != null) { const acc = Math.abs(w - prevW) / dt; accAll.push(acc); if (Math.abs(w - prevW) > 600) { pops++; popAt.push(`${k}@${F[i].t.toFixed(1)}`); } if (acc > worst) { worst = acc; worstBone = `${k} @${F[i].t.toFixed(1)}s`; } }
         prevW = w;
       }
     }
+    if (process.argv.includes('--pops')) console.log(id, 'pops:', popAt.join(' '), '\n' + id, 'slides > 1 cm/frame:', slides.join(' '));
     m['joint pops (Δω>600°/s in a frame)'] = pops; m['joint angular accel p99 (°/s²)'] = pct(accAll, 0.99); m['worst joint accel (°/s²)'] = worst; m['worst joint'] = worstBone;
     // turning speed of the body; how the hips (what is seen) speed up and slow down
     let yawAcc = [], lin = [], linAcc = [], yawRate = [];

@@ -24,6 +24,8 @@
 import * as THREE from 'three';
 import { LipsyncEn } from './lipsync-en.mjs';
 import { curves, Spring, Inertializer } from './motion.js';
+import { BodySystem } from './body.js';
+import { PROPS } from './props.js';
 
 const V3 = THREE.Vector3, QT = THREE.Quaternion;
 const X = new V3(1, 0, 0), Y = new V3(0, 1, 0), Z = new V3(0, 0, 1);
@@ -182,6 +184,7 @@ export class Host {
    * @param {number} o.deskZ     distance from hips to where the wrists rest (m, forward)
    * @param {number} o.expressive  gesture amplitude and rate (1 = default)
    * @param {boolean} o.stand    standing presenter (no chair or desk): feet on the floor, hands at the waist
+   * @param {number} o.foldHabit  standing, listening: how likely the arms fold across the chest (0 never … 1)
    */
   constructor(o) {
     Object.assign(this, { mouthGain: o.mouthGain ?? 0.85, id: o.id, name: o.name, seatY: o.seatY ?? 0.47, deskY: o.deskY ?? 0.75, deskZ: o.deskZ ?? 0.42, seed: o.seed ?? Math.random() * 10, expressive: o.expressive ?? 1, standing: !!o.stand });
@@ -203,6 +206,10 @@ export class Host {
     if (this.standing) { this.deskY = this.hipRestY + 0.03; this.deskZ = 0.2; }   // standing: the hands' home is in front of the navel
     this.body = {}; this.acts = []; this.act = null; this.bodyW = 0; this._look = null; this.present = null;
     this.walkRate = o.walkRate ?? 0.8; this.settle = new Spring(1.3, 0.5);
+    // the trunk takes part in speech as one system (body.js); seated, the chair takes some of it
+    this.bodySys = new BodySystem(this.seed, this.expressive * (this.standing ? 1 : 0.6));
+    this.bodySys.onShift = () => { if (this.standing && !this.act) this.state.nextStance = this.state.t; };
+    this.props = {}; this.foldHabit = o.foldHabit ?? 0;
     // every change of motion starts from the pose shown; each part has its own settling time
     // (head first, hands last: the follow-through)
     // (the hands are left out: they move on their own minimum-jerk paths inside the wrist's limits)
@@ -222,7 +229,9 @@ export class Host {
       mood: 'neutral', react: { smile: 0, brows: 0, surprise: 0, press: 0 }, micro: { k: null, v: 0, until: 0 }, nextMicro: 2,
       drinkTilt: 0,
       // standing: which leg carries the weight (-1 right … 1 left), changing now and then
-      stance: 0, stanceV: 0, stanceTo: 0, nextStance: 3 + Math.random() * 5
+      stance: 0, stanceV: 0, stanceTo: 0, nextStance: 3 + Math.random() * 5,
+      // arms folded across the chest (standing, listening), and glances down at a tablet held
+      fold: false, foldCue: null, foldW: 0, nextFold: 5 + Math.random() * 5, lastTalk: -10, nextTabletLook: 4 + Math.random() * 4, tabletLookUntil: 0
     };
     for (const s of ['Left', 'Right']) {
       const rest = this._pose('rest', '', s);
@@ -415,6 +424,15 @@ export class Host {
   walkTo(pos, { face = null, clip = 'walk', then = null, lookAt = null, via = [] } = {}) { this.acts.push({ type: 'go', to: new V3(pos.x, 0, pos.z), face, clip, then, lookAt, via: via.map((v) => new V3(v.x, 0, v.z)) }); }
   /** present something: the eyes go between it and whoever they are talking to (null: stop) */
   presentAt(point) { this.present = point ? { at: point.clone(), onObj: true, next: this.state.t + 1.5 } : null; }
+  /** things held: { Left: 'tablet' } / { Right: 'helmet' } (props.js); {} puts them away */
+  setProps(map = {}) {
+    for (const p of Object.values(this.props)) p.obj.removeFromParent();
+    this.props = {};
+    for (const [side, kind] of Object.entries(map || {})) if (PROPS[kind]) { const obj = PROPS[kind](); this.root.add(obj); this.props[side] = { kind, obj }; }
+  }
+  /** fold the arms across the chest (true), unfold (false), or leave it to habit (null) */
+  foldArms(on = true) { this.state.foldCue = on; }
+  _holding(s) { return this.props[s]?.kind; }
   /* a 'go' becomes its steps when it starts, from wherever the host is by then */
   _plan(g) {
     const steps = [], from = this.root.position.clone(); from.y = 0;
@@ -518,7 +536,7 @@ export class Host {
     } else if (a.lookAt) this._look = a.lookAt;
     const t0 = a.t; let t = a.t + dt * rate, d = new V3(), dy = 0, done = false, wrapped = false;
     const end = loop ? c.dur : a.to;
-    if (loop && t > end) { d.add(c.pos(end).sub(a.prev)); t -= c.dur; a.prev = c.pos(0); a.prevYaw = c.yaw(0); wrapped = true; }
+    if (loop && t > end) { d.add(c.pos(end).sub(a.prev)); t -= c.dur; a.prev = c.pos(0); a.prevYaw = c.yaw(0); wrapped = true; this.inert?.transition(); }   // (a clip that isn't a perfect cycle: its seam is blended)
     if (!loop && t >= end) { t = end; done = true; }
     const p = c.pos(t); d.add(p.clone().sub(a.prev)); a.prev = p; a.t = t;
     if (c.turns) { const y = c.yaw(t); dy = wrap(y - a.prevYaw); a.prevYaw = y; }
@@ -564,6 +582,7 @@ export class Host {
   _footLock(dt) {
     const b = this.bones, L = this._locks ||= { Left: {}, Right: {} };
     if (!this.bodyW || !this._clipFootRaw) { L.Left = {}; L.Right = {}; return; }
+    const solved = [], early = this.act && this.act.age < 0.35 && !this.act.chainIn;
     for (const s of ['Left', 'Right']) {
       const k = L[s], clipF = this._clipFootRaw[s], shown = b[s + 'Foot'].getWorldPosition(new V3());
       const v = k.last && dt > 0 ? Math.hypot(clipF.x - k.last.x, clipF.z - k.last.z) / dt : 0; k.last = clipF.clone();
@@ -575,14 +594,25 @@ export class Host {
       if (!contact && k.pos) { k.rel = k.pos; k.pos = null; k.rw = 1; }
       let target = null;
       if (k.pos) target = k.pos;
-      else if (k.rw > 0) { target = shown.clone().lerp(k.rel, curves.easeInOut(k.rw)); k.rw -= dt / 0.12; }
+      else if (k.rw > 0) { target = shown.clone().lerp(k.rel, curves.easeInOut(k.rw)); k.rw -= dt / 0.2; }
+      else if (early) {                                        // setting off: the foot that leaves the ground is lifted clear
+        const lift = Math.sin(Math.PI * clamp(this.act.age / 0.35, 0, 1)) * 0.06;   // while the body blends into the clip (no drag)
+        const floor = (this.groundAt ? this.groundAt(shown.x, shown.z) : 0) + this.ankleY + lift;
+        if (shown.y < floor) target = shown.clone().setY(floor);
+      }
       if (!target) continue;
-      const sg = s === 'Left' ? 1 : -1, pole = new V3(sg * 0.18, 0.2, 1).normalize().applyQuaternion(this.root.quaternion);   // knees bend forward
+      // the knee keeps pointing where the clip points it (no swing of the knee when a foot is pinned or let go);
+      // a leg nearly straight has no clear knee direction: then forward
+      const sg = s === 'Left' ? 1 : -1, fwdPole = new V3(sg * 0.18, 0.2, 1).normalize().applyQuaternion(this.root.quaternion);
+      const hip = b[s + 'UpLeg'].getWorldPosition(new V3()), knee = b[s + 'Leg'].getWorldPosition(new V3()), axis = shown.clone().sub(hip).normalize();
+      const bend = knee.sub(hip).projectOnPlane(axis), bl = bend.length();
+      const pole = bl > 0.02 ? bend.normalize().lerp(fwdPole, clamp(1 - (bl - 0.02) / 0.04, 0, 1)).normalize() : fwdPole;
       const toe = b[s + 'ToeBase'] ? b[s + 'ToeBase'].getWorldPosition(new V3()).sub(b[s + 'Foot'].getWorldPosition(new V3())).normalize() : null;
       this._ik(s + 'UpLeg', s + 'Leg', s + 'Foot', s + 'UpLeg', s + 'Leg', target, pole);
       if (toe && b[s + 'ToeBase']) aim(b[s + 'Foot'], b[s + 'ToeBase'], toe);
+      solved.push(s + 'UpLeg', s + 'Leg', s + 'Foot', s + 'ToeBase');
     }
-    this.inert.resync(['LeftUpLeg', 'RightUpLeg', 'LeftLeg', 'RightLeg', 'LeftFoot', 'RightFoot', 'LeftToeBase', 'RightToeBase']);
+    this.inert.resync(solved);                                 // (a swinging leg keeps its blend, e.g. across a clip's loop seam)
   }
   /* standing legs: each foot stays where it was put and steps when the body has moved or turned away
      from it — one foot at a time, the leading foot first, a small arc, the weight going to the other leg */
@@ -703,6 +733,12 @@ export class Host {
     rotateWorld(b.Spine1, _qc.setFromAxisAngle(right, breath * 0.012 + 0.02));
     rotateWorld(b.Spine2, _qc.setFromAxisAngle(right, -breath * 0.018 - 0.04));
     rotateWorld(b.Spine2, _qc.setFromAxisAngle(fwd, wave(t * 0.5, this.seed + 7) * 0.02));
+    // speech moves the whole trunk: beats lean in, gestures turn the chest and lift that shoulder,
+    // the pelvis answers the other way, sentence ends breathe out (body.js)
+    const BS = this._bs = this.bodySys.step(dt, talking), bk = this.standing ? 1 : 0.6;
+    rotateWorld(b.Hips, _qc.setFromAxisAngle(up, BS.pelvis.yaw * bk)); rotateWorld(b.Hips, _qc.setFromAxisAngle(fwd, BS.pelvis.roll * bk));
+    rotateWorld(b.Spine, _qc.setFromAxisAngle(right, BS.spine.pitch * bk)); rotateWorld(b.Spine, _qc.setFromAxisAngle(up, BS.spine.yaw * bk)); rotateWorld(b.Spine, _qc.setFromAxisAngle(fwd, BS.spine.roll * bk));
+    rotateWorld(b.Spine2, _qc.setFromAxisAngle(right, BS.chest.pitch * bk)); rotateWorld(b.Spine2, _qc.setFromAxisAngle(up, BS.chest.yaw * bk)); rotateWorld(b.Spine2, _qc.setFromAxisAngle(fwd, BS.chest.roll * bk));
     // posture: whatever the motion capture brings, the trunk keeps a desk presenter's lean (at most ~15° forward)
     { const cf = this._fwdOf('Spine2').applyQuaternion(rq.clone().invert()), cp = yawPitch(cf).p, fix = soft(cp, -16 * DEG, 4 * DEG) - cp;
       if (Math.abs(fix) > 1e-4) { const cr = Y.clone().cross(cf.applyQuaternion(rq)).normalize(); rotateWorld(b.Spine, _qc.setFromAxisAngle(cr, -fix * 0.5)); rotateWorld(b.Spine1, _qc.setFromAxisAngle(cr, -fix * 0.5)); } }
@@ -726,19 +762,27 @@ export class Host {
       // the shoulder girdle rises a little as the hand rises (scapulohumeral rhythm)
       const elev = clamp((pos.y - (this.deskY + 0.1)) * 0.45, 0, 0.09);
       const micro = this.standing ? wave(t * 0.17, this.seed + (sg > 0 ? 11 : 13)) * 0.012 : 0;   // tiny, uneven shoulder adjustments
-      if (b[s + 'Shoulder']) rotateWorld(b[s + 'Shoulder'], _qc.setFromAxisAngle(fwd, -sg * (0.12 + breath * 0.008 - elev + micro)));
-      this._ik(s + 'Arm', s + 'ForeArm', s + 'Hand', s + 'Arm', s + 'ForeArm', P(pos), R(new V3(sg * 0.32, -0.72, -0.6).normalize()));
+      const shrug = (this._bs?.shoulders[s] || 0) * (this.standing ? 1 : 0.6);
+      if (b[s + 'Shoulder']) rotateWorld(b[s + 'Shoulder'], _qc.setFromAxisAngle(fwd, -sg * (0.12 + breath * 0.008 - elev + micro - shrug)));
+      this._ik(s + 'Arm', s + 'ForeArm', s + 'Hand', s + 'Arm', s + 'ForeArm', P(pos), R(this._armPole(s)));
       this._alignHand(s, R(H.f.p.clone().normalize()), R(H.n.p.clone().normalize()), rq);
       this._fingers(s, this._fingerPose(s, dt));
     }
     if (S.gesture?.kind === 'drink') this._carryBottle();
     this._bodyBlend();
+    if (this.bodyW) for (const s of ['Left', 'Right']) if (this._holding(s) === 'tablet') {
+      const H = S.hands[s]; this.root.updateMatrixWorld(true);
+      this._ik(s + 'Arm', s + 'ForeArm', s + 'Hand', s + 'Arm', s + 'ForeArm', P(H.p.p), R(this._armPole(s)));
+      this._alignHand(s, R(H.f.p.clone().normalize()), R(H.n.p.clone().normalize()), rq);
+      this._fingers(s, this.state.fing[s].x);
+    }
     if (this.bodyW) this._clipFootRaw = { Left: b.LeftFoot.getWorldPosition(new V3()), Right: b.RightFoot.getWorldPosition(new V3()) };
 
     /* head, neck and eyes */
     S.nodV += (-S.nod * 60 - S.nodV * 9) * dt; S.nod += S.nodV * dt;
     this._gaze(dt, t, gaze, rq);
     // every change of motion continues from the pose shown (and a snap anywhere is smoothed)
+    this.inert.detect = !this.bodyW;
     this.inert.apply(dt);
     if (this.standing && !this.bodyW && this._legT) {         // planted feet stay exactly where they are
       // (just after a clip, the legs ease from the pose the clip left into the planted solution over 0.35 s)
@@ -750,6 +794,7 @@ export class Host {
     }
     if (this.standing) this._footLock(dt);
     if (this.bodyW) { this.root.updateMatrixWorld(true); this._clipFeet = { Left: b.LeftFoot.getWorldPosition(new V3()), Right: b.RightFoot.getWorldPosition(new V3()) }; }
+    this._placeProps();
 
     /* face: blink, visemes, jaw, smile, brows */
     // ~26 blinks a minute while talking, ~17 listening (Bentivoglio et al. 1997), plus at pauses and gaze shifts
@@ -812,6 +857,11 @@ export class Host {
     if (/\?$/.test(w.raw)) S.flashV += 4;
     if (/[.!?]$/.test(w.raw) && Math.random() < 0.45) S.blinkAt = S.t + w.d + 0.06;
     if (/^(not|no|never|don't|can't|won't|isn't|without)$/i.test(w.raw.replace(/[^\w']/g, ''))) S.react.press = Math.min(1, S.react.press + 0.3);
+    const B = this.bodySys, bare = w.raw.replace(/[^\w']/g, '');
+    if (w.stress) B.beat(0.6 + Math.random() * 0.5);
+    if (/\?$/.test(w.raw)) B.question();
+    else if (/[.!]$/.test(w.raw)) B.sentenceEnd();
+    if (/^(but|however|although|though|yet|instead|whereas)$/i.test(bare)) B.contrast();
   }
 
   _ik(uName, lName, eName, uLen, lLen, targetW, poleW) {
@@ -905,6 +955,11 @@ export class Host {
     const S = this.state, G = S.gaze, b = this.bones;
     const eyeW = this._eyeW || (b.LeftEye && b.RightEye ? b.LeftEye.getWorldPosition(new V3()).add(b.RightEye.getWorldPosition(new V3())).multiplyScalar(0.5) : b.Head.getWorldPosition(new V3()).add(new V3(0, 0.08, 0)));
     let target = this._look || S.lookAt;
+    const tab = this.props.Left?.kind === 'tablet' ? this.props.Left.obj : this.props.Right?.kind === 'tablet' ? this.props.Right.obj : null;
+    if (tab && !this._look && !this.act) {                  // holding a tablet: now and then a look down at it
+      if (S.t > S.nextTabletLook) { S.tabletLookUntil = S.t + 0.8 + Math.random() * 0.8; S.nextTabletLook = S.t + 6 + Math.random() * 7; }
+      if (S.t < S.tabletLookUntil) target = tab.getWorldPosition(new V3());
+    }
     const Pr = this.present;
     if (!this._look && Pr && !this.act) {                   // presenting: between the thing shown and the person talked to
       if (S.t > Pr.next) { Pr.onObj = !Pr.onObj; Pr.next = S.t + (Pr.onObj ? 2.2 + Math.random() * 2 : 1.2 + Math.random() * 1.3); }
@@ -958,11 +1013,11 @@ export class Host {
     this._aimBone(b.Head, this.restWorldQ.Head, dirOf(hy, hp).applyQuaternion(rq));
     // nods about the head's own side axis
     const hf = fwdOf('Head'), hr = Y.clone().cross(hf).normalize();
-    rotateWorld(b.Head, _qc.setFromAxisAngle(hr, S.nod * 0.5 - S.drinkTilt * 0.24));
+    rotateWorld(b.Head, _qc.setFromAxisAngle(hr, S.nod * 0.5 - S.drinkTilt * 0.24 + (this._bs?.head.nod || 0)));
     if (S.drinkTilt) rotateWorld(b.Neck, _qc.setFromAxisAngle(hr, -S.drinkTilt * 0.12));
     // side tilt: half of whatever the motion capture brought, plus a little with speech, kept small
     { const f2 = fwdOf('Head'), roll = signedAngle(upOf('Spine2'), upOf('Head'), f2);
-      const want = soft(roll * 0.5 + wave(t * 0.45, this.seed + 11) * 0.035 * (0.5 + S.energy), -LIM.neckRoll, LIM.neckRoll);
+      const want = soft(roll * 0.5 + wave(t * 0.45, this.seed + 11) * 0.035 * (0.5 + S.energy) + (this._bs?.head.tilt || 0), -LIM.neckRoll, LIM.neckRoll);
       rotateWorld(b.Head, _qc.setFromAxisAngle(f2, want - roll)); }
     // eyes: on the target, as far as they can turn in the head; fixational micro-saccades
     const hA = yawPitch(fwdOf('Head').applyQuaternion(irq));
@@ -1039,7 +1094,46 @@ export class Host {
         if (d.z > 0.15) return { pos: new V3(sg * 0.2, this.deskY + 0.28, 0.24).addScaledVector(d, 0.22), nrm: palm(80), fwd: d, shape: 'point' };
         return { pos: new V3(sg * 0.3, this.deskY + 0.24, 0.2), nrm: palm(-20), fwd: v(0.85, 0.35, -0.3), shape: 'open' };
       }
+      // a tablet in this hand: cradled on the palm and forearm at the side of the waist, the screen tilted up toward the face
+      case 'tablet': return { pos: new V3(sg * 0.15, this.deskY + 0.1, 0.24), nrm: palm(-60), fwd: v(-0.55, 0.1, 0.8), shape: 'relaxed' };
+      // the other hand, not gesturing: hanging easily at the side (never clasped over the tablet)
+      case 'side': return { pos: new V3(sg * (this.shoulderWidth * 0.5 + 0.05), this.hipRestY - 0.04, 0.05), nrm: palm(8), fwd: v(0.05, -1, 0.12), shape: 'relaxed' };
+      // a hard hat by the brim, the arm hanging easily at the side
+      case 'helmet': return { pos: new V3(sg * (this.shoulderWidth * 0.5 + 0.08), this.hipRestY - 0.08, 0.04), nrm: palm(0), fwd: v(0, -1, 0.15), shape: 'grip' };
+      // arms folded: each hand to the other arm, the left forearm over the right
+      case 'fold': {
+        const chestY = this.eyeY - 0.43, top = s === 'Left';
+        return { pos: new V3(-sg * 0.12, chestY - (top ? 0 : 0.035), top ? 0.2 : 0.155), nrm: palm(0, -1.4), fwd: v(-1, 0.05, -0.35), shape: 'relaxed' };
+      }
       default: return { pos: rest.pos.add(this.state.restShift[s]), nrm: rest.nrm, fwd: rest.fwd, shape: 'desk' };
+    }
+  }
+  /* where the elbow points: down and back, or out and forward with the arms folded */
+  _armPole(s) {
+    const sg = s === 'Left' ? 1 : -1;
+    return new V3(sg * 0.32, -0.72, -0.6).lerp(new V3(sg * 0.9, -0.45, 0.15), this.state.foldW).normalize();
+  }
+  /* each prop follows the hand holding it; with the arms folded a hard hat is tucked under the arm */
+  _placeProps() {
+    const P = this.props; if (!P.Left && !P.Right) return;
+    const b = this.bones; this.root.updateMatrixWorld(true);
+    const rq = this.root.getWorldQuaternion(new QT()), irq = rq.clone().invert(), fw = Z.clone().applyQuaternion(rq);
+    for (const [s, p] of Object.entries(P)) {
+      if (!b[s + 'HandMiddle1']) continue;
+      const { f, n } = this._handFrame(s), sg = s === 'Left' ? 1 : -1;
+      const W = b[s + 'Hand'].getWorldPosition(new V3()).lerp(b[s + 'HandMiddle1'].getWorldPosition(new V3()), 0.5);
+      let pos, yAx, zAx;
+      if (p.kind === 'tablet') { pos = W.addScaledVector(f, 0.05).addScaledVector(n, 0.018); yAx = n.clone(); zAx = f.clone(); }
+      else { pos = W.addScaledVector(n, -0.1).addScaledVector(f, 0.02); yAx = n.clone().negate(); zAx = fw.clone(); }
+      yAx.normalize(); zAx.projectOnPlane(yAx).normalize();
+      const q = new QT().setFromRotationMatrix(new THREE.Matrix4().makeBasis(yAx.clone().cross(zAx), yAx, zAx)).premultiply(irq);
+      const lp = this.root.worldToLocal(pos);
+      const k = p.kind === 'helmet' ? curves.easeInOut(this.state.foldW) : 0;
+      if (k > 0) {                                               // pinned against the hip by the elbow, crown outward
+        const tuck = new V3(sg * (this.hipWidth * 0.5 + 0.15), this.eyeY - 0.6, -0.02), tq = new QT().setFromUnitVectors(Y, new V3(sg, 0, 0));
+        lp.lerp(tuck, k); q.slerp(tq, k);
+      }
+      p.obj.position.copy(lp); p.obj.quaternion.copy(q);
     }
   }
   _planHands(dt, talking, lt) {
@@ -1055,6 +1149,14 @@ export class Host {
       S.restKey++; S.nextRestShift = t + 7 + Math.random() * 9;
     }
     const legacy = { beatL: 'beat', beatR: 'beat', explain: 'explain', open: 'open', count: 'count', point: 'point' };
+    // arms folded: a listening habit (never while talking, walking, or with a tablet in hand), or when cued
+    if (talking) S.lastTalk = t;
+    const canFold = this.standing && !this.act && !this._holding('Left') && this._holding('Right') !== 'tablet';
+    if (t > S.nextFold) { S.fold = !talking && t - S.lastTalk > 1.2 && Math.random() < this.foldHabit; S.nextFold = t + (S.fold ? 7 : 5) + Math.random() * 7; }
+    if (talking && S.fold && t - S.lastTalk < 0.05 && cue) S.fold = false;           // unfold to make the first gesture
+    const folded = canFold && (S.foldCue ?? S.fold) && !g;
+    S.foldW += ((folded ? 1 : 0) - S.foldW) * Math.min(1, dt * 2.5);
+    const held = this._holding('Left') ? 'Left' : this._holding('Right') ? 'Right' : null, free = held === 'Left' ? 'Right' : 'Left';
     for (const s of ['Left', 'Right']) {
       const H = S.hands[s];
       if (g?.kind === 'drink' && s === g.data.side && this._drinkTarget) {
@@ -1065,12 +1167,18 @@ export class Host {
       if (g && legacy[g.kind]) {
         const one = g.kind === 'point' ? (g.data.side || 'Right') : g.kind === 'beatL' ? 'Left' : g.kind === 'beatR' || g.kind === 'count' ? 'Right' : null;
         if (!one || one === s) { pose = this._pose(legacy[g.kind], 'stroke', s, { ...g.data, n: g.data.n || 3 }); key = 'g:' + g.kind; T = 0.55; }
-      } else if (cue && (cue.both || cue.side === s)) {
+      } else if (folded) { pose = this._pose('fold', '', s); key = 'fold'; T = 0.9; }
+      else if (held === s) { const k = this._holding(s); pose = this._pose(k, '', s); key = 'hold:' + k; T = 0.7; }  // the hand with the prop keeps it
+      else if (cue && (cue.both || cue.side === s || (held && cue.side === held && s === free))) {       // a one-handed gesture goes to the free hand
         if (cue.phase === 'home') { pose = this._pose('home', '', s); key = 'home'; T = 0.45; }
         else { pose = this._pose(cue.kind, cue.phase, s, cue); key = cue.id + cue.phase; T = cue.T; }
       }
+      if (!pose && held && this._holding(held) === 'tablet') { pose = this._pose('side', '', s); key = 'side'; T = 0.7; }
       if (!pose) { pose = this._pose('rest', '', s); key = 'rest' + S.restKey; T = 0.35 + H.p.p.distanceTo(pose.pos) * 1.4; }
-      if (key !== H.key) { H.p.to(pose.pos, T); H.n.to(pose.nrm, T); H.f.to(pose.fwd, T); H.key = key; H.shape = pose.shape; }
+      if (key !== H.key) {
+        H.p.to(pose.pos, T); H.n.to(pose.nrm, T); H.f.to(pose.fwd, T); H.key = key; H.shape = pose.shape;
+        if (cue?.phase === 'stroke' && key === cue.id + 'stroke') this.bodySys.gesture(s, cue.kind === 'beat' ? 0.6 : 1);   // the body goes with the gesture
+      }
       H.p.update(dt); H.n.update(dt); H.f.update(dt);
     }
   }

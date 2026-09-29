@@ -350,6 +350,46 @@ Measured with `tools/motion-check` on the test sequence (before → after):
 
 `tools/rig-check` (seated, season 1) still passes: every frame is inside the normal human range.
 
+### 10.2 The body as one system, props, folded arms (`studio-kit/body.js`, `props.js`)
+
+- **BodySystem** (`body.js`). The trunk takes part in speech instead of standing still under a
+  talking head. Words drive it:
+  - a stressed word gives a small lean in and a lift of the chest;
+  - a gesture turns the chest toward that arm and lifts that shoulder, while the pelvis answers the
+    other way (counter-rotation);
+  - a question tilts the head and lifts both shoulders; "but / however…" gives a one-sided shrug;
+  - a sentence end is an out-breath (chest and shoulders drop) and sometimes a weight shift.
+
+  Each channel is a damped spring, so movements rise, overshoot a little and settle, the chest
+  quicker than the pelvis. Breathing (faster and deeper while talking) and a never-repeating
+  asymmetric sway run underneath. Seated hosts get 60 % of it. It follows the speech-gesture
+  literature (McNeill; Cassell et al., BEAT; the GENEA challenges) and the "give the intent, let the
+  whole body complete it" idea of NVIDIA's MaskedMimic / GR00T whole-body control.
+- **Props.** Luma presents from a KARLCON tablet in her left hand; her other hand hangs at her side or
+  gestures, so the hands are never clasped. Karl carries a KARLCON hard hat by the brim in his right
+  hand, and his one-handed gestures go to the free hand. Each prop is placed every frame from the
+  holding hand's own frame (palm normal, finger direction). A tablet is carried steadily through a
+  walk rather than swung with the clip's arm, and now and then Luma glances down at it.
+- **Folded arms** (`foldArms(true/false/null)`, `foldHabit` per host). Karl often folds his arms
+  while listening: each hand goes to the other arm with the elbows out, and the hard hat is pinned
+  against his hip. He unfolds for his first gesture.
+- **Walking, fixed at the source.** Luma's old clip (`female-stop-start-walking.fbx`) walks one
+  step, stands for a second and sets off again. Looped, it stalled her legs every 3.2 s while her
+  body kept moving. She now walks on the seamless walking cycle at her own pace. Also:
+  - the foot the walk lifts first is raised clear during the blend into the clip, so it doesn't drag;
+  - a pinned leg keeps the knee direction the clip gives it;
+  - only the legs that foot locking actually re-solves drop their blend.
+
+Measured with `tools/motion-check` against the previous version on the same day
+(`--pops` lists each pop and slide):
+
+| | Luma | Karl |
+|---|---|---|
+| joint pops | 35 → 2 | 1 → 0–2 (one hip moment as a walk sets off; varies run to run) |
+| foot slide while planted | 0.09 m → 0.02 m | 0.51 m → 0.01 m |
+| joint angular accel p99 | 4,179 → 3,167 °/s² | 3,117 → 3,705 °/s² (the trunk now moves while talking) |
+| hips accel p99 | 6.5 → 4.9 m/s² | 4.4 → 4.5 m/s² |
+
 ## Sources
 
 - Holden, Kanoun, Perepichka, Popa, "Learned Motion Matching", ACM TOG / SIGGRAPH 2020: <https://dl.acm.org/doi/10.1145/3386569.3392440> · <https://theorangeduck.com/media/uploads/other_stuff/Learned_Motion_Matching.pdf>
