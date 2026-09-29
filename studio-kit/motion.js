@@ -68,6 +68,7 @@ export class Inertializer {
   constructor(bones, times = {}, { snapDeg = 5 } = {}) {
     this.items = Object.entries(bones).filter(([, b]) => b).map(([name, bone]) => ({ name, bone, t1: times[name] ?? 0.4, prev: null, prev2: null, off: null, axis: new V3() }));
     this.snap = snapDeg * Math.PI / 180; this.all = false;
+    this.detect = true;                                     // false: only announced transitions are blended (a clip's own motion is left alone)
     this.pos = { obj: null, prev: null, prev2: null, off: null, dir: new V3(), t1: 0.4 };
   }
   /** carry the next frame's change of pose on every joint (a switch of motion) */
@@ -88,7 +89,7 @@ export class Inertializer {
         // a snap nobody announced: the joint would move much further than its own speed predicts
         // (checked on what would be shown, so a new snap during a transition is caught too)
         let start = this.all;
-        if (!start) {
+        if (!start && this.detect) {
           _q.copy(it.prev); if (it.prev2) { _q2.copy(it.prev2).invert().premultiply(it.prev); _q.premultiply(_q2); }   // prev · (prev2⁻¹·prev)
           const shown = it.off ? q.clone().premultiply(new QT().setFromAxisAngle(it.axis, at({ ...it.off, t: it.off.t + dt }))) : q;
           start = _q.angleTo(shown) > this.snap;

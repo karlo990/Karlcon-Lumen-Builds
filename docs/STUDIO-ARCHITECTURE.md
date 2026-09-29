@@ -350,6 +350,82 @@ Measured with `tools/motion-check` on the test sequence (before → after):
 
 `tools/rig-check` (seated, season 1) still passes: every frame is inside the normal human range.
 
+### 10.2 The body as one system, props, folded arms (`studio-kit/body.js`, `props.js`)
+
+- **BodySystem** (`body.js`). The trunk takes part in speech instead of standing still under a
+  talking head. Words drive it:
+  - a stressed word gives a small lean in and a lift of the chest;
+  - a gesture turns the chest toward that arm and lifts that shoulder, while the pelvis answers the
+    other way (counter-rotation);
+  - a question tilts the head and lifts both shoulders; "but / however…" gives a one-sided shrug;
+  - a sentence end is an out-breath (chest and shoulders drop) and sometimes a weight shift.
+
+  Each channel is a damped spring, so movements rise, overshoot a little and settle, the chest
+  quicker than the pelvis. Breathing (faster and deeper while talking) and a never-repeating
+  asymmetric sway run underneath. Seated hosts get 60 % of it. It follows the speech-gesture
+  literature (McNeill; Cassell et al., BEAT; the GENEA challenges) and the "give the intent, let the
+  whole body complete it" idea of NVIDIA's MaskedMimic / GR00T whole-body control.
+- **Props.** Luma presents from a KARLCON tablet in her left hand; her other hand hangs at her side or
+  gestures, so the hands are never clasped. Karl carries a KARLCON hard hat by the brim in his right
+  hand, and his one-handed gestures go to the free hand. Each prop is placed every frame from the
+  holding hand's own frame (palm normal, finger direction). A tablet is carried steadily through a
+  walk rather than swung with the clip's arm, and now and then Luma glances down at it.
+- **Folded arms** (`foldArms(true/false/null)`, `foldHabit` per host). Karl often folds his arms
+  while listening: each hand goes to the other arm with the elbows out, and the hard hat is pinned
+  against his hip. He unfolds for his first gesture.
+- **Walking, fixed at the source.** Luma's old clip (`female-stop-start-walking.fbx`) walks one
+  step, stands for a second and sets off again. Looped, it stalled her legs every 3.2 s while her
+  body kept moving. She now walks on the seamless walking cycle at her own pace. Also:
+  - the foot the walk lifts first is raised clear during the blend into the clip, so it doesn't drag;
+  - a pinned leg keeps the knee direction the clip gives it;
+  - only the legs that foot locking actually re-solves drop their blend.
+
+Measured with `tools/motion-check` against the previous version on the same day
+(`--pops` lists each pop and slide):
+
+| | Luma | Karl |
+|---|---|---|
+| joint pops | 35 → 2 | 1 → 0–2 (one hip moment as a walk sets off; varies run to run) |
+| foot slide while planted | 0.09 m → 0.02 m | 0.51 m → 0.01 m |
+| joint angular accel p99 | 4,179 → 3,167 °/s² | 3,117 → 3,705 °/s² (the trunk now moves while talking) |
+| hips accel p99 | 6.5 → 4.9 m/s² | 4.4 → 4.5 m/s² |
+
+## 11. Case study: the Concept Room's interior, from 3D to 4D (`studio-kit/interior.js`)
+
+**The problem.** The room was a clean 3D model with no life in it:
+- a white, reflective floor that competed with the faces for brightness;
+- bare white walls, and no nature anywhere;
+- light that was the same from the first second to the last.
+
+**Design, grounded in the literature.**
+
+| Decision | Evidence |
+|---|---|
+| Plants in every sightline: fiddle-leaf figs, snake plants, eucalyptus in vases | Adding plants to a lean office raised satisfaction, concentration and perceived air quality, and productivity by 15 % (Nieuwenhuis, Knight, Postmes & Haslam 2014, three field experiments). "Visual connection with nature" is pattern 1 of the *14 Patterns of Biophilic Design* (Browning, Ryan & Clancy 2014). |
+| Graphite loop-pile carpet tiles, quarter-turned, and a forest-green wool rug where the hosts stand | A matte, textured floor grounds the figures and keeps the brightest surfaces (faces, the mock-up) where the eye should go. Quarter-turned tiles are the usual commercial layout, and they hide seams. |
+| Palette: brand red, black and oak on warm white, with greens from the plants and the rug. Terracotta for vases and pots, one glazed celadon accent | Blue-green and green are among the most pleasant hues; brightness drives pleasure and saturation drives arousal (Valdez & Mehrabian 1994). Terracotta sits opposite green, so the plants read greener beside it, and it is a muted relative of KARLCON red, which stays the only saturated red. Colour design measurably affects mood at work (Küller et al. 2006). |
+| Coloured light at the edges of the room: cove washes, plant uplights with leaf-dappled light, a halo behind the oak slats | Peripheral, non-uniform lighting was judged more pleasant and relaxing than uniform overhead lighting (Flynn et al. 1973). |
+| White light warmer when calm and dimmer, cooler when brighter | The Kruithof (1941) comfort region: warm light at lower illuminance, cooler at higher. It is contested, so it is used here only as a direction. |
+
+**The fourth dimension: time.** Biophilic pattern 5, "dynamic & diffuse light", asks for light that
+changes over time the way daylight does. One director drives every source together, so the room
+changes as a single system (synchronised):
+
+- **Mood.** The same `music:` cues that steer the playlist steer the light:
+  - calm: 3400 K, amber cove light, softer;
+  - groove: 4200 K, blue-green cove light;
+  - hype: 5200 K, brighter, the cove in KARLCON red and the datum line glowing.
+- **The change travels.** A new mood spreads outward from the mock-up at 5 m/s. Each light eases over
+  2.5 s once the wave reaches it, so the room changes like a breath rather than a switch.
+- **Slow daylight.** The sun direction moves across the room over 15 minutes, passing clouds vary its
+  strength by about 7 %, the leaf shadows behind the plants drift, and the coloured light swells and
+  settles on a shared 14-second cycle. Every change is slower than 0.1 Hz, so nothing flickers on
+  camera.
+
+**How to see it.**
+- Stills in a given mood: `/studio?shot=1&season=3&ep=1&cam=wide&line=0&t=8&mood=hype`.
+- During a show: the lights follow `music:` on each episode and line.
+
 ## Sources
 
 - Holden, Kanoun, Perepichka, Popa, "Learned Motion Matching", ACM TOG / SIGGRAPH 2020: <https://dl.acm.org/doi/10.1145/3386569.3392440> · <https://theorangeduck.com/media/uploads/other_stuff/Learned_Motion_Matching.pdf>
@@ -373,3 +449,9 @@ Measured with `tools/motion-check` on the test sequence (before → after):
 - Rijpkema & Girard, "Computer animation of knowledge-based human grasping", SIGGRAPH 1991: <https://dl.acm.org/doi/10.1145/127719.122754>
 - Bentivoglio et al., "Analysis of blink rate patterns in normal subjects", Mov. Disord. 1997: <https://pubmed.ncbi.nlm.nih.gov/9399231/>
 - Evinger, Manning & Sibony, "Eyelid movements: mechanisms and normal data", IOVS 1991: <https://pubmed.ncbi.nlm.nih.gov/1993591/> · Evinger et al., "Not looking while leaping", Exp. Brain Res. 1994: <https://link.springer.com/article/10.1007/BF00227203>
+- Browning, Ryan & Clancy, *14 Patterns of Biophilic Design*, Terrapin Bright Green 2014: <https://www.terrapinbrightgreen.com/reports/14-patterns/>
+- Nieuwenhuis, Knight, Postmes & Haslam, "The relative benefits of green versus lean office space: three field experiments", J. Exp. Psych.: Applied 20(3) 2014: <https://research.rug.nl/en/publications/the-relative-benefits-of-green-versus-lean-office-space-three-fie/>
+- Küller, Ballal, Laike, Mikellides & Tonello, "The impact of light and colour on psychological mood: a cross-cultural study of indoor work environments", Ergonomics 49(14) 2006: <https://doi.org/10.1080/00140130600858142>
+- Valdez & Mehrabian, "Effects of color on emotions", J. Exp. Psych.: General 123(4) 1994: <https://www.semanticscholar.org/paper/Effects-of-color-on-emotions.-Valdez-Mehrabian/d15bdf485f3a64abb59e4d0d1d1b18a9fc652bf9>
+- Flynn, Spencer, Martyniuk & Hendrick, "Interim study of procedures for investigating the effect of light on impression and behavior", J. IES 1973: <https://www.researchgate.net/publication/261645392_Interim_Study_of_Procedures_for_Investigating_the_Effect_of_Light_on_Impression_and_Behavior>
+- Kruithof, "Tubular luminescence lamps for general illumination", Philips Tech. Rev. 1941 (the Kruithof curve), and its critique: <https://www.tandfonline.com/doi/full/10.1080/15502724.2016.1159137>

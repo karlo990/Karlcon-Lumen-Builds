@@ -134,8 +134,10 @@ The studio picks them up automatically and blends them into the spine, neck and 
 (hands, eyes and lips stay under the rig's control). Without the files nothing changes.
 
 ## Background music
-    models/audio/playlist.json   the songs, shuffled
-    models/audio/*.mp3           the songs (loudness-normalised to -18 LUFS, silence trimmed)
+    models/audio/playlist.json      the songs, shuffled
+    models/audio/playlist-s3.json   the Concept Room's own background songs (season 3); if it is
+                                    missing or empty, the Concept Room uses playlist.json too
+    models/audio/*.mp3              the songs (loudness-normalised to -18 LUFS, silence trimmed)
 The music starts with the opening sting and never stops: songs play in a shuffled order (each
 once per round, never the same one twice in a row) with a 4-second crossfade between them.
 To add a song: put the mp3 in models/audio/ and add a line to playlist.json:
