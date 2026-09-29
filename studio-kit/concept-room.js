@@ -1,5 +1,6 @@
 /* KARLCON Studio — Season 3: the Concept Room.
-   A bright design room instead of the dark news set: a polished concrete floor, white panelled walls,
+   A bright design room instead of the dark news set: a graphite carpet with a green rug where the hosts
+   stand, white panelled walls, plants, a lounge corner and light that follows the show (interior.js),
    and the season's full-size roof-light mock-up on a low platform in the middle, where the hosts can
    walk up to it. Around the walls: the story screen, the glazing-bar system on a profile board
    (the sections from the reference sheets), the glass tint samples (all twelve, labelled), a
@@ -8,10 +9,11 @@
 import * as THREE from 'three';
 import { buildScreen, buildGlobe, buildDust, drawMark, canvasTex, box, cyl, mat } from './set.js';
 import { BUILDERS_S3, TINTS } from './skylights.js';
+import { buildInterior, makeCarpet, makeRug } from './interior.js';
 
 const RED = 0xD0231A;
 const M = {
-  wall: new THREE.MeshStandardMaterial({ color: 0xE9E7E2, roughness: 0.85 }),
+  wall: new THREE.MeshStandardMaterial({ color: 0xDEDCD7, roughness: 0.85 }),   // a touch below white, so coloured light shows on it
   seam: new THREE.MeshStandardMaterial({ color: 0xD2CFC9, roughness: 0.9 }),
   oak: new THREE.MeshStandardMaterial({ color: 0xB0875A, roughness: 0.6 }),
   plinth: new THREE.MeshStandardMaterial({ color: 0x2E3035, roughness: 0.55, metalness: 0.2 }),
@@ -21,7 +23,8 @@ const M = {
   glow: new THREE.MeshBasicMaterial({ color: 0xD9DEE3 }),
   deck: new THREE.MeshStandardMaterial({ color: 0x2F3236, roughness: 0.85 }),
   deckSide: new THREE.MeshStandardMaterial({ color: 0xD8D5CF, roughness: 0.9 }),
-  steel: new THREE.MeshStandardMaterial({ color: 0x55595F, roughness: 0.4, metalness: 0.8 })
+  steel: new THREE.MeshStandardMaterial({ color: 0x55595F, roughness: 0.4, metalness: 0.8 }),
+  datum: new THREE.MeshStandardMaterial({ color: RED, roughness: 0.4, emissive: RED, emissiveIntensity: 0.6 })   // glows with the lights (interior.js)
 };
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
@@ -34,8 +37,8 @@ function sign(w, h, px, draw) {
 /* the back wall: white panels, an oak slat feature behind the platform, the room's name */
 function backWall() {
   const G = new THREE.Group();
-  const w = box(20, 6.5, 0.2, M.wall, 0, 3.25, 0); G.add(w);
-  for (let x = -9; x <= 9; x += 1.5) G.add(box(0.02, 6.5, 0.02, M.seam, x, 3.25, 0.11));
+  const w = box(20, 7.3, 0.2, M.wall, 0, 3.65, 0); G.add(w);                // up to the ceiling (no gap for the cove light to show)
+  for (let x = -9; x <= 9; x += 1.5) G.add(box(0.02, 7.3, 0.02, M.seam, x, 3.65, 0.11));
   G.add(box(20, 0.02, 0.02, M.seam, 0, 2.4, 0.11));
   for (let i = 0; i < 26; i++) G.add(box(0.07, 4.2, 0.05, M.oak, -2.6 + i * 0.2, 2.1, 0.14));   // oak slats
   const strip = new THREE.Mesh(new THREE.PlaneGeometry(5.3, 0.03), new THREE.MeshBasicMaterial({ color: 0xFFE4BF })); strip.position.set(0, 4.25, 0.17); G.add(strip);
@@ -45,7 +48,7 @@ function backWall() {
     g.fillStyle = '#6B6F76'; g.font = `600 ${H * 0.17}px "IBM Plex Mono", monospace`; g.fillText('KARLCON LUMEN BUILDS · ELITE RETREATS', H + 14, H * 0.86);
   });
   name.position.set(-5.9, 4.9, 0.12); G.add(name);
-  G.add(box(20, 0.08, 0.03, new THREE.MeshStandardMaterial({ color: RED, roughness: 0.4 }), 0, 0.9, 0.12));   // a red datum line
+  G.add(box(20, 0.08, 0.03, M.datum, 0, 0.9, 0.12));   // a red datum line
   return G;
 }
 
@@ -107,16 +110,10 @@ function workbench() {
 export function buildConceptRoom(scene, renderer, { quality = 'high', Reflector = null } = {}) {
   const S = { quality, room: 'concept' };
   const high = quality === 'high' && Reflector;
-  // floor: polished concrete with a faint 1 m grid
-  const { tex: ft } = canvasTex(512, 512, (g, w, h) => {
-    g.fillStyle = '#A9A7A2'; g.fillRect(0, 0, w, h);
-    for (let i = 0; i < 2000; i++) { const v = 150 + Math.random() * 40 | 0; g.fillStyle = `rgba(${v},${v},${v - 4},0.08)`; g.fillRect(Math.random() * w, Math.random() * h, 3, 3); }
-    g.strokeStyle = 'rgba(80,80,80,0.25)'; g.lineWidth = 2; g.strokeRect(0, 0, w, h);
-  });
-  ft.wrapS = ft.wrapT = THREE.RepeatWrapping; ft.repeat.set(24, 18);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(24, 18), new THREE.MeshPhysicalMaterial({ map: ft, roughness: 0.42, clearcoat: 0.4, clearcoatRoughness: 0.35, transparent: !!high, opacity: high ? 0.93 : 1 }));
-  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
-  if (high) { const mirror = new Reflector(new THREE.PlaneGeometry(24, 18), { textureWidth: 1024, textureHeight: 1024, color: 0x777a80, clipBias: 0.003 }); mirror.rotation.x = -Math.PI / 2; mirror.position.y = -0.004; scene.add(mirror); S.mirror = mirror; }
+  // floor: graphite carpet tiles, quarter-turned; a forest-green rug where the hosts stand (interior.js)
+  const floor = makeCarpet(24, 20); floor.position.z = 1.4; scene.add(floor);   // wall to wall (back −6.5 … front 9.5)
+  const RUG = { x: 0.2, z: 1.3, w: 6.4, d: 3.2, h: 0.012 };
+  const rug = makeRug(RUG.w, RUG.d); rug.position.set(RUG.x, RUG.h / 2, RUG.z); scene.add(rug);
   // walls and ceiling
   const back = backWall(); back.position.set(0, 0, -6.6); scene.add(back);
   for (const s of [-1, 1]) { const w = box(0.2, 7.3, 16.4, M.wall, s * 9.5, 3.65, 1.4); scene.add(w); for (let z = -6; z <= 9; z += 1.5) scene.add(box(0.02, 7.3, 0.02, M.seam, s * 9.38, 3.65, z)); }
@@ -172,7 +169,7 @@ export function buildConceptRoom(scene, renderer, { quality = 'high', Reflector 
     profiles: { pos: V(3.9, 0, -2.3), rotY: -Math.PI * 0.72, via: V(3.5, 0, 0.1) }
   };
   S.desk = { height: 1.0, bottles: null };
-  S.groundAt = (x, z) => (Math.abs(x - P.x) < P.w / 2 && Math.abs(z - P.z) < P.d / 2 ? P.y : 0);   // hosts step up onto the platform
+  S.groundAt = (x, z) => (Math.abs(x - P.x) < P.w / 2 && Math.abs(z - P.z) < P.d / 2 ? P.y : Math.abs(x - RUG.x) < RUG.w / 2 && Math.abs(z - RUG.z) < RUG.d / 2 ? RUG.h : 0);   // hosts step up onto the platform (and the rug)
   S.points = { tints: V(-4.4, 1.3, -5.7), profiles: V(5.2, 1.7, -3.6) };      // look targets     // no desk here: the hosts' hands rest at the waist
 
   // around the walls
@@ -186,7 +183,7 @@ export function buildConceptRoom(scene, renderer, { quality = 'high', Reflector 
   S.dust = buildDust(); scene.add(S.dust.points);
 
   // light: a bright, even room — the ceiling light box over the platform, a soft key on the hosts
-  scene.add(new THREE.HemisphereLight(0xF4F6F8, 0x6A675F, 0.75));
+  const hemi = new THREE.HemisphereLight(0xF4F6F8, 0x4A4744, 0.8); scene.add(hemi);
   const day = new THREE.DirectionalLight(0xFFF8EE, 1.6); day.position.set(2.5, 9, 1.5); day.target.position.set(P.x, 0.5, P.z);
   day.castShadow = true; day.shadow.mapSize.set(2048, 2048); Object.assign(day.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 20 }); day.shadow.bias = -0.0004; day.shadow.normalBias = 0.02;
   scene.add(day, day.target);
@@ -194,6 +191,9 @@ export function buildConceptRoom(scene, renderer, { quality = 'high', Reflector 
   const fill = new THREE.SpotLight(0xE8F0FF, 25, 30, 0.7, 0.9, 1.5); fill.position.set(4, 4, 5.5); fill.target.position.set(0, 1.3, 0.8); scene.add(fill, fill.target);
   const rim = new THREE.SpotLight(0xFFFFFF, 35, 30, 0.6, 0.7, 1.4); rim.position.set(0, 5.5, -4.5); rim.target.position.set(0, 1.3, 1); scene.add(rim, rim.target);
   if (quality === 'high') { const ra = new THREE.RectAreaLight(0xFFFFFF, 3, 6.5, 3.4); ra.position.set(0.2, 6.4, -2.3); ra.lookAt(0.2, 0, -2.3); scene.add(ra); }
+  // the decor sets and the light director: every light changes together with the show's mood (calm · groove · hype)
+  const interior = buildInterior(scene, { quality, lights: { hemi, key, fill, rim, day, dayTarget: day.target.position }, accent: M.datum, origin: V(P.x, 1, P.z) });
+  S.setMood = (m) => interior.setMood(m); S.interior = interior;
 
   // cameras tuned to this room: a closer building orbit, a detail camera that follows the assembly
   S.cams = {
@@ -215,7 +215,7 @@ export function buildConceptRoom(scene, renderer, { quality = 'high', Reflector 
     detail: () => { const b = S.house, f = b.focus || b.group.localToWorld(b.top.clone()); return f; }
   };
 
-  S.update = (t, dt) => { S.house.update(dt); S.globe.update(t, dt); S.dust.update(dt); };
+  S.update = (t, dt) => { S.house.update(dt); S.globe.update(t, dt); S.dust.update(dt); interior.update(t, dt); };
   S.aim = V(0, 1.4, 0.9);
   return S;
 }

@@ -691,6 +691,7 @@ const sound = {
   nextTrack() { return (this.picker ||= createPicker(this.tracks)).next(this.mood); },
   /** the show's mood: 'calm' | 'groove' | 'hype'. A new mood re-picks the song waiting in the idle player. */
   setMood(m) {
+    if (m) set?.setMood?.(m);                                   // the Concept Room's lights follow the mood too (interior.js)
     if (!m || m === this.mood) return; this.mood = m; if (RENDER) recorder?.mood(clock() - __render.t0, m);
     const idle = this.players[1 - this.cur]; if (this.started && !this.fading && idle) this.load(idle);
   },
@@ -752,6 +753,7 @@ const sound = {
 };
 window.kcSound = sound;   // for checking the mix from the console
 window.kcHosts = hosts;   // and the presenters
+Object.defineProperty(window, 'kcSet', { get: () => set });   // and the set (e.g. kcSet.interior.mood)
 window.kcShot = () => ({ shot: shot.name, cam: camera.position.toArray().map((v) => +v.toFixed(2)) });
 
 /* ---------------- captions (karaoke) ---------------- */
@@ -1144,11 +1146,13 @@ async function shotMode() {
   speaker.startSpeech(speaker.prepareSpeech(line.say, 1), 0);
   if (Q.has('drink')) { const l = Object.values(hosts).find(h => h !== speaker); l.drink(set.desk.bottles[l.cfg.seat], l.cfg.seat === 0 ? 'Left' : 'Right'); }
   if (Q.has('react')) { const l = Object.values(hosts).find(h => h !== speaker); l.react(Q.get('react')); }
+  if (Q.has('mood')) set.setMood?.(Q.get('mood'));                 // the Concept Room's lights in that mood (calm · groove · hype)
   const T = +(Q.get('t') || 2.5); let now = 0; shot.t0 = 0;
   for (let k = 0; k < T * 30; k++) { now += 1 / 30; set.update(now, 1 / 30); for (const h of Object.values(hosts)) h.update(1 / 30, now); if (k % 30 === 0) direct(line, speaker); }
   const p = shotPose(shot.name, 1, speaker); camera.position.copy(p.pos); camera.lookAt(p.tgt); curFov = p.fov; applyFov(); camera.updateProjectionMatrix();
   if (bokeh) { bokeh.enabled = shot.name === 'cu' || shot.name === 'react'; bokeh.uniforms.focus.value = camera.position.distanceTo(p.tgt) + 0.05; }
   composer ? composer.render(1 / 30) : renderer.render(scene, camera); window.DONE = true;
+  window.kcRender = () => (composer ? composer.render(1 / 30) : renderer.render(scene, camera)); window.kcCamera = camera;   // (tests: draw again after changing something)
 }
 
 boot().then(() => { if (!Q.has('shot')) loop(); }).catch((e) => { console.error(e); $('#load').innerHTML = '<span class="err">Could not start the studio: ' + (e.message || e) + '</span>'; });
