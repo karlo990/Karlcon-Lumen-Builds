@@ -94,6 +94,8 @@ def _detail_fields(d):
         if ld.get("@type") == "VideoObject":
             out.update(is_video=True, upload_date=ld.get("uploadDate"), duration_iso=ld.get("duration"),
                        thumbnail=ld.get("thumbnailUrl"))
+        if (ld.get("headline") or ld.get("name")) and "title" not in out:
+            out["title"] = ld.get("headline") or ld.get("name")
         a = ld.get("author") or {}
         if a.get("name"):
             out["creator"] = {"name": a.get("name"), "url": a.get("url")}

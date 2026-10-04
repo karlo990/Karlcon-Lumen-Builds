@@ -4,6 +4,27 @@ frgi finds Zimbabwe wildlife-experience videos on Pinterest, ranks them, tracks 
 
 It needs only Python 3.9+ (no installs). Why it works this way: [RESEARCH.md](RESEARCH.md).
 
+## Quick start: one script for everything
+
+```
+python run_all.py setup      # once: installs Python Playwright + Chromium (or add --chrome to use Chrome)
+python run_all.py            # guided menu
+```
+
+The menu runs each step:
+
+| Step | What it does |
+|---|---|
+| browse | opens a browser you drive, recording as you scroll |
+| process | ranks the pins and writes `leads.html` (links to open next), `candidates.json` (caption drafts) and `permission_requests.txt` |
+| permissions | you enter each creator's yes or no |
+| download | saves cleared videos as `KCERMEDIA_101.mp4` and up, each with its caption JSON and description |
+| package | makes the zip of captions and descriptions for review |
+| apply | loads corrected captions back in |
+| bundle | zips the whole toolkit |
+
+Every step is also a subcommand, for example `python run_all.py process` or `python run_all.py all`. The sections below are the same steps done by hand with `frgi.py`.
+
 ## 1. Install the grabber (once)
 
 ```

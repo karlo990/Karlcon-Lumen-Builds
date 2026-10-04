@@ -13,6 +13,17 @@ The tool lives in `frgi/`. Read `frgi/README.md` for the user's commands and `fr
 2. **Permission before download or publish.** `fetch`, `attach` and `publish` refuse a pin unless its rights status is `own`, `permission` or `licensed`, and recording one of those needs a `--note` saying who granted it. Never weaken this gate, add a bypass flag, or mark rights on the user's behalf.
 3. **Every caption credits the creator.** Never remove the credit line.
 
+## One-script entry point
+
+`frgi/run_all.py` wraps everything for the user. It has a guided menu, plus the subcommands `setup`, `browse`, `process`, `permissions`, `download`, `package`, `apply`, `publish`, `bundle` and `all`.
+
+- **`browse`** is the Python Playwright version of `pw_session.mjs`. It uses the same inlined, top-frame-only init script, and it opens `leads.html` in a second tab.
+- **`process`** ingests the captures, writes `leads.html`, `candidates.json` and `permission_requests.txt`, and marks those pins as `requested`.
+- **`permissions`** records only answers the user types, and requires a note.
+- **`bundle`** builds `frgi_KCERMEDIA_toolkit.zip`. It contains the scripts, docs, tests, a freshly generated `bookmarklet.txt`, this skill, and `START_HERE.txt`.
+
+When you change any frgi file, rebuild the zip with `python frgi/run_all.py bundle`.
+
 ## The pipeline
 
 ```
