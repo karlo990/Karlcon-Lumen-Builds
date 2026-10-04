@@ -24,7 +24,7 @@ Options: --home <dir> (default ./frgi-work), --top <n> candidates to draft/ask (
 frgi never scrolls, clicks or navigates Pinterest for you (Pinterest's robots.txt
 disallows bots) and never downloads or publishes without the creator's permission.
 """
-import argparse, contextlib, html, io, json, os, subprocess, sys, time, zipfile
+import argparse, contextlib, html, io, json, logging, os, subprocess, sys, time, zipfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -203,28 +203,40 @@ def cmd_browse(a, f):
         print(f"\r  recording: {sum(saved.values())} pins across {len(saved)} pages   ", end="", flush=True)
 
     print("A browser window opens. Log in once (the profile is kept), then search, scroll and open")
-    print("Zimbabwe video pins yourself. Open leads.html (from 'process') for links worth opening.")
-    print("Close the window when you are done.")
-    with sync_playwright() as p:
-        ctx = launch_headed(p, f.HOME / "browser-profile", a.chrome)
-        ctx.expose_function("__frgiSave", save)
-        ctx.add_init_script(init_script())
-        page = ctx.pages[0] if ctx.pages else ctx.new_page()
-        leads = f.HOME / "leads.html"
-        try:
-            page.goto(START_URL, wait_until="domcontentloaded")
-        except Exception as e:
-            print(f"  could not open Pinterest ({str(e).splitlines()[0]}); use the address bar")
-        ctx.new_page().goto(write_keywords_html(f).as_uri())
-        if leads.exists():
-            ctx.new_page().goto(leads.as_uri())
-        try:
-            ctx.wait_for_event("close", timeout=0)
-        except KeyboardInterrupt:
-            ctx.close()
-        except Exception:
-            pass
+    print("Zimbabwe video pins yourself (the keywords tab has ready-made searches).")
+    print("When you are done, CLOSE THE BROWSER WINDOW: frgi then ranks everything automatically.")
+    interrupted = False
+    try:
+        with sync_playwright() as p:
+            ctx = launch_headed(p, f.HOME / "browser-profile", a.chrome)
+            ctx.expose_function("__frgiSave", save)
+            ctx.add_init_script(init_script())
+            page = ctx.pages[0] if ctx.pages else ctx.new_page()
+            leads = f.HOME / "leads.html"
+            try:
+                page.goto(START_URL, wait_until="domcontentloaded")
+            except Exception as e:
+                print(f"  could not open Pinterest ({str(e).splitlines()[0]}); use the address bar")
+            for extra in [write_keywords_html(f)] + ([leads] if leads.exists() else []):
+                with contextlib.suppress(Exception):
+                    ctx.new_page().goto(extra.as_uri())
+            try:
+                ctx.wait_for_event("close", timeout=0)
+            except KeyboardInterrupt:
+                interrupted = True
+                with contextlib.suppress(BaseException):
+                    ctx.close()
+            except Exception:
+                pass
+    except KeyboardInterrupt:
+        interrupted = True
+    if interrupted:
+        # Ctrl+C leaves Playwright's event loop mid-call; its shutdown noise is harmless
+        logging.getLogger("asyncio").setLevel(logging.CRITICAL)
+        sys.unraisablehook = lambda *_: None
     print(f"\n  captures saved in {out}")
+    if any(out.glob("*.json")):
+        cmd_process(a, f)
 
 
 # ---------- process ----------
@@ -409,7 +421,10 @@ def cmd_menu(a, f):
         cleared = sum(p["rights"]["status"] in f.CLEARED for p in L["pins"].values())
         numbered = sum(bool(p.get("number")) for p in L["pins"].values())
         banner(f"frgi  |  {n} pins · {cleared} cleared · {numbered} numbered · next {L.get('prefix', f.PREFIX)}_{L['next_number']}")
-        if n == 0:
+        waiting = len(list((f.HOME / "captures").glob("*.json"))) if (f.HOME / "captures").exists() else 0
+        if n == 0 and waiting:
+            print(f"  {waiting} recorded capture file(s) not processed yet: choose 2 (Process).")
+        elif n == 0:
             print("  No pins yet: start with 1 (Browse). A Chromium window opens; search Pinterest for")
             print("  Zimbabwe safari videos, scroll and open pins, then close the window and choose 2.")
         for k, label, _ in MENU:
@@ -447,13 +462,11 @@ def cmd_publish(a, f):
 
 def cmd_start(a, f):
     cmd_browse(a, f)
-    cmd_process(a, f)
     print("\nNext: send the messages in frgi-work\\permission_requests.txt, then run:  python run_all.py permissions")
 
 
 def cmd_all(a, f):
     cmd_browse(a, f)
-    cmd_process(a, f)
     print("\nSend the messages in permission_requests.txt, then come back and record the answers.")
     if ask("Record answers now?"):
         cmd_permissions(a, f)
