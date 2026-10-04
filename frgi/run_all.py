@@ -2,6 +2,7 @@
 """frgi all-in-one: one script for the whole Pinterest -> Instagram workflow.
 
     python run_all.py                 guided menu (start here)
+    python run_all.py start           browse, then process (the usual first command)
     python run_all.py setup           install Python Playwright + Chromium (asks first)
     python run_all.py browse [--chrome]
                                       open a browser YOU drive; the grabber records as you scroll
@@ -271,6 +272,9 @@ def cmd_permissions(a, f):
 
 def cmd_download(a, f):
     banner("download")
+    if not f.load_ledger()["pins"]:
+        print("  No pins yet, so nothing to download. Run Browse first:  python run_all.py start")
+        return
     run(f, "fetch")
     for x in a.attach or []:
         ref, _, path = x.partition("=")
@@ -316,7 +320,8 @@ START_HERE = """frgi: Zimbabwe wildlife videos, Pinterest -> Instagram
 
 1. Install Python 3.9+ (python.org).
 2. In this folder:  python run_all.py setup     (optional: option 1 installs Playwright + Chromium itself)
-3. Then:            python run_all.py           (guided menu: browse, process, permissions,
+3. Then:            python run_all.py start     (Chromium opens: browse, close it -> ranked)
+   or:              python run_all.py           (guided menu: browse, process, permissions,
                                                  download, package)
 4. Upload the KCERMEDIA_captions_<date>.zip it makes to Claude for caption correction,
    then:            python run_all.py apply <corrected zip>
@@ -387,6 +392,12 @@ def cmd_publish(a, f):
         *(["--force-draft"] if a.force_draft else []))
 
 
+def cmd_start(a, f):
+    cmd_browse(a, f)
+    cmd_process(a, f)
+    print("\nNext: send the messages in frgi-work\\permission_requests.txt, then run:  python run_all.py permissions")
+
+
 def cmd_all(a, f):
     cmd_browse(a, f)
     cmd_process(a, f)
@@ -397,7 +408,7 @@ def cmd_all(a, f):
     cmd_package(a, f)
 
 
-COMMANDS = {"setup": cmd_setup, "browse": cmd_browse, "process": cmd_process, "permissions": cmd_permissions,
+COMMANDS = {"start": cmd_start, "setup": cmd_setup, "browse": cmd_browse, "process": cmd_process, "permissions": cmd_permissions,
             "download": cmd_download, "package": cmd_package, "bundle": cmd_bundle, "apply": cmd_apply,
             "publish": cmd_publish, "all": cmd_all, "menu": cmd_menu}
 
