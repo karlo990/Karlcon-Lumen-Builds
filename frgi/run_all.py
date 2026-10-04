@@ -3,6 +3,7 @@
 
     python run_all.py                 guided menu (start here)
     python run_all.py start           browse, then process (the usual first command)
+    python run_all.py keywords        Zimbabwe search keywords (+ clickable keywords.html)
     python run_all.py setup           install Python Playwright + Chromium (asks first)
     python run_all.py browse [--chrome]
                                       open a browser YOU drive; the grabber records as you scroll
@@ -139,6 +140,56 @@ def launch_headed(p, profile, prefer_chrome=False):
              "\nTry: python -m playwright install chromium   (or install Google Chrome / Microsoft Edge)")
 
 
+KEYWORD_GROUPS = {
+    "Parks and places": [
+        "Hwange National Park safari", "Hwange elephants waterhole", "Mana Pools wild dogs", "Mana Pools canoe safari",
+        "Mana Pools elephant standing", "Gonarezhou Chilojo Cliffs", "Gonarezhou elephants", "Victoria Falls Zimbabwe",
+        "Zambezi National Park lions", "Matobo Hills rhino", "Matusadona Lake Kariba", "Lake Kariba houseboat sunset",
+        "Chizarira National Park", "Save Valley Conservancy", "Malilangwe Singita Pamushana", "Nyanga Mutarazi Falls",
+        "Chimanimani mountains hike", "Great Zimbabwe ruins",
+    ],
+    "Animals": [
+        "painted dogs Zimbabwe", "elephants Zimbabwe safari", "lions Hwange", "leopard Zimbabwe safari",
+        "black rhino Matobo", "buffalo herd Zimbabwe", "giraffe Hwange", "hippo Zambezi river",
+        "sable antelope Hwange", "carmine bee-eaters Zambezi",
+    ],
+    "Experiences": [
+        "Zimbabwe game drive video", "Zimbabwe walking safari", "Zambezi canoe safari", "Zambezi sunset cruise",
+        "Hwange sleep out hide", "Victoria Falls helicopter flight of angels", "Devil's Pool Victoria Falls",
+        "Zimbabwe safari lodge", "Zimbabwe sunrise game drive", "African safari jeep Zimbabwe",
+    ],
+}
+
+
+def write_keywords_html(f):
+    import urllib.parse
+    def link(q):
+        u = "https://www.pinterest.com/search/videos/?q=" + urllib.parse.quote(q)
+        return f'<a href="{html.escape(u)}" target="_blank" rel="noopener">{html.escape(q)}</a>'
+    groups = "".join(f"<h2>{html.escape(g)}</h2><div class='kw'>{''.join(link(q) for q in qs)}</div>"
+                     for g, qs in KEYWORD_GROUPS.items())
+    page = f"""<!doctype html><html><head><meta charset="utf-8"><title>frgi search keywords</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"><style>
+body{{font:15px system-ui,sans-serif;margin:16px;background:#f6f4ef;color:#222}} h1{{font-size:20px}} h2{{font-size:16px;margin-top:24px}}
+.kw{{display:flex;flex-wrap:wrap;gap:8px}} .kw a{{background:#fff;border-radius:18px;padding:7px 14px;text-decoration:none;color:#1d4d2b;box-shadow:0 1px 3px #0002}}
+.kw a:visited{{color:#888}}
+</style></head><body><h1>Zimbabwe wildlife video searches</h1>
+<p>Click a search, scroll the results, open the best video pins. Visited searches turn grey.</p>{groups}</body></html>"""
+    out = f.HOME / "keywords.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(page, encoding="utf-8")
+    return out
+
+
+def cmd_keywords(a, f):
+    banner("search keywords")
+    for g, qs in KEYWORD_GROUPS.items():
+        print(f"\n  {g}:")
+        for q in qs:
+            print(f"    {q}")
+    print(f"\n  clickable page: {write_keywords_html(f)}  (also opens as a tab in Browse)")
+
+
 def cmd_browse(a, f):
     banner("browse")
     sync_playwright = ensure_playwright()
@@ -164,6 +215,7 @@ def cmd_browse(a, f):
             page.goto(START_URL, wait_until="domcontentloaded")
         except Exception as e:
             print(f"  could not open Pinterest ({str(e).splitlines()[0]}); use the address bar")
+        ctx.new_page().goto(write_keywords_html(f).as_uri())
         if leads.exists():
             ctx.new_page().goto(leads.as_uri())
         try:
@@ -343,6 +395,7 @@ MENU = [
     ("5", "Package captions + descriptions zip", "package"),
     ("6", "Apply corrected captions zip", "apply"),
     ("7", "Show ranking", "rank"),
+    ("k", "Search keywords", "keywords"),
     ("8", "Bundle the toolkit zip", "bundle"),
     ("9", "Setup (install Playwright)", "setup"),
     ("0", "Quit", None),
@@ -408,7 +461,7 @@ def cmd_all(a, f):
     cmd_package(a, f)
 
 
-COMMANDS = {"start": cmd_start, "setup": cmd_setup, "browse": cmd_browse, "process": cmd_process, "permissions": cmd_permissions,
+COMMANDS = {"start": cmd_start, "keywords": cmd_keywords, "setup": cmd_setup, "browse": cmd_browse, "process": cmd_process, "permissions": cmd_permissions,
             "download": cmd_download, "package": cmd_package, "bundle": cmd_bundle, "apply": cmd_apply,
             "publish": cmd_publish, "all": cmd_all, "menu": cmd_menu}
 
