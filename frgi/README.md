@@ -12,6 +12,18 @@ python frgi.py bookmarklet
 
 Copy the printed `javascript:...` line into a new browser bookmark (as the URL) and name it **frgi**.
 
+### Or: the Playwright browser (no bookmarklet, survives reloads)
+
+```
+npm i playwright
+npx playwright install chromium
+node pw_session.mjs --ingest              # add --chrome to use your installed Chrome
+```
+
+This opens a normal browser window with the grabber already running on every Pinterest page. You still do all the scrolling yourself. Captures save to `frgi-work/captures/` every 15 seconds, and `--ingest` loads them into frgi when you close the window. You log in once, and the profile is kept.
+
+To test the grabber offline: `node tests/grabber.test.mjs`.
+
 ## 2. Browse Pinterest with the grabber recording
 
 ```

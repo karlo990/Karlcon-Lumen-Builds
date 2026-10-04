@@ -3,7 +3,8 @@
    is virtualised, so cards are captured as they mount, before they unmount).
    Next clicks: exports everything recorded so far as frgi-capture-<time>.json.
    On a pin page it also records the pin's own JSON-LD and video file links,
-   and links the pins in "More to explore" to it as leads (graph edges). */
+   and links the pins in "More to explore" to it as leads (graph edges).
+   If window.__frgiSink exists (pw_session.mjs), exports go to it instead of a download. */
 (function () {
   var S = window.__frgi;
   function pinId(href) { var m = /\/pin\/(\d{6,25})/.exec(href || ''); return m ? m[1] : null; }
@@ -66,12 +67,13 @@
     var last = location.href;
     setInterval(function () { if (location.href !== last) { last = location.href; setTimeout(scan, 1200); } }, 500);
     scan();
-    alert('frgi: recording. Scroll, search and open pins as normal. Click the bookmarklet again to export.');
+    if (!window.__frgiSink) alert('frgi: recording. Scroll, search and open pins as normal. Click the bookmarklet again to export.');
     return;
   }
   scan();
   var out = { tool: 'frgi-grabber', version: 1, exported_at: new Date().toISOString(),
     pages: Object.values(S.pages), details: S.details, pins: Object.values(S.pins) };
+  if (window.__frgiSink) { window.__frgiSink(JSON.stringify(out)); return; }
   var blob = new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' });
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = 'frgi-capture-' + Date.now() + '.json'; document.body.appendChild(a); a.click(); a.remove();
