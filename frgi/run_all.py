@@ -96,12 +96,51 @@ def init_script():
 })();""" % src
 
 
-def cmd_browse(a, f):
-    banner("browse")
+def ensure_playwright():
+    """Import Playwright, installing it with pip first if it is missing."""
     try:
         from playwright.sync_api import sync_playwright
+        return sync_playwright
     except ImportError:
-        sys.exit("Python Playwright is missing: run  python run_all.py setup")
+        print("  Playwright is not installed; installing it now (pip install playwright)...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "playwright"])
+        import importlib
+        importlib.invalidate_caches()
+        from playwright.sync_api import sync_playwright
+        return sync_playwright
+
+
+def launch_headed(p, profile, prefer_chrome=False):
+    """Open a visible (headed) browser window with a kept profile.
+
+    Order: Playwright's Chromium (installed on first use), then Microsoft Edge
+    (always on Windows), then Google Chrome. --chrome tries Chrome first."""
+    opts = {"headless": False, "no_viewport": True, "args": ["--start-maximized"]}
+    attempts = [("chrome", "Google Chrome")] if prefer_chrome else []
+    attempts += [(None, "Playwright Chromium"), ("msedge", "Microsoft Edge"), ("chrome", "Google Chrome")]
+    errors = []
+    for channel, name in attempts:
+        kw = dict(opts, **({"channel": channel} if channel else {}))
+        for attempt in (1, 2):
+            try:
+                ctx = p.chromium.launch_persistent_context(str(profile), **kw)
+                print(f"  opened {name} (headed)")
+                return ctx
+            except Exception as e:
+                msg = str(e).splitlines()[0]
+                if channel is None and attempt == 1 and "Executable doesn't exist" in str(e):
+                    print("  Chromium not downloaded yet; installing it now (playwright install chromium)...")
+                    if subprocess.call([sys.executable, "-m", "playwright", "install", "chromium"]) == 0:
+                        continue
+                errors.append(f"{name}: {msg}")
+                break
+    sys.exit("could not open a browser:\n  " + "\n  ".join(errors) +
+             "\nTry: python -m playwright install chromium   (or install Google Chrome / Microsoft Edge)")
+
+
+def cmd_browse(a, f):
+    banner("browse")
+    sync_playwright = ensure_playwright()
     out = f.HOME / "captures"
     out.mkdir(parents=True, exist_ok=True)
     saved = {}
@@ -115,10 +154,7 @@ def cmd_browse(a, f):
     print("Zimbabwe video pins yourself. Open leads.html (from 'process') for links worth opening.")
     print("Close the window when you are done.")
     with sync_playwright() as p:
-        opts = {"headless": False, "no_viewport": True}
-        if a.chrome:
-            opts["channel"] = "chrome"
-        ctx = p.chromium.launch_persistent_context(str(f.HOME / "browser-profile"), **opts)
+        ctx = launch_headed(p, f.HOME / "browser-profile", a.chrome)
         ctx.expose_function("__frgiSave", save)
         ctx.add_init_script(init_script())
         page = ctx.pages[0] if ctx.pages else ctx.new_page()
@@ -279,7 +315,7 @@ def cmd_bundle(a, f):
 START_HERE = """frgi: Zimbabwe wildlife videos, Pinterest -> Instagram
 
 1. Install Python 3.9+ (python.org).
-2. In this folder:  python run_all.py setup     (installs Playwright; or use --chrome later)
+2. In this folder:  python run_all.py setup     (optional: option 1 installs Playwright + Chromium itself)
 3. Then:            python run_all.py           (guided menu: browse, process, permissions,
                                                  download, package)
 4. Upload the KCERMEDIA_captions_<date>.zip it makes to Claude for caption correction,
@@ -315,11 +351,15 @@ def cmd_menu(a, f):
         cleared = sum(p["rights"]["status"] in f.CLEARED for p in L["pins"].values())
         numbered = sum(bool(p.get("number")) for p in L["pins"].values())
         banner(f"frgi  |  {n} pins · {cleared} cleared · {numbered} numbered · next {L.get('prefix', f.PREFIX)}_{L['next_number']}")
+        if n == 0:
+            print("  No pins yet: start with 1 (Browse). A Chromium window opens; search Pinterest for")
+            print("  Zimbabwe safari videos, scroll and open pins, then close the window and choose 2.")
         for k, label, _ in MENU:
             print(f"  {k}. {label}")
         try:
             c = input("choose: ").strip()
-        except EOFError:
+        except (EOFError, KeyboardInterrupt):
+            print()
             return
         cmd = dict((k, v) for k, _, v in MENU).get(c, "?")
         if cmd is None:
@@ -332,6 +372,8 @@ def cmd_menu(a, f):
             {"rank": lambda a, f: run(f, "rank", "-n", a.top), "apply": cmd_apply}.get(cmd, COMMANDS.get(cmd))(a, f)
         except SystemExit as e:
             print(f"  ! {e.code}")
+        except KeyboardInterrupt:
+            print("\n  stopped")
 
 
 def cmd_apply(a, f):
@@ -383,7 +425,10 @@ def main(argv=None):
             ap.error("publish needs <KCERMEDIA_n> --video-url <public https url>")
         a.ref = a.rest[0]
     f = frgi_module(Path(a.home).resolve())
-    COMMANDS[a.cmd](a, f)
+    try:
+        COMMANDS[a.cmd](a, f)
+    except KeyboardInterrupt:
+        print("\n  stopped")
 
 
 if __name__ == "__main__":
