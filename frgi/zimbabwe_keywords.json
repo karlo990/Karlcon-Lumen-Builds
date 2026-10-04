@@ -1,0 +1,60 @@
+{
+  "_about": "Zimbabwe gazetteer for frgi. Weights feed the relevance score. 'aliases' are matched case-insensitively as whole phrases. Sources: ZimParks (11 national parks), UNESCO World Heritage list, ZTA destination regions.",
+  "country": {
+    "aliases": ["zimbabwe", "zim", "zimbo", "zw", "visit zimbabwe", "zimbabwe safari"],
+    "weight": 4
+  },
+  "places": [
+    {"name": "Hwange National Park", "aliases": [ "hwange", "hwange national park", "main camp hwange", "linkwasha", "somalisa", "makalolo", "ngamo", "nyamandhlovu pan", "sinamatella", "robins camp hwange" ], "region": "Matabeleland North", "hashtag": "HwangeNationalPark", "weight": 6},
+    {"name": "Mana Pools National Park", "aliases": [ "mana pools", "manapools", "mana pools national park", "long pool", "chikwenya", "nyamepi", "ruckomechi", "zambezi valley" ], "region": "Mashonaland West", "hashtag": "ManaPools", "weight": 6},
+    {"name": "Gonarezhou National Park", "aliases": [ "gonarezhou", "gonarezhou national park", "chilojo cliffs", "chilojo", "chivilila falls", "runde river", "save river", "chilo gorge", "mabalauta", "chipinda pools" ], "region": "Masvingo", "hashtag": "Gonarezhou", "weight": 6},
+    {"name": "Victoria Falls", "aliases": [ "victoria falls", "vic falls", "mosi-oa-tunya", "mosi oa tunya", "the smoke that thunders", "devil's pool", "devils pool", "batoka gorge", "zambezi river", "upper zambezi", "victoria falls bridge" ], "region": "Matabeleland North", "hashtag": "VictoriaFalls", "weight": 6},
+    {"name": "Zambezi National Park", "aliases": [ "zambezi national park", "chamabonda", "chamabonda vlei" ], "region": "Matabeleland North", "hashtag": "ZambeziNationalPark", "weight": 6},
+    {"name": "Matobo National Park", "aliases": [ "matobo", "matopos", "matobo hills", "matopo", "world's view", "worlds view", "malindidzimu", "maleme dam" ], "region": "Matabeleland South", "hashtag": "MatoboHills", "weight": 6},
+    {"name": "Matusadona National Park", "aliases": [ "matusadona", "matusadona national park", "fothergill", "changa", "bumi hills" ], "region": "Mashonaland West", "hashtag": "Matusadona", "weight": 6},
+    {"name": "Lake Kariba", "aliases": [ "kariba", "lake kariba", "kariba dam", "kariba houseboat", "houseboat kariba" ], "region": "Mashonaland West", "hashtag": "LakeKariba", "weight": 5},
+    {"name": "Chizarira National Park", "aliases": [ "chizarira", "chizarira national park" ], "region": "Matabeleland North", "hashtag": "Chizarira", "weight": 6},
+    {"name": "Kazuma Pan National Park", "aliases": [ "kazuma pan", "kazuma" ], "region": "Matabeleland North", "hashtag": "KazumaPan", "weight": 6},
+    {"name": "Nyanga National Park", "aliases": [ "nyanga", "nyanga national park", "mutarazi falls", "mt nyangani", "nyangani", "troutbeck", "honde valley" ], "region": "Manicaland", "hashtag": "Nyanga", "weight": 5},
+    {"name": "Chimanimani National Park", "aliases": [ "chimanimani", "chimanimani mountains", "bridal veil falls chimanimani" ], "region": "Manicaland", "hashtag": "Chimanimani", "weight": 5},
+    {"name": "Great Zimbabwe", "aliases": [ "great zimbabwe", "great zimbabwe ruins", "great enclosure", "masvingo", "lake mutirikwi", "kyle recreational park" ], "region": "Masvingo", "hashtag": "GreatZimbabwe", "weight": 5},
+    {"name": "Save Valley Conservancy", "aliases": [ "save valley", "save valley conservancy", "senuko", "sango" ], "region": "Manicaland/Masvingo", "hashtag": "SaveValley", "weight": 6},
+    {"name": "Malilangwe", "aliases": [ "malilangwe", "singita pamushana", "pamushana" ], "region": "Masvingo", "hashtag": "Malilangwe", "weight": 6},
+    {"name": "Bubye Valley Conservancy", "aliases": [ "bubye valley", "bubye" ], "region": "Matabeleland South", "hashtag": "BubyeValley", "weight": 5},
+    {"name": "Imire Rhino & Wildlife Conservancy", "aliases": [ "imire", "imire rhino" ], "region": "Mashonaland East", "hashtag": "Imire", "weight": 5},
+    {"name": "Antelope Park", "aliases": [ "antelope park", "gweru" ], "region": "Midlands", "hashtag": "AntelopePark", "weight": 4},
+    {"name": "Lake Chivero", "aliases": [ "lake chivero", "chivero", "lion and cheetah park", "mukuvisi woodlands", "harare" ], "region": "Harare", "hashtag": "LakeChivero", "weight": 3},
+    {"name": "Chewore Safari Area", "aliases": [ "chewore", "mavuradonha" ], "region": "Mashonaland", "hashtag": "ZambeziValley", "weight": 5}
+  ],
+  "species": [
+    {"name": "elephant", "aliases": [ "elephant", "elephants", "nzou", "indlovu", "tusker", "big tusker" ], "hashtag": "Elephants", "weight": 3},
+    {"name": "lion", "aliases": [ "lion", "lions", "lioness", "pride", "shumba", "isilwane" ], "hashtag": "Lions", "weight": 3},
+    {"name": "leopard", "aliases": [ "leopard", "leopards", "ingwe" ], "hashtag": "Leopard", "weight": 3},
+    {"name": "painted dog", "aliases": [ "painted dog", "painted dogs", "wild dog", "wild dogs", "african wild dog", "mhumhi" ], "hashtag": "PaintedDogs", "weight": 4},
+    {"name": "rhino", "aliases": [ "rhino", "rhinos", "black rhino", "white rhino", "chipembere" ], "hashtag": "Rhino", "weight": 3},
+    {"name": "buffalo", "aliases": [ "buffalo", "cape buffalo", "nyati" ], "hashtag": "Buffalo", "weight": 2},
+    {"name": "giraffe", "aliases": [ "giraffe", "giraffes", "twiza" ], "hashtag": "Giraffe", "weight": 2},
+    {"name": "hippo", "aliases": [ "hippo", "hippos", "hippopotamus", "mvuu" ], "hashtag": "Hippo", "weight": 2},
+    {"name": "zebra", "aliases": [ "zebra", "zebras", "mbizi" ], "hashtag": "Zebra", "weight": 2},
+    {"name": "cheetah", "aliases": [ "cheetah", "cheetahs" ], "hashtag": "Cheetah", "weight": 3},
+    {"name": "crocodile", "aliases": [ "crocodile", "croc", "ngwena" ], "hashtag": "Crocodile", "weight": 2},
+    {"name": "sable", "aliases": [ "sable", "sable antelope", "kudu", "eland", "impala", "waterbuck", "nyala" ], "hashtag": "Antelope", "weight": 2},
+    {"name": "birds", "aliases": [ "fish eagle", "carmine bee-eater", "bee-eaters", "pel's fishing owl", "ground hornbill", "lilac-breasted roller", "birding" ], "hashtag": "BirdsOfZimbabwe", "weight": 2}
+  ],
+  "experiences": [
+    {"name": "game drive", "aliases": [ "game drive", "safari drive", "open vehicle", "land cruiser", "safari jeep", "sunrise drive", "night drive" ], "hashtag": "GameDrive", "weight": 3, "phrase": "on a game drive"},
+    {"name": "walking safari", "aliases": [ "walking safari", "bush walk", "on foot", "tracking on foot", "walk with elephants" ], "hashtag": "WalkingSafari", "weight": 3, "phrase": "on a walking safari"},
+    {"name": "canoe safari", "aliases": [ "canoe safari", "canoeing", "canoe", "zambezi canoe" ], "hashtag": "CanoeSafari", "weight": 3, "phrase": "from a canoe"},
+    {"name": "sunset cruise", "aliases": [ "sunset cruise", "river cruise", "boat cruise", "houseboat" ], "hashtag": "SunsetCruise", "weight": 2, "phrase": "on a sunset cruise"},
+    {"name": "hide / pan", "aliases": [ "photographic hide", "hide", "waterhole", "pan", "sleep out", "sleepout" ], "hashtag": "SafariPhotography", "weight": 2, "phrase": "at the waterhole"},
+    {"name": "adventure", "aliases": [ "bungee", "white water rafting", "rafting", "gorge swing", "zipline", "helicopter flight", "flight of angels" ], "hashtag": "AdventureTravel", "weight": 2, "phrase": "on an adventure"},
+    {"name": "lodge / camp", "aliases": [ "lodge", "tented camp", "safari camp", "bush camp", "safari lodge", "glamping" ], "hashtag": "SafariLodge", "weight": 1, "phrase": "from camp"},
+    {"name": "golden hour", "aliases": [ "sunrise", "sunset", "golden hour", "good morning", "dawn" ], "hashtag": "AfricanSunset", "weight": 1, "phrase": "at golden hour"}
+  ],
+  "other_countries": {
+    "_about": "A pin naming one of these but no Zimbabwe place is marked off-target (e.g. Murchison Falls is in Uganda). Shared borders (Victoria Falls/Zambia, Mana Pools/Lower Zambezi) still count as Zimbabwe when a Zimbabwe alias matches.",
+    "aliases": ["uganda", "kampala", "murchison", "kenya", "masai mara", "maasai mara", "amboseli", "tanzania", "serengeti", "ngorongoro", "kruger", "south africa", "sabi sands", "botswana", "okavango", "chobe", "namibia", "etosha", "rwanda", "south luangwa", "lower zambezi national park", "mozambique", "india", "sri lanka"],
+    "penalty": 8
+  },
+  "base_hashtags": ["Zimbabwe", "VisitZimbabwe", "ZimbabweSafari", "AfricanSafari", "Wildlife"]
+}
