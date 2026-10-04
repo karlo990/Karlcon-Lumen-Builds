@@ -23,8 +23,9 @@
     {"name": "Bubye Valley Conservancy", "aliases": [ "bubye valley", "bubye" ], "region": "Matabeleland South", "hashtag": "BubyeValley", "weight": 5},
     {"name": "Imire Rhino & Wildlife Conservancy", "aliases": [ "imire", "imire rhino" ], "region": "Mashonaland East", "hashtag": "Imire", "weight": 5},
     {"name": "Antelope Park", "aliases": [ "antelope park", "gweru" ], "region": "Midlands", "hashtag": "AntelopePark", "weight": 4},
-    {"name": "Lake Chivero", "aliases": [ "lake chivero", "chivero", "lion and cheetah park", "mukuvisi woodlands", "harare" ], "region": "Harare", "hashtag": "LakeChivero", "weight": 3},
-    {"name": "Chewore Safari Area", "aliases": [ "chewore", "mavuradonha" ], "region": "Mashonaland", "hashtag": "ZambeziValley", "weight": 5}
+    {"name": "Lake Chivero", "aliases": [ "lake chivero", "chivero", "lion and cheetah park", "mukuvisi woodlands" ], "region": "Harare", "hashtag": "LakeChivero", "weight": 3},
+    {"name": "Chewore Safari Area", "aliases": [ "chewore", "mavuradonha" ], "region": "Mashonaland", "hashtag": "ZambeziValley", "weight": 5},
+    {"name": "Harare", "aliases": [ "harare", "harare airport", "robert gabriel mugabe airport" ], "region": "Harare", "hashtag": "Harare", "weight": 2, "city": true}
   ],
   "species": [
     {"name": "elephant", "aliases": [ "elephant", "elephants", "nzou", "indlovu", "tusker", "big tusker" ], "hashtag": "Elephants", "weight": 3},
@@ -53,7 +54,7 @@
   ],
   "other_countries": {
     "_about": "A pin naming one of these but no Zimbabwe place is marked off-target (e.g. Murchison Falls is in Uganda). Shared borders (Victoria Falls/Zambia, Mana Pools/Lower Zambezi) still count as Zimbabwe when a Zimbabwe alias matches.",
-    "aliases": ["uganda", "kampala", "murchison", "kenya", "masai mara", "maasai mara", "amboseli", "tanzania", "serengeti", "ngorongoro", "kruger", "south africa", "sabi sands", "botswana", "okavango", "chobe", "namibia", "etosha", "rwanda", "south luangwa", "lower zambezi national park", "mozambique", "india", "sri lanka"],
+    "aliases": ["uganda", "kampala", "murchison", "kenya", "masai mara", "maasai mara", "amboseli", "tanzania", "serengeti", "ngorongoro", "kruger", "south africa", "sabi sands", "botswana", "okavango", "chobe", "namibia", "etosha", "rwanda", "south luangwa", "lower zambezi national park", "mozambique", "india", "sri lanka", "gorilla", "gorillas", "mountain gorillas", "gorilla trekking", "bwindi", "volcanoes national park"],
     "penalty": 8
   },
   "base_hashtags": ["Zimbabwe", "VisitZimbabwe", "ZimbabweSafari", "AfricanSafari", "Wildlife"]

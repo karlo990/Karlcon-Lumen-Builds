@@ -60,6 +60,8 @@ def score_text(raw, G=None):
     other = [a for a in G["other_countries"]["aliases"] if _has(t, a)]
     s = sum(e["weight"] for e in places) + sum(e["weight"] for e in species) + sum(e["weight"] for e in exps)
     s += G["country"]["weight"] if country else 0
+    if not species and not exps:
+        s -= 4  # travel/city content without wildlife or a safari experience
     zim = bool(places) or country
     if other and not zim:
         s -= G["other_countries"]["penalty"]
@@ -140,6 +142,9 @@ def cmd_ingest(a):
             p["detail"], p["opened"] = d, True
             p.update({k: v for k, v in _detail_fields(d).items() if v})
     for p in L["pins"].values():
+        for k in ("title", "alt"):
+            if p.get(k):
+                p[k] = re.sub(r"\s*Pin page\s*$", "", p[k]).strip()
         rescore(p, G)
     save_ledger(L)
     print(f"ingested: {added} new pins, {updated} updated; {len(L['pins'])} total, {len(L['edges'])} landed pins with leads")
@@ -217,6 +222,8 @@ def cmd_rank(a):
             continue
         if a.video and not p.get("is_video"):
             continue
+        if a.zimbabwe and not r.get("zimbabwe"):
+            continue
         tag = p.get("number") or p["rights"]["status"]
         where = ", ".join(r.get("places", [])) or "-"
         what = ", ".join(r.get("species", []) + r.get("experiences", [])) or "-"
@@ -229,7 +236,7 @@ def cmd_next(a):
     """Which unopened pins to open next in your browser: these are the leads."""
     L = load_ledger()
     rows = [x for x in ranked(L) if not x[2].get("opened") and x[2].get("is_video")
-            and not x[2].get("relevance", {}).get("off_target")]
+            and x[2].get("relevance", {}).get("zimbabwe")]
     for total, lead, p in rows[: a.n]:
         print(f"{total:6.1f}  lead {lead:.2f}  {p['url']}  {(p.get('title') or p.get('alt') or '')[:70]}")
     if not rows:
@@ -549,7 +556,8 @@ def main(argv=None):
     s.add_argument("--note"); s.add_argument("--offline", action="store_true"); s.set_defaults(f=cmd_add)
     s = sp.add_parser("rank", help="ranked candidates"); s.add_argument("-n", type=int, default=30)
     s.add_argument("--all", action="store_true", help="include off-target (non-Zimbabwe) pins")
-    s.add_argument("--video", action="store_true"); s.set_defaults(f=cmd_rank)
+    s.add_argument("--video", action="store_true")
+    s.add_argument("--zimbabwe", action="store_true", help="only pins naming a Zimbabwe place"); s.set_defaults(f=cmd_rank)
     s = sp.add_parser("next", help="leads: unopened pins to open next"); s.add_argument("-n", type=int, default=10); s.set_defaults(f=cmd_next)
     s = sp.add_parser("ask", help="draft a permission request to the creator"); s.add_argument("ref"); s.set_defaults(f=cmd_ask)
     s = sp.add_parser("rights", help="record rights status"); s.add_argument("ref"); s.add_argument("status")

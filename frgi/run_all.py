@@ -244,7 +244,7 @@ def cmd_browse(a, f):
 def write_leads_html(f, L, top):
     rows = f.ranked(L)
     nxt = [x for x in rows if not x[2].get("opened") and x[2].get("is_video")
-           and not x[2].get("relevance", {}).get("off_target")][:top * 2]
+           and x[2].get("relevance", {}).get("zimbabwe")][:top * 2]
     best = [x for x in rows if x[2].get("is_video") and x[2].get("relevance", {}).get("zimbabwe")][:top * 2]
 
     def card(total, lead, p):
@@ -331,7 +331,7 @@ def cmd_process(a, f):
     if not L["pins"]:
         return
     print("\nTop Zimbabwe videos:")
-    run(f, "rank", "--video", "-n", a.top)
+    run(f, "rank", "--video", "--zimbabwe", "-n", a.top)
     print("\nLeads to open next:")
     run(f, "next", "-n", min(a.top, 10))
     write_leads_html(f, L, a.top)
