@@ -112,6 +112,25 @@ python frgi.py publish KCERMEDIA_101 --video-url https://<public-host>/KCERMEDIA
 
 This uses the Instagram Graph API, so it needs an Instagram professional account linked to a Meta app. Instagram fetches the video itself, so the MP4 must be at a public HTTPS URL. Publishing only goes ahead once the caption has been reviewed with `apply` (or you pass `--force-draft`).
 
+## Post the videos with your own Instagram scripts
+
+`instagram/post_kcermedia_reels.py` posts the numbered videos as Reels through your existing `Post.py`, using its browser profile, login and share steps. Copy it into the folder that holds `Post.py`, then run:
+
+```
+python post_kcermedia_reels.py --frgi-home "C:\path\to\frgi\frgi-work" --dry-run
+python post_kcermedia_reels.py --frgi-home "C:\path\to\frgi\frgi-work" --limit 1
+```
+
+The first command lists what would be posted without posting anything. The second posts one Reel as a test.
+
+It posts only videos that are:
+- rights-cleared,
+- downloaded,
+- not already published, and
+- reviewed: they have a `caption_final`. To post an unreviewed draft caption instead, add `--allow-draft`.
+
+Every caption credits the creator, and any video whose creator is unknown is skipped. After each post the script writes the result into that video's caption JSON, so re-running continues where it stopped. It posts at most 4 Reels per run (`--daily-limit`), with a 45 to 90 second pause between posts.
+
 ## Settings
 
 | Variable | Default | Meaning |

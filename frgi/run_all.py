@@ -405,7 +405,7 @@ def cmd_bundle(a, f):
     banner("bundle")
     out = Path(a.out or HERE / "frgi_KCERMEDIA_toolkit.zip").resolve()
     files = ["run_all.py", "frgi.py", "grabber.js", "pw_session.mjs", "zimbabwe_keywords.json",
-             "README.md", "RESEARCH.md", ".gitignore"]
+             "README.md", "RESEARCH.md", ".gitignore", "instagram/post_kcermedia_reels.py"]
     skill = HERE.parent / ".claude" / "skills" / "frgi-pinterest-curation" / "SKILL.md"
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
