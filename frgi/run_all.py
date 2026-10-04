@@ -273,6 +273,50 @@ h1{{font-size:20px}} h2{{font-size:16px;margin-top:28px}}
     (f.HOME / "leads.html").write_text(page, encoding="utf-8")
 
 
+def capture_summary(path):
+    try:
+        j = json.loads(Path(path).read_text(encoding="utf-8"))
+        pages = j.get("pages") or [{}]
+        return len(j.get("pins", [])), pages[0].get("url", "?")
+    except Exception as e:
+        return 0, f"unreadable ({e})"
+
+
+def explain_empty(f, caps):
+    """No pins: show what the captures hold, then look for captures with pins in other toolkit folders."""
+    if caps:
+        print("\n  These captures hold no pins (a page was open, but no pin cards were recorded):")
+        for c in caps[-8:]:
+            n, url = capture_summary(c)
+            print(f"    {Path(c).name}: {n} pins, page {url}")
+    mine = {Path(c).resolve() for c in caps}
+    roots = [Path.home() / "Downloads", Path.home() / "Desktop", Path.home() / "Documents", HERE.parent]
+    found = []
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for pat in ("*/frgi-work/captures/*.json", "*/*/frgi-work/captures/*.json", "frgi-work/captures/*.json"):
+            for c in root.glob(pat):
+                if c.resolve() not in mine and capture_summary(c)[0] > 0:
+                    found.append(c)
+    found = sorted(set(found), key=lambda c: c.stat().st_mtime)
+    if not found:
+        print("\n  No captures with pins found in other toolkit folders either.")
+        print("  Browse again: open a search from the keywords tab, SCROLL the results, open a few video pins,")
+        print("  and watch the 'recording: N pins' counter in this window rise before closing the browser.")
+        return
+    total = sum(capture_summary(c)[0] for c in found)
+    print(f"\n  Found {len(found)} capture file(s) with {total} pins in other folders:")
+    for c in found[-10:]:
+        print(f"    {c}  ({capture_summary(c)[0]} pins)")
+    if ask("Import them into this workspace?", "y"):
+        dest = f.HOME / "captures"
+        dest.mkdir(parents=True, exist_ok=True)
+        for c in found:
+            (dest / c.name).write_bytes(c.read_bytes())
+        run(f, "ingest", *[dest / c.name for c in found])
+
+
 def cmd_process(a, f):
     banner("process")
     caps = sorted((f.HOME / "captures").glob("*.json")) + [Path(x) for x in a.captures]
@@ -281,6 +325,9 @@ def cmd_process(a, f):
     else:
         print("  no captures yet (run browse, or pass bookmarklet exports: process <file.json> ...)")
     L = f.load_ledger()
+    if not L["pins"]:
+        explain_empty(f, caps)
+        L = f.load_ledger()
     if not L["pins"]:
         return
     print("\nTop Zimbabwe videos:")

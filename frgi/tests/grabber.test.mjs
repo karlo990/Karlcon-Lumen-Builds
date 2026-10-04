@@ -29,6 +29,23 @@ await page.evaluate(() => { window.__frgiSink = s => { window.__out = s; }; });
 await page.evaluate(src);            // first run: start recording
 await page.evaluate(src);            // second run: export
 const cap = JSON.parse(await page.evaluate(() => window.__out));
+
+// Pinterest-like churn: constant DOM noise plus a virtualised grid that unmounts cards as you scroll.
+await page.evaluate(() => {
+  setInterval(() => { const n = document.createElement('i'); document.body.appendChild(n); n.remove(); }, 40);
+  let k = 0;
+  const grid = document.createElement('div'); document.body.appendChild(grid);
+  const timer = setInterval(() => {
+    grid.innerHTML = `<div data-grid-item><a href="/pin/70000000000000000${k}/" aria-label="Hwange elephants ${k}"><img alt="x"></a><div>0:1${k}</div></div>`;
+    if (++k === 8) clearInterval(timer);
+  }, 450);
+});
+await page.waitForTimeout(450 * 8 + 600);
+await page.evaluate(() => { window.__out = null; });
+await page.evaluate(src);
+const churn = JSON.parse(await page.evaluate(() => window.__out));
+const churned = churn.pins.filter(p => p.id.startsWith('7000000000000000')).length;
+assert.equal(churned, 8, `cards seen under constant DOM churn: ${churned}/8`);
 await browser.close();
 
 assert.equal(cap.tool, 'frgi-grabber');

@@ -62,7 +62,8 @@
   if (!S) {
     S = window.__frgi = { pins: {}, pages: {}, details: {}, page: pageInfo };
     var t = null;
-    new MutationObserver(function () { clearTimeout(t); t = setTimeout(scan, 250); })
+    /* throttle, not debounce: Pinterest mutates constantly (video, carousels), so a debounce never fires */
+    new MutationObserver(function () { if (!t) t = setTimeout(function () { t = null; scan(); }, 300); })
       .observe(document.body, { childList: true, subtree: true });
     var last = location.href;
     setInterval(function () { if (location.href !== last) { last = location.href; setTimeout(scan, 1200); } }, 500);
